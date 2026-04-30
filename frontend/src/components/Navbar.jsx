@@ -1,7 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
+  const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
+
   return (
     <nav className="navbar">
       <div className="container nav-content">
@@ -9,7 +19,14 @@ const Navbar = () => {
         <div className="nav-links">
           <Link to="/vehicles">Find a Car</Link>
           <Link to="/list-my-car">List Your Car</Link>
-          <Link to="/login" className="btn-login">Login</Link>
+          {token ? (
+            <>
+              <span style={{ color: 'var(--text-muted)' }}>Hi, {user?.name.split(' ')[0]}</span>
+              <button onClick={handleLogout} className="btn-login" style={{ cursor: 'pointer', fontFamily: 'inherit' }}>Logout</button>
+            </>
+          ) : (
+            <Link to="/login" className="btn-login">Login</Link>
+          )}
         </div>
       </div>
       <style>{`

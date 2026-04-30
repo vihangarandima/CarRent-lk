@@ -5,6 +5,8 @@ import VehicleListing from './pages/VehicleListing';
 import VehicleDetail from './pages/VehicleDetail';
 import ListVehicle from './pages/ListVehicle';
 import Navbar from './components/Navbar';
+import Login from './pages/Login';
+import Register from './pages/Register';
 
 function App() {
   return (
@@ -17,6 +19,8 @@ function App() {
             <Route path="/vehicles" element={<VehicleListing />} />
             <Route path="/vehicle/:id" element={<VehicleDetail />} />
             <Route path="/list-my-car" element={<ListVehicle />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
           </Routes>
         </main>
       </div>
