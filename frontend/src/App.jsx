@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
+import Splash from './pages/Splash';
 import VehicleListing from './pages/VehicleListing';
 import VehicleDetail from './pages/VehicleDetail';
 import ListVehicle from './pages/ListVehicle';
@@ -15,7 +16,8 @@ function App() {
         <Navbar />
         <main>
           <Routes>
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<Splash />} />
+            <Route path="/home" element={<LandingPage />} />
             <Route path="/vehicles" element={<VehicleListing />} />
             <Route path="/vehicle/:id" element={<VehicleDetail />} />
             <Route path="/list-my-car" element={<ListVehicle />} />

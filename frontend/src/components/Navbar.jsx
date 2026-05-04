@@ -15,7 +15,7 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="container nav-content">
-        <Link to="/" className="logo">CarRents<span>.lk</span></Link>
+        <Link to="/home" className="logo">CarRents<span>.lk</span></Link>
         <div className="nav-links">
           <Link to="/vehicles">Find a Car</Link>
           <Link to="/list-my-car">List Your Car</Link>
