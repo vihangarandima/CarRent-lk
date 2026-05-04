@@ -14,16 +14,18 @@ const LandingPage = () => {
       </section>
       <style>{`
         .featured {
-          padding: 80px 0;
+          padding: 100px 0;
         }
         .featured h2 {
-          font-size: 2.5rem;
-          margin-bottom: 3rem;
+          font-size: 3rem;
+          margin-bottom: 3.5rem;
+          font-weight: 900;
+          letter-spacing: -1.5px;
         }
         .vehicle-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 2rem;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: 2.5rem;
         }
       `}</style>
     </div>

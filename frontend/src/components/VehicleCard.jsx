@@ -21,27 +21,33 @@ const VehicleCard = ({ vehicle }) => {
         .vehicle-card {
           padding: 0;
           overflow: hidden;
-          transition: transform 0.3s;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          background: rgba(255, 255, 255, 0.03);
+          border: 1.5px solid var(--border);
+          border-radius: 1.5rem;
         }
         .vehicle-card:hover {
-          transform: translateY(-5px);
+          transform: translateY(-8px);
+          border-color: rgba(139, 92, 246, 0.3);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
         .card-image {
-          height: 200px;
+          height: 220px;
           background-size: cover;
           background-position: center;
           position: relative;
         }
         .price-tag {
           position: absolute;
-          bottom: 1rem;
+          top: 1rem;
           right: 1rem;
-          background: var(--bg-dark);
-          padding: 0.4rem 0.8rem;
-          border-radius: 0.4rem;
-          font-weight: 600;
-          font-size: 0.9rem;
-          border: 1px solid var(--border);
+          background: var(--grad-primary);
+          padding: 0.5rem 1rem;
+          border-radius: 2rem;
+          font-weight: 800;
+          font-size: 0.85rem;
+          color: white;
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
         .card-body {
           padding: 1.5rem;
@@ -49,25 +55,32 @@ const VehicleCard = ({ vehicle }) => {
         .card-body h3 {
           margin-bottom: 0.5rem;
           font-size: 1.25rem;
+          font-weight: 800;
+          letter-spacing: -0.5px;
+          color: white;
         }
         .year {
           color: var(--text-muted);
-          margin-bottom: 1.5rem;
+          margin-bottom: 1.75rem;
           font-size: 0.9rem;
+          font-weight: 500;
         }
         .btn-secondary {
           display: block;
           text-align: center;
-          background: var(--glass);
-          border: 1px solid var(--border);
-          padding: 0.6rem;
-          border-radius: 0.4rem;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1.5px solid var(--border);
+          padding: 0.75rem;
+          border-radius: 3rem;
           color: white;
-          font-weight: 600;
-          transition: background 0.2s;
+          font-weight: 700;
+          font-size: 0.9rem;
+          transition: all 0.3s;
         }
         .btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: white;
+          color: var(--bg-dark);
+          transform: scale(1.02);
         }
       `}</style>
     </div>

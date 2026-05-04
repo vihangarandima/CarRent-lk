@@ -187,26 +187,40 @@ const ListVehicle = () => {
 
       <style>{`
         .list-page {
-          padding: 80px 2rem;
+          padding: 60px 1rem 100px;
           display: flex;
           justify-content: center;
+          min-height: calc(100vh - 72px);
+          background: radial-gradient(circle at 100% 0%, rgba(139, 92, 246, 0.05), transparent),
+                      radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.05), transparent);
         }
         .form-container {
           max-width: 800px;
           width: 100%;
+          padding: 3rem !important;
+          animation: fadeInUp 0.8s ease-out;
         }
         .form-container h1 {
-          font-size: 2.5rem;
-          margin-bottom: 0.5rem;
+          font-size: 3rem;
+          margin-bottom: 0.75rem;
+          font-weight: 900;
+          letter-spacing: -1.5px;
         }
         .form-container p {
           color: var(--text-muted);
-          margin-bottom: 2.5rem;
+          margin-bottom: 3rem;
+          font-size: 1.1rem;
         }
         .list-form {
           display: flex;
           flex-direction: column;
           gap: 1.5rem;
+        }
+        .wizard-step h2 {
+          font-size: 1.5rem;
+          font-weight: 800;
+          margin-bottom: 1.5rem;
+          color: white;
         }
         .form-grid {
           display: grid;
@@ -216,19 +230,30 @@ const ListVehicle = () => {
         .input-field {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.6rem;
         }
         .input-field label {
-          font-size: 0.9rem;
-          font-weight: 500;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
         .input-field input, .input-field textarea {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid var(--border);
-          padding: 0.75rem;
-          border-radius: 0.5rem;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1.5px solid var(--border);
+          padding: 0.85rem 1rem;
+          border-radius: 0.75rem;
           color: white;
           outline: none;
+          font-family: inherit;
+          font-size: 1rem;
+          transition: all 0.3s;
+        }
+        .input-field input:focus, .input-field textarea:focus {
+          border-color: var(--primary);
+          background: rgba(255, 255, 255, 0.07);
+          box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
         }
         .input-field textarea {
           height: 120px;
@@ -241,34 +266,60 @@ const ListVehicle = () => {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
         .wizard-buttons {
           display: flex;
           gap: 1rem;
-          margin-top: 2rem;
+          margin-top: 3rem;
+        }
+        .btn-primary {
+          background: var(--grad-primary);
+          color: white;
+          padding: 1rem 2rem;
+          border-radius: 3rem;
+          font-weight: 700;
+          font-size: 1rem;
+          box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+          transition: all 0.3s;
+        }
+        .btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
         }
         .btn-secondary {
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid var(--border);
+          background: rgba(255, 255, 255, 0.05);
+          border: 1.5px solid var(--border);
           color: white;
-          padding: 0.75rem 2rem;
-          border-radius: 0.5rem;
+          padding: 1rem 2rem;
+          border-radius: 3rem;
           cursor: pointer;
-          font-weight: bold;
+          font-weight: 700;
+          font-size: 1rem;
+          transition: all 0.3s;
         }
         .btn-secondary:hover {
-           background: rgba(255, 255, 255, 0.15);
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.3);
         }
         .map-placeholder {
-          height: 200px;
-          background: #1e293b;
-          border: 2px dashed #475569;
-          border-radius: 0.5rem;
+          height: 250px;
+          background: rgba(0, 0, 0, 0.2);
+          border: 2px dashed var(--border);
+          border-radius: 1rem;
           display: flex;
           align-items: center;
           justify-content: center;
           margin-top: 1.5rem;
-          color: #94a3b8;
-          font-weight: 500;
+          color: var(--text-muted);
+          font-weight: 600;
+        }
+
+        @media (max-width: 640px) {
+          .form-grid { grid-template-columns: 1fr; }
+          .form-container { padding: 1.5rem !important; }
         }
       `}</style>
     </div>
