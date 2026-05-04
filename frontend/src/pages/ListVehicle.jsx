@@ -2,15 +2,46 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 const ListVehicle = () => {
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    brand: '', model: '', year: '', pricePerDay: '', location: '', description: '', availableFrom: '', availableTo: ''
+    brand: '', model: '', year: '', pricePerDay: '', location: '', description: '', availableFrom: '', availableTo: '', image: ''
   });
+
+  const nextStep = (e) => { e.preventDefault(); setStep(step + 1); };
+  const prevStep = (e) => { e.preventDefault(); setStep(step - 1); };
 
   // 1. Function to handle when the user types in any input field
   const handleChange = (e) => {
     // e.target.name is the 'name' attribute of the input
     // e.target.value is what the user just typed
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Function to upload the photo to our new backend route
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Create a FormData object to send the file
+    const uploadData = new FormData();
+    uploadData.append('image', file);
+
+    try {
+      // Send it to the upload endpoint
+      const res = await axios.post('http://localhost:5000/api/upload', uploadData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      // Save the returned URL (http://localhost:5000/uploads/...) to our form data
+      setFormData({ ...formData, image: res.data.url });
+      alert("Image uploaded successfully!");
+      
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      alert("Failed to upload image.");
+    }
   };
 
   // 2. Function to handle when the user clicks 'Post Listing'
@@ -35,14 +66,20 @@ const ListVehicle = () => {
         }
       };
 
-      console.log("Ready to send this to the backend:", formData);
-      const res = await axios.post('http://localhost:5000/api/vehicles', formData, config);
+      const payload = {
+        ...formData,
+        images: formData.image ? [formData.image] : [] // Backend expects an array of images
+      };
+
+      console.log("Ready to send this to the backend:", payload);
+      const res = await axios.post('http://localhost:5000/api/vehicles', payload, config);
       alert("Superb successfully saved: " + res.data.brand);
       
-      // Optionally reset the form
+      // Optionally reset the form and go to Step 1
       setFormData({
-        brand: '', model: '', year: '', pricePerDay: '', location: '', description: '', availableFrom: '', availableTo: ''
+        brand: '', model: '', year: '', pricePerDay: '', location: '', description: '', availableFrom: '', availableTo: '', image: ''
       });
+      setStep(1);
 
     } catch (err) {
       console.error("Error from backend:", err.response?.data);
@@ -56,43 +93,95 @@ const ListVehicle = () => {
         <h1>List Your Vehicle</h1>
         <p>Earn money by renting your car to verified users in Sri Lanka.</p>
         {/* 3. We tell the form to run 'handleSubmit' when submitted */}
-        <form className="list-form" onSubmit={handleSubmit}>
-          <div className="form-grid">
-            <div className="input-field">
-              <label>Vehicle Brand</label>
-              <input type="text" name="brand" value={formData.brand} onChange={handleChange} placeholder="e.g. Toyota" />
+        <form className="list-form">
+          {/* STEP 1: Basic Vehicle Specs */}
+          {step === 1 && (
+            <div className="wizard-step fade-in">
+              <h2>Step 1: Vehicle Details</h2>
+              <div className="form-grid" style={{ marginTop: '1rem' }}>
+                <div className="input-field">
+                  <label>Vehicle Brand</label>
+                  <input type="text" name="brand" value={formData.brand} onChange={handleChange} placeholder="e.g. Toyota" />
+                </div>
+                <div className="input-field">
+                  <label>Model</label>
+                  <input type="text" name="model" value={formData.model} onChange={handleChange} placeholder="e.g. Aqua" />
+                </div>
+                <div className="input-field">
+                  <label>Year</label>
+                  <input type="number" name="year" value={formData.year} onChange={handleChange} placeholder="2020" />
+                </div>
+                <div className="input-field">
+                  <label>Price per Day (LKR)</label>
+                  <input type="number" name="pricePerDay" value={formData.pricePerDay} onChange={handleChange} placeholder="8500" />
+                </div>
+                <div className="input-field">
+                  <label>Available From</label>
+                  <input type="date" name="availableFrom" value={formData.availableFrom} onChange={handleChange} required />
+                </div>
+                <div className="input-field">
+                  <label>Available To</label>
+                  <input type="date" name="availableTo" value={formData.availableTo} onChange={handleChange} required />
+                </div>
+              </div>
+              <div className="input-field" style={{ marginTop: '1.5rem' }}>
+                <label>Description</label>
+                <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Describe your vehicle's condition, features, etc."></textarea>
+              </div>
+              <button className="btn-primary" onClick={nextStep} style={{ marginTop: '2rem' }}>Next: Upload Photos</button>
             </div>
-            <div className="input-field">
-              <label>Model</label>
-              <input type="text" name="model" value={formData.model} onChange={handleChange} placeholder="e.g. Aqua" />
+          )}
+
+          {/* STEP 2: Photos */}
+          {step === 2 && (
+            <div className="wizard-step fade-in">
+              <h2>Step 2: Add Awesome Photos</h2>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>A good photo increases your rent chances massively.</p>
+              
+              <div className="input-field">
+                <label>Upload Vehicle Photo (from your computer)</label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handlePhotoUpload} 
+                />
+              </div>
+              
+              {formData.image && (
+                <div style={{ marginTop: '1rem', borderRadius: '0.5rem', overflow: 'hidden', height: '200px' }}>
+                  <img src={formData.image} alt="Car Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              )}
+              
+              <div className="wizard-buttons">
+                <button className="btn-secondary" onClick={prevStep}>Back</button>
+                <button className="btn-primary" onClick={nextStep}>Next: Location & Map</button>
+              </div>
             </div>
-            <div className="input-field">
-              <label>Year</label>
-              <input type="number" name="year" value={formData.year} onChange={handleChange} placeholder="2020" />
+          )}
+
+          {/* STEP 3: Location */}
+          {step === 3 && (
+            <div className="wizard-step fade-in">
+              <h2>Step 3: Pin on Map</h2>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Where can the renter pick up this car?</p>
+              
+              <div className="input-field">
+                <label>Location Address</label>
+                <input type="text" name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Colombo 07" />
+              </div>
+              
+              {/* Map Placeholder for Step-by-Step Learning */}
+              <div className="map-placeholder">
+                <p>🗺️ Map Component Will Go Here Shortly!</p>
+              </div>
+
+              <div className="wizard-buttons">
+                <button className="btn-secondary" onClick={prevStep}>Back</button>
+                <button className="btn-primary" onClick={handleSubmit}>Publish Listing 🎉</button>
+              </div>
             </div>
-            <div className="input-field">
-              <label>Price per Day (LKR)</label>
-              <input type="number" name="pricePerDay" value={formData.pricePerDay} onChange={handleChange} placeholder="8500" />
-            </div>
-            <div className="input-field">
-              <label>Available From</label>
-              <input type="date" name="availableFrom" value={formData.availableFrom} onChange={handleChange} required />
-            </div>
-            <div className="input-field">
-              <label>Available To</label>
-              <input type="date" name="availableTo" value={formData.availableTo} onChange={handleChange} required />
-            </div>
-          </div>
-          <div className="input-field">
-            <label>Location</label>
-            <input type="text" name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Colombo 07" />
-          </div>
-          <div className="input-field">
-            <label>Description</label>
-            <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Describe your vehicle's condition, features, etc."></textarea>
-          </div>
-          {/* Changed button type to submit */}
-          <button className="btn-primary" type="submit">Post Listing</button>
+          )}
         </form>
       </div>
 
@@ -144,6 +233,42 @@ const ListVehicle = () => {
         .input-field textarea {
           height: 120px;
           resize: none;
+        }
+        .fade-in {
+          animation: fadeIn 0.4s ease;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .wizard-buttons {
+          display: flex;
+          gap: 1rem;
+          margin-top: 2rem;
+        }
+        .btn-secondary {
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--border);
+          color: white;
+          padding: 0.75rem 2rem;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          font-weight: bold;
+        }
+        .btn-secondary:hover {
+           background: rgba(255, 255, 255, 0.15);
+        }
+        .map-placeholder {
+          height: 200px;
+          background: #1e293b;
+          border: 2px dashed #475569;
+          border-radius: 0.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-top: 1.5rem;
+          color: #94a3b8;
+          font-weight: 500;
         }
       `}</style>
     </div>
