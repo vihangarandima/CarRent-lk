@@ -44,12 +44,17 @@ const Splash = () => {
               <span className="logo-domain">.lk</span>
             </div>
           </div>
-          <button className="splash-login-btn" onClick={() => navigate('/login')}>
-            <span>Login</span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M6 12l4-4-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+          <div className="splash-auth-buttons">
+            <button className="splash-login-btn" onClick={() => navigate('/login')}>
+              <span>Login</span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 12l4-4-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <button className="splash-register-btn" onClick={() => navigate('/register')}>
+              <span>Sign Up</span>
+            </button>
+          </div>
         </header>
 
         {/* Hero Section */}
@@ -243,6 +248,12 @@ const Splash = () => {
           flex-shrink: 0;
         }
 
+        .splash-auth-buttons {
+          display: flex;
+          gap: 1rem;
+          align-items: center;
+        }
+
         .splash-logo {
           display: flex;
           align-items: center;
@@ -305,6 +316,25 @@ const Splash = () => {
           background: rgba(255, 255, 255, 0.25);
           border-color: rgba(255, 255, 255, 0.5);
           transform: translateY(-2px);
+        }
+
+        .splash-register-btn {
+          background: white;
+          border: 1.5px solid white;
+          color: #1e1b4b;
+          padding: 0.625rem 1.5rem;
+          border-radius: 3rem;
+          font-size: 0.95rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.3s;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .splash-register-btn:hover {
+          background: #f8fafc;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }
 
         /* Hero Section */
