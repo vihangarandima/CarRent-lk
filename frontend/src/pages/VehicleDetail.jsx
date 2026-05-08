@@ -1,159 +1,299 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 
 const VehicleDetail = () => {
   const { id } = useParams();
   const [bidPrice, setBidPrice] = useState('');
   const [message, setMessage] = useState('');
+  const [sent, setSent] = useState(false);
 
-  // Mock vehicle
+  // Mock vehicle data
   const vehicle = {
-    brand: 'Toyota', model: 'Aqua', year: 2018, pricePerDay: 8500, location: 'Colombo',
-    description: 'Very well maintained hybrid car. Perfect for city travel and long trips. Fuel efficient and comfortable.',
-    image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=800'
+    brand: 'Toyota', model: 'Aqua', year: 2018, pricePerDay: 8500, location: 'Colombo 07',
+    description: 'Very well maintained hybrid car. Perfect for city travel and long trips. Fuel efficient and comfortable. AC, music system, and full insurance included.',
+    image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=1200',
+    owner: 'Saman Perera',
+    rating: 4.9,
+    trips: 24,
+  };
+
+  const handleSend = (e) => {
+    e.preventDefault();
+    if (!bidPrice) { alert('Please enter your offer amount'); return; }
+    setSent(true);
   };
 
   return (
-    <div className="container detail-page">
-      <div className="detail-layout">
-        <div className="vehicle-info">
-          <img src={vehicle.image} alt={vehicle.brand} className="main-image" />
-          <div className="info-content">
-            <h1>{vehicle.brand} {vehicle.model} ({vehicle.year})</h1>
-            <p className="location">{vehicle.location}</p>
-            <div className="description">
-              <h3>About this car</h3>
-              <p>{vehicle.description}</p>
-            </div>
-          </div>
+    <div className="detail-wrap">
+      <div className="container">
+        {/* Breadcrumb */}
+        <div className="breadcrumb">
+          <Link to="/vehicles">← Back to Listings</Link>
         </div>
 
-        <aside className="bidding-sidebar">
-          <div className="glass-card sticky-sidebar">
-            <h2 className="price">LKR {vehicle.pricePerDay} <span>/ day</span></h2>
-            <hr />
-            <h3>Tag a Price</h3>
-            <p>Make an offer to the owner</p>
-            <div className="bid-form">
-              <input type="number" placeholder="Your offer (LKR)" value={bidPrice} onChange={(e) => setBidPrice(e.target.value)} />
-              <textarea placeholder="Message to owner..." value={message} onChange={(e) => setMessage(e.target.value)}></textarea>
-              <button className="btn-primary w-full">Send Offer</button>
+        <div className="detail-grid">
+          {/* Left: Info */}
+          <div className="detail-main">
+            <div className="main-image-wrap">
+              <img src={vehicle.image} alt={`${vehicle.brand} ${vehicle.model}`} className="main-image" />
+              <div className="image-badge">📍 {vehicle.location}</div>
+            </div>
+
+            <div className="vehicle-header">
+              <div>
+                <span className="vehicle-year-chip">{vehicle.year}</span>
+                <h1>{vehicle.brand} {vehicle.model}</h1>
+              </div>
+              <div className="vehicle-rating">
+                <span>⭐ {vehicle.rating}</span>
+                <small>{vehicle.trips} trips</small>
+              </div>
+            </div>
+
+            <div className="about-section">
+              <h3>About This Car</h3>
+              <p>{vehicle.description}</p>
+            </div>
+
+            <div className="features-section">
+              <h3>What's Included</h3>
+              <div className="features-grid">
+                {['✅ Air Conditioning', '✅ Full Insurance', '✅ Music System', '✅ Free Delivery'].map(f => (
+                  <div key={f} className="feature-tag">{f}</div>
+                ))}
+              </div>
             </div>
           </div>
-        </aside>
+
+          {/* Right: Bid Sidebar */}
+          <aside className="bid-panel">
+            <div className="bid-card">
+              <div className="price-row">
+                <span className="price">LKR {vehicle.pricePerDay.toLocaleString()}</span>
+                <span className="per-day">/ day</span>
+              </div>
+              <div className="owner-row">
+                <div className="owner-avatar">{vehicle.owner[0]}</div>
+                <div>
+                  <strong>{vehicle.owner}</strong>
+                  <p>Vehicle Owner</p>
+                </div>
+              </div>
+              <hr className="divider" />
+
+              {sent ? (
+                <div className="sent-msg">
+                  <span>🎉</span>
+                  <h3>Offer Sent!</h3>
+                  <p>The owner will contact you soon.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleSend} className="bid-form">
+                  <h3>Make an Offer</h3>
+                  <p>Negotiate the price with the owner</p>
+                  <div className="field">
+                    <label>Your Offer (LKR / day)</label>
+                    <input
+                      type="number"
+                      placeholder={`e.g. ${vehicle.pricePerDay - 1000}`}
+                      value={bidPrice}
+                      onChange={(e) => setBidPrice(e.target.value)}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Message (optional)</label>
+                    <textarea
+                      placeholder="Hi, I'd like to rent your car for..."
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                  <button className="btn-primary" type="submit">Send Offer 📩</button>
+                </form>
+              )}
+            </div>
+          </aside>
+        </div>
       </div>
 
       <style>{`
-        .detail-page {
-          padding: 60px 2rem 100px;
-          background: radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.05), transparent),
-                      radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.05), transparent);
+        .detail-wrap {
+          padding: 2rem 0 6rem;
         }
-        .detail-layout {
+        .breadcrumb {
+          margin-bottom: 1.5rem;
+        }
+        .breadcrumb a {
+          color: var(--text-muted);
+          font-weight: 600;
+          font-size: 0.9rem;
+          transition: color 0.2s;
+        }
+        .breadcrumb a:hover { color: white; }
+        .detail-grid {
           display: grid;
-          grid-template-columns: 1fr 380px;
-          gap: 4rem;
-          animation: fadeInUp 0.8s ease-out;
+          grid-template-columns: 1fr 360px;
+          gap: 2.5rem;
+          align-items: start;
+        }
+        .main-image-wrap {
+          position: relative;
+          margin-bottom: 2rem;
         }
         .main-image {
           width: 100%;
-          height: 500px;
+          height: 420px;
           object-fit: cover;
-          border-radius: 2rem;
-          margin-bottom: 3rem;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+          border-radius: 1.25rem;
+          box-shadow: 0 16px 40px rgba(0,0,0,0.4);
         }
-        .vehicle-info h1 {
-          font-size: 3rem;
-          font-weight: 900;
-          letter-spacing: -1.5px;
-          margin-bottom: 0.5rem;
+        .image-badge {
+          position: absolute;
+          bottom: 1rem;
+          left: 1rem;
+          background: rgba(0,0,0,0.65);
+          backdrop-filter: blur(10px);
+          color: white;
+          padding: 0.4rem 0.9rem;
+          border-radius: 100px;
+          font-size: 0.85rem;
+          font-weight: 600;
         }
-        .location {
-          color: var(--secondary);
-          font-weight: 700;
+        .vehicle-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
           margin-bottom: 2rem;
-          font-size: 1.1rem;
-          text-transform: uppercase;
-          letter-spacing: 1px;
         }
-        .description {
-          margin-top: 3rem;
-        }
-        .description h3 {
-          font-size: 1.5rem;
-          font-weight: 800;
-          margin-bottom: 1.25rem;
-        }
-        .description p {
-          color: var(--text-muted);
-          font-size: 1.1rem;
-          line-height: 1.8;
-        }
-        .bidding-sidebar .sticky-sidebar {
-          position: sticky;
-          top: 100px;
-          padding: 2.5rem !important;
-        }
-        .price {
-          font-size: 2.5rem;
-          font-weight: 900;
-          margin-bottom: 1rem;
-          letter-spacing: -1px;
-        }
-        .price span {
-          font-size: 1.1rem;
-          color: var(--text-muted);
-          font-weight: 500;
-        }
-        hr {
-          border: none;
-          border-top: 1px solid var(--border);
-          margin: 2rem 0;
-        }
-        .bidding-sidebar h3 {
-          font-size: 1.25rem;
-          font-weight: 800;
+        .vehicle-year-chip {
+          display: inline-block;
+          background: rgba(124,58,237,0.15);
+          color: var(--primary-light);
+          padding: 0.25rem 0.75rem;
+          border-radius: 100px;
+          font-size: 0.8rem;
+          font-weight: 700;
           margin-bottom: 0.5rem;
         }
-        .bid-form {
-          margin-top: 2rem;
+        .vehicle-header h1 { font-size: 2rem; }
+        .vehicle-rating {
           display: flex;
           flex-direction: column;
-          gap: 1.25rem;
-        }
-        .bid-form input, .bid-form textarea {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1.5px solid var(--border);
-          padding: 1rem;
+          align-items: center;
+          gap: 0.25rem;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid var(--border);
           border-radius: 0.75rem;
+          padding: 0.75rem 1rem;
+          text-align: center;
+          flex-shrink: 0;
+        }
+        .vehicle-rating span { font-weight: 800; font-size: 1.1rem; }
+        .vehicle-rating small { color: var(--text-muted); font-size: 0.8rem; }
+        .about-section, .features-section {
+          margin-bottom: 2rem;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid var(--border);
+          border-radius: 1rem;
+          padding: 1.5rem;
+        }
+        .about-section h3, .features-section h3 {
+          margin-bottom: 0.75rem;
+          font-size: 1.1rem;
+        }
+        .about-section p { line-height: 1.75; color: var(--text-muted); }
+        .features-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.6rem;
+          margin-top: 0.75rem;
+        }
+        .feature-tag {
+          font-size: 0.9rem;
+          font-weight: 500;
+          color: var(--text-muted);
+        }
+        /* Bid Panel */
+        .bid-panel { position: sticky; top: 88px; }
+        .bid-card {
+          background: rgba(255,255,255,0.05);
+          border: 1px solid var(--border);
+          border-radius: 1.25rem;
+          padding: 1.75rem;
+          backdrop-filter: blur(20px);
+        }
+        .price-row {
+          display: flex;
+          align-items: baseline;
+          gap: 0.4rem;
+          margin-bottom: 1.25rem;
+        }
+        .price {
+          font-size: 2rem;
+          font-weight: 900;
           color: white;
-          width: 100%;
-          outline: none;
-          font-family: inherit;
-          transition: all 0.3s;
+          letter-spacing: -1px;
         }
-        .bid-form input:focus, .bid-form textarea:focus {
-          border-color: var(--primary);
-          background: rgba(255, 255, 255, 0.07);
+        .per-day { color: var(--text-muted); font-weight: 500; }
+        .owner-row {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 1.25rem;
         }
+        .owner-avatar {
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          background: var(--grad-primary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800;
+          font-size: 1.1rem;
+          color: white;
+          flex-shrink: 0;
+        }
+        .owner-row strong { display: block; color: white; font-size: 0.95rem; }
+        .owner-row p { color: var(--text-muted); font-size: 0.8rem; margin: 0; }
+        .bid-form h3 { margin-bottom: 0.3rem; font-size: 1.1rem; }
+        .bid-form > p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; }
+        .bid-form { display: flex; flex-direction: column; gap: 1rem; }
         .bid-form textarea {
-          height: 120px;
-          resize: none;
-        }
-        .w-full {
+          background: rgba(255,255,255,0.04);
+          border: 1.5px solid var(--border);
+          padding: 0.85rem 1rem;
+          border-radius: 0.5rem;
+          color: var(--text);
+          font-family: inherit;
+          font-size: 0.95rem;
+          outline: none;
+          resize: vertical;
           width: 100%;
+          transition: all 0.2s;
         }
-
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
+        .bid-form textarea:focus {
+          border-color: var(--primary);
+          background: rgba(124,58,237,0.06);
         }
+        .sent-msg {
+          text-align: center;
+          padding: 1.5rem 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .sent-msg span { font-size: 2.5rem; }
+        .sent-msg h3 { color: var(--accent); }
+        .sent-msg p { color: var(--text-muted); font-size: 0.9rem; }
 
-        @media (max-width: 1024px) {
-          .detail-layout { grid-template-columns: 1fr; gap: 3rem; }
-          .bidding-sidebar .sticky-sidebar { position: relative; top: 0; }
-          .main-image { height: 350px; }
+        @media (max-width: 900px) {
+          .detail-grid { grid-template-columns: 1fr; }
+          .bid-panel { position: relative; top: auto; }
+          .main-image { height: 280px; }
+          .features-grid { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>

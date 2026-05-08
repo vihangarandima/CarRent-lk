@@ -51,6 +51,9 @@ const Splash = () => {
                 <path d="M6 12l4-4-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
+            <button className="splash-login-btn" style={{ borderColor: 'var(--primary)' }} onClick={() => navigate('/profile')}>
+              <span>Profile</span>
+            </button>
             <button className="splash-register-btn" onClick={() => navigate('/register')}>
               <span>Sign Up</span>
             </button>

@@ -1,464 +1,330 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '350px',
+  borderRadius: '1.5rem',
+  border: '1px solid #E2E8F0'
+};
 
 const ListVehicle = () => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    brand: '', model: '', year: '', pricePerDay: '', location: '', description: '', availableFrom: '', availableTo: '', images: ['', '', '', '', '']
+    brand: '', model: '', year: '', pricePerDay: '', location: '', description: '',
+    availableFrom: '', availableTo: '', images: ['', '', '', '', ''],
+    lat: 6.9271, lng: 79.8612
+  });
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
   });
 
   const nextStep = (e) => { e.preventDefault(); setStep(step + 1); };
   const prevStep = (e) => { e.preventDefault(); setStep(step - 1); };
 
-  // 1. Function to handle when the user types in any input field
   const handleChange = (e) => {
-    // e.target.name is the 'name' attribute of the input
-    // e.target.value is what the user just typed
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Function to upload the photo to our new backend route
   const handlePhotoUpload = async (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    // Create a FormData object to send the file
     const uploadData = new FormData();
     uploadData.append('image', file);
 
     try {
-      // Send it to the upload endpoint
       const res = await axios.post('http://localhost:5000/api/upload', uploadData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
-      // Save the returned URL to the specific index in the images array
       const newImages = [...formData.images];
       newImages[index] = res.data.url;
       setFormData({ ...formData, images: newImages });
-      alert(`Image ${index + 1} uploaded successfully!`);
-      
     } catch (err) {
-      console.error("Error uploading image:", err);
       alert("Failed to upload image.");
     }
   };
 
-  // 2. Function to handle when the user clicks 'Post Listing'
+  const onMapClick = (e) => {
+    setFormData({ ...formData, lat: e.latLng.lat(), lng: e.latLng.lng() });
+  };
+
   const handleSubmit = async (e) => {
-    e.preventDefault(); // This stops the page from refreshing!
-    
+    e.preventDefault();
     try {
-      // Assuming you store the JWT token in localStorage when a user logs in
       const token = localStorage.getItem('token');
-      
-      if (!token) {
-        alert("You must be logged in to post a vehicle. Please go securely login first.");
-        // As a quick hack for testing, you could hardcode a bypass in your backend, 
-        // but it's best to login and set the token.
-        return;
-      }
+      if (!token) return alert("Please login first.");
 
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        }
-      };
-
-      const payload = {
-        ...formData,
-        // Backend expects an array of images, which we already have in formData.images
-      };
-
-      console.log("Ready to send this to the backend:", payload);
-      const res = await axios.post('http://localhost:5000/api/vehicles', payload, config);
-      alert("Superb successfully saved: " + res.data.brand);
-      
-      // Optionally reset the form and go to Step 1
-      setFormData({
-        brand: '', model: '', year: '', pricePerDay: '', location: '', description: '', availableFrom: '', availableTo: '', images: ['', '', '', '', '']
-      });
+      const config = { headers: { 'Content-Type': 'application/json', 'x-auth-token': token } };
+      const res = await axios.post('http://localhost:5000/api/vehicles', formData, config);
+      alert("Vehicle listed successfully!");
       setStep(1);
-
     } catch (err) {
-      console.error("Error from backend:", err.response?.data);
-      alert(err.response?.data?.msg || "Failed to save vehicle. Check console for details.");
+      alert("Error saving vehicle.");
     }
   };
 
   return (
-    <div className="container list-page">
-      <div className="form-container glass-card">
-        <h1>List Your Vehicle</h1>
-        <p>Earn money by renting your car to verified users in Sri Lanka.</p>
-        {/* 3. We tell the form to run 'handleSubmit' when submitted */}
-        <form className="list-form">
-          {/* STEP 1: Basic Vehicle Specs */}
-          {step === 1 && (
-            <div className="wizard-step fade-in">
-              <h2>Step 1: Vehicle Details</h2>
-              <div className="form-grid" style={{ marginTop: '1rem' }}>
-                <div className="input-field">
-                  <label>Vehicle Brand</label>
-                  <input type="text" name="brand" value={formData.brand} onChange={handleChange} placeholder="e.g. Toyota" />
-                </div>
-                <div className="input-field">
-                  <label>Model</label>
-                  <input type="text" name="model" value={formData.model} onChange={handleChange} placeholder="e.g. Aqua" />
-                </div>
-                <div className="input-field">
-                  <label>Year</label>
-                  <input type="number" name="year" value={formData.year} onChange={handleChange} placeholder="2020" />
-                </div>
-                <div className="input-field">
-                  <label>Price per Day (LKR)</label>
-                  <input type="number" name="pricePerDay" value={formData.pricePerDay} onChange={handleChange} placeholder="8500" />
-                </div>
-                <div className="input-field">
-                  <label>Available From</label>
-                  <input type="date" name="availableFrom" value={formData.availableFrom} onChange={handleChange} required />
-                </div>
-                <div className="input-field">
-                  <label>Available To</label>
-                  <input type="date" name="availableTo" value={formData.availableTo} onChange={handleChange} required />
-                </div>
-              </div>
-              <div className="input-field" style={{ marginTop: '1.5rem' }}>
-                <label>Description</label>
-                <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Describe your vehicle's condition, features, etc."></textarea>
-              </div>
-              <button className="btn-primary" onClick={nextStep} style={{ marginTop: '2rem' }}>Next: Upload Photos</button>
-            </div>
-          )}
+    <div className="list-page">
+      <div className="container">
 
-          {/* STEP 2: Photos */}
-          {step === 2 && (
-            <div className="wizard-step fade-in">
-              <h2>Step 2: Add 5 Awesome Photos</h2>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Important:</span> Exactly 5 photos are mandatory to list your vehicle.
-              </p>
-              
-              <div className="upload-grid">
-                {[0, 1, 2, 3, 4].map((index) => (
-                  <div key={index} className="upload-box-wrapper">
-                    <label className="image-slot-label">Photo {index + 1}</label>
-                    <div className={`upload-box ${formData.images[index] ? 'has-image' : ''}`}>
-                      {formData.images[index] ? (
-                        <div className="preview-container">
-                          <img src={formData.images[index]} alt={`Slot ${index + 1}`} />
-                          <button 
-                            type="button" 
-                            className="remove-image" 
-                            onClick={() => {
-                              const newImages = [...formData.images];
-                              newImages[index] = '';
-                              setFormData({ ...formData, images: newImages });
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="upload-placeholder">
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={(e) => handlePhotoUpload(e, index)} 
-                            id={`file-input-${index}`}
-                            className="hidden-input"
-                          />
-                          <label htmlFor={`file-input-${index}`} className="upload-trigger">
-                            <span className="plus">+</span>
-                            <span>Upload</span>
-                          </label>
-                        </div>
-                      )}
+        {/* Header Section mimicking Home Page */}
+        <div className="list-header">
+          <div className="hero-badge">
+            <span className="sparkle">✦</span>
+            <span>Sri Lanka's modern car marketplace</span>
+          </div>
+          <h1 className="list-title">Turn your car into <span className="text-purple">earnings.</span></h1>
+          <p className="list-subtitle">Complete the 3 steps below to get your vehicle verified and live.</p>
+        </div>
+
+        {/* Custom Stepper */}
+        <div className="stepper-container">
+          <div className={`step-pill ${step >= 1 ? 'active' : ''}`}>1. Details</div>
+          <div className="step-line"></div>
+          <div className={`step-pill ${step >= 2 ? 'active' : ''}`}>2. Photos</div>
+          <div className="step-line"></div>
+          <div className={`step-pill ${step >= 3 ? 'active' : ''}`}>3. Location</div>
+        </div>
+
+        <div className="main-listing-layout">
+          <div className="form-content-card">
+            <form onSubmit={handleSubmit}>
+
+              {/* STEP 1 */}
+              {step === 1 && (
+                <div className="fade-in">
+                  <h3 className="section-title">Vehicle Specifications</h3>
+                  <div className="form-grid">
+                    <div className="input-field">
+                      <label>BRAND</label>
+                      <input type="text" name="brand" value={formData.brand} onChange={handleChange} placeholder="e.g. Toyota" required />
+                    </div>
+                    <div className="input-field">
+                      <label>MODEL</label>
+                      <input type="text" name="model" value={formData.model} onChange={handleChange} placeholder="e.g. Aqua" required />
+                    </div>
+                    <div className="input-field">
+                      <label>YEAR</label>
+                      <input type="number" name="year" value={formData.year} onChange={handleChange} placeholder="2022" required />
+                    </div>
+                    <div className="input-field">
+                      <label>DAILY PRICE (LKR)</label>
+                      <input type="number" name="pricePerDay" value={formData.pricePerDay} onChange={handleChange} placeholder="8500" required />
                     </div>
                   </div>
-                ))}
-              </div>
-              
-              <div className="wizard-buttons">
-                <button className="btn-secondary" onClick={prevStep}>Back</button>
-                <button 
-                  className="btn-primary" 
-                  onClick={(e) => {
-                    const filledImages = formData.images.filter(img => img.length > 0);
-                    if (filledImages.length < 5) {
-                      e.preventDefault();
-                      alert("Please upload all 5 mandatory images before proceeding.");
-                    } else {
-                      nextStep(e);
-                    }
-                  }}
-                  style={{ opacity: formData.images.filter(img => img.length > 0).length === 5 ? 1 : 0.6 }}
-                >
-                  Next: Location & Map
-                </button>
-              </div>
-            </div>
-          )}
+                  <div className="input-field full-width" style={{ marginTop: '1.5rem' }}>
+                    <label>DESCRIPTION</label>
+                    <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Tell us about the features, fuel type, and condition..." required></textarea>
+                  </div>
+                  <button className="btn-primary-lg" onClick={nextStep}>Continue to Photos</button>
+                </div>
+              )}
 
-          {/* STEP 3: Location */}
-          {step === 3 && (
-            <div className="wizard-step fade-in">
-              <h2>Step 3: Pin on Map</h2>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Where can the renter pick up this car?</p>
-              
-              <div className="input-field">
-                <label>Location Address</label>
-                <input type="text" name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Colombo 07" />
-              </div>
-              
-              {/* Map Placeholder for Step-by-Step Learning */}
-              <div className="map-placeholder">
-                <p>🗺️ Map Component Will Go Here Shortly!</p>
-              </div>
+              {/* STEP 2 */}
+              {step === 2 && (
+                <div className="fade-in">
+                  <h3 className="section-title">Upload High-Quality Photos</h3>
+                  <p className="step-note">Exactly 5 photos are required for a "Verified" badge.</p>
+                  <div className="upload-grid">
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <div key={i} className={`upload-box ${formData.images[i] ? 'has-image' : ''}`}>
+                        {formData.images[i] ? (
+                          <img src={formData.images[i]} alt="Preview" />
+                        ) : (
+                          <label className="upload-label">
+                            <input type="file" hidden onChange={(e) => handlePhotoUpload(e, i)} />
+                            <span className="plus">+</span>
+                          </label>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="button-group">
+                    <button className="btn-outline" onClick={prevStep}>Back</button>
+                    <button className="btn-primary-lg" onClick={(e) => formData.images.filter(img => img).length === 5 ? nextStep(e) : alert("All 5 photos required")}>Set Location</button>
+                  </div>
+                </div>
+              )}
 
-              <div className="wizard-buttons">
-                <button className="btn-secondary" onClick={prevStep}>Back</button>
-                <button 
-                  className="btn-primary" 
-                  onClick={(e) => {
-                    const filledImages = formData.images.filter(img => img.length > 0);
-                    if (filledImages.length < 5) {
-                      e.preventDefault();
-                      alert("Error: 5 images are mandatory. Please go back to Step 2.");
-                      return;
-                    }
-                    handleSubmit(e);
-                  }}
-                >
-                  Publish Listing 🎉
-                </button>
-              </div>
+              {/* STEP 3 */}
+              {step === 3 && (
+                <div className="fade-in">
+                  <h3 className="section-title">Pickup Location</h3>
+                  <input className="mb-4" type="text" name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Havelock City, Colombo 05" required />
+                  <div className="map-container">
+                    {isLoaded ? (
+                      <GoogleMap mapContainerStyle={mapContainerStyle} center={{ lat: formData.lat, lng: formData.lng }} zoom={14} onClick={onMapClick}>
+                        <Marker position={{ lat: formData.lat, lng: formData.lng }} />
+                      </GoogleMap>
+                    ) : <div className="map-loading">Loading Map...</div>}
+                  </div>
+                  <div className="button-group">
+                    <button className="btn-outline" onClick={prevStep}>Back</button>
+                    <button className="btn-primary-lg" type="submit">Publish Listing</button>
+                  </div>
+                </div>
+              )}
+            </form>
+          </div>
+
+          {/* Sidebar Tips - Consistent with Home Page "Why Us" */}
+          <div className="listing-sidebar">
+            <div className="tip-card">
+              <h4>Verified Hosts</h4>
+              <p>We verify every vehicle to ensure safety for our community.</p>
             </div>
-          )}
-        </form>
+            <div className="tip-card">
+              <h4>Insurance Included</h4>
+              <p>Your vehicle is covered under our premier trip insurance policy.</p>
+            </div>
+            <div className="earning-preview">
+              <span className="label">Potential Earnings</span>
+              <span className="amount">LKR 120,000+</span>
+              <span className="sub">average per month</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <style>{`
-        .upload-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-          gap: 1rem;
-          margin-bottom: 2rem;
-        }
-        .upload-box-wrapper {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-        .image-slot-label {
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: var(--text-muted);
-          text-align: center;
-        }
-        .upload-box {
-          aspect-ratio: 1;
-          background: rgba(255, 255, 255, 0.03);
-          border: 2px dashed var(--border);
-          border-radius: 1rem;
-          position: relative;
-          transition: all 0.3s;
-          overflow: hidden;
-        }
-        .upload-box:hover {
-          background: rgba(255, 255, 255, 0.05);
-          border-color: var(--primary);
-        }
-        .upload-box.has-image {
-          border-style: solid;
-          border-color: var(--primary);
-        }
-        .hidden-input {
-          display: none;
-        }
-        .upload-trigger {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          color: var(--text-muted);
-          gap: 0.5rem;
-        }
-        .upload-trigger .plus {
-          font-size: 2rem;
-          line-height: 1;
-        }
-        .preview-container {
-          width: 100%;
-          height: 100%;
-          position: relative;
-        }
-        .preview-container img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-        .remove-image {
-          position: absolute;
-          top: 5px;
-          right: 5px;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background: rgba(0, 0, 0, 0.7);
-          color: white;
-          border: none;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          font-size: 1.2rem;
-          transition: all 0.2s;
-        }
-        .remove-image:hover {
-          background: #ef4444;
-          transform: scale(1.1);
-        }
         .list-page {
-          padding: 60px 1rem 100px;
-          display: flex;
-          justify-content: center;
-          min-height: calc(100vh - 72px);
-          background: radial-gradient(circle at 100% 0%, rgba(139, 92, 246, 0.05), transparent),
-                      radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.05), transparent);
+          background: #FAFAFA;
+          padding: 80px 20px;
+          min-height: 100vh;
+          font-family: 'Inter', sans-serif;
         }
-        .form-container {
-          max-width: 800px;
-          width: 100%;
-          padding: 3rem !important;
-          animation: fadeInUp 0.8s ease-out;
-        }
-        .form-container h1 {
-          font-size: 3rem;
-          margin-bottom: 0.75rem;
-          font-weight: 900;
-          letter-spacing: -1.5px;
-        }
-        .form-container p {
-          color: var(--text-muted);
-          margin-bottom: 3rem;
-          font-size: 1.1rem;
-        }
-        .list-form {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-        }
-        .wizard-step h2 {
-          font-size: 1.5rem;
-          font-weight: 800;
-          margin-bottom: 1.5rem;
-          color: white;
-        }
-        .form-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
-        }
-        .input-field {
-          display: flex;
-          flex-direction: column;
-          gap: 0.6rem;
-        }
-        .input-field label {
-          font-size: 0.85rem;
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* Header styling */
+        .list-header { text-align: center; margin-bottom: 50px; }
+        .hero-badge {
+          background: #F3E8FF;
+          color: #7C3AED;
+          padding: 6px 16px;
+          border-radius: 100px;
+          font-size: 13px;
           font-weight: 600;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 20px;
         }
-        .input-field input, .input-field textarea {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1.5px solid var(--border);
-          padding: 0.85rem 1rem;
-          border-radius: 0.75rem;
-          color: white;
-          outline: none;
-          font-family: inherit;
-          font-size: 1rem;
-          transition: all 0.3s;
-        }
-        .input-field input:focus, .input-field textarea:focus {
-          border-color: var(--primary);
-          background: rgba(255, 255, 255, 0.07);
-          box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
-        }
-        .input-field textarea {
-          height: 120px;
-          resize: none;
-        }
-        .fade-in {
-          animation: fadeIn 0.4s ease;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .wizard-buttons {
-          display: flex;
-          gap: 1rem;
-          margin-top: 3rem;
-        }
-        .btn-primary {
-          background: var(--grad-primary);
-          color: white;
-          padding: 1rem 2rem;
-          border-radius: 3rem;
-          font-weight: 700;
-          font-size: 1rem;
-          box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
-          transition: all 0.3s;
-        }
-        .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
-        }
-        .btn-secondary {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1.5px solid var(--border);
-          color: white;
-          padding: 1rem 2rem;
-          border-radius: 3rem;
-          cursor: pointer;
-          font-weight: 700;
-          font-size: 1rem;
-          transition: all 0.3s;
-        }
-        .btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: rgba(255, 255, 255, 0.3);
-        }
-        .map-placeholder {
-          height: 250px;
-          background: rgba(0, 0, 0, 0.2);
-          border: 2px dashed var(--border);
-          border-radius: 1rem;
+        .list-title { font-size: 3rem; font-weight: 800; color: #111827; margin-bottom: 10px; }
+        .text-purple { color: #7C3AED; }
+        .list-subtitle { color: #6B7280; font-size: 1.1rem; }
+
+        /* Stepper */
+        .stepper-container {
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-top: 1.5rem;
-          color: var(--text-muted);
-          font-weight: 600;
+          gap: 15px;
+          margin-bottom: 40px;
+        }
+        .step-pill {
+          padding: 8px 20px;
+          background: #E5E7EB;
+          border-radius: 100px;
+          font-weight: 700;
+          font-size: 14px;
+          color: #6B7280;
+        }
+        .step-pill.active { background: #7C3AED; color: white; }
+        .step-line { width: 40px; height: 2px; background: #E5E7EB; }
+
+        /* Layout Grid */
+        .main-listing-layout {
+          display: grid;
+          grid-template-columns: 1fr 300px;
+          gap: 40px;
         }
 
-        @media (max-width: 640px) {
-          .form-grid { grid-template-columns: 1fr; }
-          .form-container { padding: 1.5rem !important; }
+        .form-content-card {
+          background: white;
+          padding: 40px;
+          border-radius: 24px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+          border: 1px solid #F1F5F9;
+        }
+
+        /* Form Elements */
+        .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 25px; color: #1F2937; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .input-field label { display: block; font-size: 11px; font-weight: 800; color: #9CA3AF; margin-bottom: 8px; letter-spacing: 0.5px; }
+        input, textarea {
+          width: 100%;
+          padding: 14px 20px;
+          border-radius: 12px;
+          border: 1px solid #E5E7EB;
+          background: #F9FAFB;
+          font-size: 15px;
+          transition: 0.3s;
+        }
+        input:focus { outline: none; border-color: #7C3AED; background: white; box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1); }
+
+        /* Buttons */
+        .btn-primary-lg {
+          background: #7C3AED;
+          color: white;
+          width: 100%;
+          padding: 16px;
+          border-radius: 100px;
+          font-weight: 700;
+          border: none;
+          cursor: pointer;
+          margin-top: 30px;
+          font-size: 16px;
+          box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3);
+          transition: 0.3s;
+        }
+        .btn-primary-lg:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(124, 58, 237, 0.4); }
+        .btn-outline { background: none; border: 1px solid #E5E7EB; padding: 12px 25px; border-radius: 100px; font-weight: 600; cursor: pointer; }
+        .button-group { display: flex; gap: 15px; align-items: center; margin-top: 30px; }
+
+        /* Upload Box */
+        .upload-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+        .upload-box {
+          aspect-ratio: 1;
+          background: #F3F4F6;
+          border: 2px dashed #D1D5DB;
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+        .upload-box img { width: 100%; height: 100%; object-fit: cover; }
+        .plus { font-size: 24px; color: #9CA3AF; }
+
+        /* Sidebar */
+        .tip-card {
+          background: #F5F3FF;
+          padding: 20px;
+          border-radius: 16px;
+          margin-bottom: 15px;
+          border: 1px solid #DDD6FE;
+        }
+        .tip-card h4 { color: #6D28D9; margin-bottom: 8px; font-size: 15px; }
+        .tip-card p { font-size: 13px; color: #5B21B6; line-height: 1.5; }
+        .earning-preview {
+          background: #111827;
+          padding: 25px;
+          border-radius: 20px;
+          color: white;
+          text-align: center;
+        }
+        .earning-preview .amount { display: block; font-size: 20px; font-weight: 800; color: #A78BFA; margin: 5px 0; }
+        .earning-preview .label { font-size: 12px; opacity: 0.7; text-transform: uppercase; }
+        .earning-preview .sub { font-size: 11px; opacity: 0.5; }
+
+        .fade-in { animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 900px) {
+          .main-listing-layout { grid-template-columns: 1fr; }
+          .list-title { font-size: 2.2rem; }
         }
       `}</style>
     </div>

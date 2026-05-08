@@ -2,85 +2,116 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const VehicleCard = ({ vehicle }) => {
-  // Use the first image in the array, or a cool default car silhouette if none exists
-  const coverImage = vehicle.images && vehicle.images.length > 0 
-    ? vehicle.images[0] 
-    : 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=300';
+  const coverImage = vehicle.images && vehicle.images.length > 0 && vehicle.images[0]
+    ? vehicle.images[0]
+    : 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=600';
 
   return (
-    <div className="vehicle-card glass-card">
-      <div className="card-image" style={{ backgroundImage: `url(${coverImage})` }}>
-        <div className="price-tag">LKR {vehicle.pricePerDay}/day</div>
+    <div className="v-card">
+      <div className="v-card-image" style={{ backgroundImage: `url(${coverImage})` }}>
+        <div className="v-price">LKR {vehicle.pricePerDay?.toLocaleString()}<span>/day</span></div>
+        <div className="v-location">📍 {vehicle.location}</div>
       </div>
-      <div className="card-body">
-        <h3>{vehicle.brand} {vehicle.model}</h3>
-        <p className="year">{vehicle.year} • {vehicle.location}</p>
-        <Link to={`/vehicle/${vehicle._id}`} className="btn-secondary">View Details</Link>
+      <div className="v-card-body">
+        <div className="v-meta">
+          <span className="v-year">{vehicle.year}</span>
+          <span className="v-dot">·</span>
+          <span className="v-type">Car</span>
+        </div>
+        <h3 className="v-name">{vehicle.brand} {vehicle.model}</h3>
+        <Link to={`/vehicle/${vehicle._id}`} className="v-btn">
+          View Details →
+        </Link>
       </div>
+
       <style>{`
-        .vehicle-card {
-          padding: 0;
+        .v-card {
+          background: white;
+          border: 1px solid #f3f4f6;
+          border-radius: 1.25rem;
           overflow: hidden;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          background: rgba(255, 255, 255, 0.03);
-          border: 1.5px solid var(--border);
-          border-radius: 1.5rem;
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
-        .vehicle-card:hover {
+        .v-card:hover {
           transform: translateY(-8px);
-          border-color: rgba(139, 92, 246, 0.3);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
-        .card-image {
+        .v-card-image {
           height: 220px;
           background-size: cover;
           background-position: center;
           position: relative;
         }
-        .price-tag {
+        .v-price {
           position: absolute;
           top: 1rem;
-          right: 1rem;
-          background: var(--grad-primary);
+          left: 1rem;
+          background: #8B5CF6;
+          color: white;
           padding: 0.5rem 1rem;
-          border-radius: 2rem;
-          font-weight: 800;
-          font-size: 0.85rem;
-          color: white;
-          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-        }
-        .card-body {
-          padding: 1.5rem;
-        }
-        .card-body h3 {
-          margin-bottom: 0.5rem;
-          font-size: 1.25rem;
-          font-weight: 800;
-          letter-spacing: -0.5px;
-          color: white;
-        }
-        .year {
-          color: var(--text-muted);
-          margin-bottom: 1.75rem;
-          font-size: 0.9rem;
-          font-weight: 500;
-        }
-        .btn-secondary {
-          display: block;
-          text-align: center;
-          background: rgba(255, 255, 255, 0.1);
-          border: 1.5px solid var(--border);
-          padding: 0.75rem;
-          border-radius: 3rem;
-          color: white;
+          border-radius: 100px;
           font-weight: 700;
           font-size: 0.9rem;
-          transition: all 0.3s;
+          box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.3);
         }
-        .btn-secondary:hover {
+        .v-price span {
+          font-weight: 500;
+          font-size: 0.75rem;
+          opacity: 0.9;
+        }
+        .v-location {
+          position: absolute;
+          bottom: 1rem;
+          left: 1rem;
+          background: rgba(255, 255, 255, 0.9);
+          backdrop-filter: blur(8px);
+          color: #374151;
+          padding: 0.4rem 0.8rem;
+          border-radius: 100px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .v-card-body {
+          padding: 1.5rem;
+        }
+        .v-meta {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 0.5rem;
+          color: #6B7280;
+          font-size: 0.85rem;
+          font-weight: 500;
+        }
+        .v-dot { color: #D1D5DB; }
+        .v-year { color: #8B5CF6; font-weight: 700; }
+        .v-name {
+          font-size: 1.25rem;
+          font-weight: 800;
+          color: #111827;
+          margin-bottom: 1.5rem;
+          letter-spacing: -0.01em;
+        }
+        .v-btn {
+          display: block;
+          text-align: center;
           background: white;
-          color: var(--bg-dark);
-          transform: scale(1.02);
+          border: 1px solid #E5E7EB;
+          padding: 0.8rem 1rem;
+          border-radius: 0.75rem;
+          color: #374151;
+          font-weight: 700;
+          font-size: 0.95rem;
+          transition: all 0.2s;
+          text-decoration: none;
+        }
+        .v-btn:hover {
+          background: #8B5CF6;
+          color: white;
+          border-color: #8B5CF6;
+          box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.3);
         }
       `}</style>
     </div>

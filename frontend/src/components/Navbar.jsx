@@ -1,116 +1,177 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/login';
+    window.location.href = '/';
   };
+
+  const isActive = (path) => location.pathname === path;
 
   return (
     <nav className="navbar">
-      <div className="container nav-content">
-        <Link to="/home" className="logo">
-          CarRents<span className="logo-domain">.lk</span>
+      <div className="nav-inner">
+        {/* Logo */}
+        <Link to="/" className="logo">
+          <div className="logo-icon">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <circle cx="16" cy="16" r="16" fill="#8B5CF6" />
+              <path d="M8 20l2-6h12l2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="11" cy="21" r="2" fill="white" />
+              <circle cx="21" cy="21" r="2" fill="white" />
+            </svg>
+          </div>
+          <span className="logo-text">CarRents<span className="logo-domain">.lk</span></span>
         </Link>
+
+        {/* Nav Links - Centered */}
         <div className="nav-links">
-          <Link to="/vehicles">Find a Car</Link>
-          <Link to="/list-my-car">List Your Car</Link>
+          <Link to="/vehicles" className="nav-item">Rent</Link>
+          <Link to="/list-my-car" className="nav-item">List Vehicle</Link>
+          <a href="#how-it-works" className="nav-item">How it works</a>
+          <a href="#why-us" className="nav-item">Why us</a>
+        </div>
+
+        {/* Auth Buttons */}
+        <div className="nav-auth">
           {token ? (
-            <div className="user-nav">
-              <span className="user-name">Hi, {user?.name.split(' ')[0]}</span>
-              <button onClick={handleLogout} className="btn-auth btn-logout">Logout</button>
-            </div>
+            <>
+              <Link to="/profile" className="nav-item">Profile</Link>
+              <button onClick={handleLogout} className="btn-logout">Logout</button>
+            </>
           ) : (
-            <Link to="/login" className="btn-auth btn-login">Login</Link>
+            <>
+              <Link to="/login" className="nav-item sign-in">Sign in</Link>
+              <Link to="/register" className="btn-getstarted">Get started</Link>
+            </>
           )}
         </div>
+
+        {/* Mobile Menu Toggle */}
+        <button className="burger" onClick={() => setMenuOpen(!menuOpen)}>
+          <span className={menuOpen ? 'open' : ''}></span>
+          <span className={menuOpen ? 'open' : ''}></span>
+          <span className={menuOpen ? 'open' : ''}></span>
+        </button>
       </div>
+
       <style>{`
         .navbar {
-          height: 72px;
+          height: 80px;
+          background: white;
+          border-bottom: 1px solid #f3f4f6;
           display: flex;
           align-items: center;
-          background: rgba(26, 5, 51, 0.75);
-          backdrop-filter: blur(24px);
-          border-bottom: 1px solid rgba(139, 92, 246, 0.25);
           position: sticky;
           top: 0;
           z-index: 1000;
         }
-        .nav-content {
+
+        .nav-inner {
+          max-width: 1280px;
+          width: 100%;
+          margin: 0 auto;
+          padding: 0 2rem;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          width: 100%;
         }
+
         .logo {
-          font-size: 1.5rem;
-          font-weight: 800;
-          color: white;
-          letter-spacing: -0.5px;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          text-decoration: none;
         }
+
+        .logo-text {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #111827;
+        }
+
         .logo-domain {
-          background: linear-gradient(135deg, #fbbf24, #f59e0b);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #8b5cf6;
         }
+
         .nav-links {
           display: flex;
           gap: 2rem;
-          align-items: center;
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
         }
-        .nav-links a {
-          font-weight: 600;
-          color: var(--text-muted);
-          transition: all 0.3s;
+
+        .nav-item {
+          color: #6b7280;
+          font-weight: 500;
           font-size: 0.95rem;
+          text-decoration: none;
+          transition: color 0.2s;
         }
-        .nav-links a:hover {
-          color: white;
-          transform: translateY(-1px);
+
+        .nav-item:hover {
+          color: #111827;
         }
-        .user-nav {
+
+        .nav-auth {
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: 1.5rem;
         }
-        .user-name {
-          color: var(--text-muted);
-          font-size: 0.9rem;
-          font-weight: 500;
+
+        .sign-in {
+          color: #111827;
+          font-weight: 600;
         }
-        .btn-auth {
-          padding: 0.6rem 1.5rem;
-          border-radius: 3rem;
-          font-size: 0.95rem;
-          font-weight: 700;
-          transition: all 0.3s;
+
+        .btn-getstarted {
+          background: #8b5cf6;
+          color: white;
+          padding: 0.65rem 1.5rem;
+          border-radius: 0.75rem;
+          font-weight: 600;
+          text-decoration: none;
+          transition: background 0.2s, transform 0.2s;
+          border: none;
+        }
+
+        .btn-getstarted:hover {
+          background: #7c3aed;
+          transform: translateY(-1px);
+        }
+
+        .burger {
+          display: none;
+          flex-direction: column;
+          gap: 4px;
+          background: none;
+          border: none;
           cursor: pointer;
         }
-        .btn-login {
-          background: var(--grad-primary);
-          color: white !important;
-          box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+
+        .burger span {
+          width: 24px;
+          height: 2px;
+          background: #374151;
+          transition: 0.3s;
         }
-        .btn-login:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
-        }
-        .btn-logout {
-          background: rgba(255, 255, 255, 0.1);
-          border: 1.5px solid var(--border);
-          color: white;
-        }
-        .btn-logout:hover {
-          background: rgba(255, 255, 255, 0.2);
-          border-color: rgba(255, 255, 255, 0.5);
+
+        @media (max-width: 1024px) {
+          .nav-links {
+            display: none;
+          }
+          .burger {
+            display: flex;
+          }
         }
       `}</style>
     </nav>

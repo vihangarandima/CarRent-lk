@@ -3,124 +3,219 @@ import axios from 'axios';
 import VehicleCard from '../components/VehicleCard';
 
 const VehicleListing = () => {
-  const [filter, setFilter] = useState({ brand: '', minPrice: '', maxPrice: '' });
-  
-  // 1. We create a "state" bucket to hold the real data from the database
+  const [filter, setFilter] = useState({ brand: '', location: '', maxPrice: '' });
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 2. We use useEffect to automatically fetch the data the moment the page opens
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
         const res = await axios.get('http://localhost:5000/api/vehicles');
-        setVehicles(res.data); // Dump the database cars into our bucket
-        setLoading(false);
+        setVehicles(res.data);
       } catch (err) {
-        console.error("Error fetching vehicles:", err);
+        console.error('Error fetching vehicles:', err);
+      } finally {
         setLoading(false);
       }
     };
-
     fetchVehicles();
-  }, []); // The empty array [] means "only run this exactly once right as the page starts"
+  }, []);
+
+  const filtered = vehicles.filter(v => {
+    const matchBrand = !filter.brand || v.brand?.toLowerCase().includes(filter.brand.toLowerCase());
+    const matchLocation = !filter.location || v.location?.toLowerCase().includes(filter.location.toLowerCase());
+    const matchPrice = !filter.maxPrice || v.pricePerDay <= parseInt(filter.maxPrice);
+    return matchBrand && matchLocation && matchPrice;
+  });
 
   return (
-    <div className="container listing-page">
-      <aside className="filters glass-card">
-        <h3>Filter Vehicles</h3>
-        <div className="filter-group">
-          <label>Brand</label>
-          <input type="text" placeholder="e.g. Toyota" value={filter.brand} onChange={(e) => setFilter({...filter, brand: e.target.value})} />
+    <div className="listing-page">
+      {/* Header */}
+      <div className="listing-header">
+        <div className="container">
+          <h1>Find Your Perfect Car</h1>
+          <p>Browse verified vehicles across Sri Lanka</p>
         </div>
-        <div className="filter-group">
-          <label>Max Price (LKR)</label>
-          <input type="number" placeholder="10000" value={filter.maxPrice} onChange={(e) => setFilter({...filter, maxPrice: e.target.value})} />
-        </div>
-      </aside>
+      </div>
 
-      <div className="results">
+      {/* Filter Bar */}
+      <div className="filter-bar-wrap">
+        <div className="container">
+          <div className="filter-bar">
+            <div className="filter-field">
+              <span>🚗</span>
+              <input
+                type="text"
+                placeholder="Brand (e.g. Toyota)"
+                value={filter.brand}
+                onChange={(e) => setFilter({ ...filter, brand: e.target.value })}
+              />
+            </div>
+            <div className="filter-sep" />
+            <div className="filter-field">
+              <span>📍</span>
+              <input
+                type="text"
+                placeholder="Location (e.g. Colombo)"
+                value={filter.location}
+                onChange={(e) => setFilter({ ...filter, location: e.target.value })}
+              />
+            </div>
+            <div className="filter-sep" />
+            <div className="filter-field">
+              <span>💰</span>
+              <input
+                type="number"
+                placeholder="Max Price/Day (LKR)"
+                value={filter.maxPrice}
+                onChange={(e) => setFilter({ ...filter, maxPrice: e.target.value })}
+              />
+            </div>
+            {(filter.brand || filter.location || filter.maxPrice) && (
+              <button className="filter-clear" onClick={() => setFilter({ brand: '', location: '', maxPrice: '' })}>
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Results */}
+      <div className="container">
+        <div className="results-meta">
+          {!loading && <span>{filtered.length} vehicle{filtered.length !== 1 ? 's' : ''} found</span>}
+        </div>
+
         {loading ? (
-           <p style={{ color: 'white' }}>Loading amazing vehicles...</p>
+          <div className="loading-state">
+            <div className="spinner" />
+            <p>Loading vehicles...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="empty-state">
+            <span>🔍</span>
+            <h3>No vehicles found</h3>
+            <p>Try changing your filters</p>
+          </div>
         ) : (
-          <div className="vehicle-grid">
-            {vehicles.map(v => <VehicleCard key={v._id} vehicle={v} />)}
+          <div className="vehicle-grid animate-up">
+            {filtered.map(v => <VehicleCard key={v._id} vehicle={v} />)}
           </div>
         )}
       </div>
 
       <style>{`
         .listing-page {
-          display: grid;
-          grid-template-columns: 320px 1fr;
-          gap: 3rem;
-          padding: 60px 2rem 100px;
-          background: radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.05), transparent),
-                      radial-gradient(circle at 100% 100%, rgba(16, 185, 129, 0.05), transparent);
+          min-height: calc(100vh - 68px);
+          padding-bottom: 80px;
         }
-        .filters {
-          height: fit-content;
+        .listing-header {
+          padding: 3rem 0 2rem;
+          text-align: center;
+        }
+        .listing-header h1 { margin-bottom: 0.5rem; }
+        .listing-header p { color: var(--text-muted); }
+
+        .filter-bar-wrap {
+          padding: 0 0 2.5rem;
           position: sticky;
-          top: 100px;
-          padding: 2rem !important;
-          animation: fadeInLeft 0.8s ease-out;
+          top: 68px;
+          z-index: 10;
+          background: rgba(15,10,30,0.85);
+          backdrop-filter: blur(20px);
+          border-bottom: 1px solid var(--border);
+          padding: 1rem 0;
         }
-        .filters h3 {
-          font-size: 1.25rem;
-          font-weight: 800;
-          margin-bottom: 2rem;
-          letter-spacing: -0.5px;
+        .filter-bar {
+          display: flex;
+          align-items: center;
+          gap: 0;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid var(--border);
+          border-radius: 100px;
+          overflow: hidden;
+          padding: 0 0.5rem;
         }
-        .filter-group {
-          margin-bottom: 2rem;
-        }
-        .filter-group label {
-          display: block;
-          margin-bottom: 0.75rem;
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-        .filter-group input {
-          width: 100%;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1.5px solid var(--border);
-          padding: 0.85rem 1.25rem;
-          border-radius: 0.75rem;
-          color: white;
-          outline: none;
-          font-family: inherit;
-          font-size: 1rem;
-          transition: all 0.3s;
-        }
-        .filter-group input:focus {
-          border-color: var(--primary);
-          background: rgba(255, 255, 255, 0.07);
-        }
-        .results {
+        .filter-field {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
           flex: 1;
-          animation: fadeInUp 0.8s ease-out;
+          padding: 0.6rem 1rem;
+        }
+        .filter-field span { font-size: 1rem; flex-shrink: 0; }
+        .filter-field input {
+          border: none;
+          background: none;
+          color: var(--text);
+          font-size: 0.9rem;
+          font-family: inherit;
+          outline: none;
+          width: 100%;
+        }
+        .filter-field input::placeholder { color: var(--text-hint); }
+        .filter-sep {
+          width: 1px;
+          height: 24px;
+          background: var(--border);
+          flex-shrink: 0;
+        }
+        .filter-clear {
+          background: var(--grad-primary);
+          color: white;
+          border: none;
+          padding: 0.55rem 1.1rem;
+          border-radius: 100px;
+          font-weight: 700;
+          font-size: 0.85rem;
+          cursor: pointer;
+          flex-shrink: 0;
+          margin: 0.3rem;
+          transition: all 0.2s;
+          font-family: inherit;
+        }
+        .filter-clear:hover { filter: brightness(1.1); }
+
+        .results-meta {
+          padding: 1.5rem 0 1rem;
+          color: var(--text-muted);
+          font-size: 0.9rem;
+          font-weight: 500;
         }
         .vehicle-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 2.5rem;
+          grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+          gap: 1.5rem;
         }
+        .loading-state, .empty-state {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          padding: 5rem 0;
+          color: var(--text-muted);
+        }
+        .empty-state span { font-size: 3rem; }
+        .empty-state h3 { color: var(--text); margin: 0; }
+        .spinner {
+          width: 36px;
+          height: 36px;
+          border: 3px solid var(--border);
+          border-top-color: var(--primary);
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        @keyframes fadeInLeft {
-          from { opacity: 0; transform: translateX(-30px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        @media (max-width: 768px) {
-          .listing-page { grid-template-columns: 1fr; gap: 2rem; }
-          .filters { position: relative; top: 0; }
+        @media (max-width: 640px) {
+          .filter-bar {
+            flex-direction: column;
+            border-radius: 1rem;
+            gap: 0;
+          }
+          .filter-sep { width: 100%; height: 1px; }
+          .filter-clear { width: calc(100% - 0.6rem); border-radius: 0.75rem; }
         }
       `}</style>
     </div>
