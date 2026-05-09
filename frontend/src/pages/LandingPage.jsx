@@ -127,11 +127,8 @@ const LandingPage = () => {
 
       <style>{`
         .landing-page {
-          background: #FFFFFF;
           color: #111827;
           position: relative;
-          background-image: radial-gradient(#f1f5f9 1px, transparent 1px);
-          background-size: 60px 60px;
         }
 
         .container {
@@ -145,7 +142,7 @@ const LandingPage = () => {
         }
 
         .bg-light {
-          background: #F9FAFB;
+          background: transparent;
         }
 
         .section-header {

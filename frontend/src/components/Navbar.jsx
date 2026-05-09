@@ -66,8 +66,10 @@ const Navbar = () => {
       <style>{`
         .navbar {
           height: 80px;
-          background: white;
-          border-bottom: 1px solid #f3f4f6;
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
           display: flex;
           align-items: center;
           position: sticky;

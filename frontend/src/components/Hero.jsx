@@ -198,7 +198,7 @@ const Hero = () => {
         }
 
         .hero-image-container {
-          flex: 1.2;
+          flex: 1.5;
           display: flex;
           justify-content: flex-end;
           position: relative;
@@ -218,18 +218,18 @@ const Hero = () => {
         }
 
         .hero-car-img {
-          width: 85%;
+          width: 100%;
           max-width: none;
           position: relative;
           z-index: 2;
-          transform: translate(30px, -60px);
+          transform: translate(120px, -40px);
           filter: drop-shadow(0 20px 40px rgba(0,0,0,0.05));
           animation: carFloat 6s ease-in-out infinite;
         }
 
         @keyframes carFloat {
-          0%, 100% { transform: translate(30px, -60px); }
-          50% { transform: translate(30px, -75px); }
+          0%, 100% { transform: translate(120px, -40px); }
+          50% { transform: translate(120px, -60px); }
         }
 
         @media (max-width: 1200px) {

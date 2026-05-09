@@ -36,26 +36,26 @@ function AppContent() {
           right: 0;
           bottom: 0;
           pointer-events: none;
-          z-index: -1;
+          z-index: -10;
           overflow: hidden;
-          background: white;
+          background-color: #FFFFFF;
         }
 
         .grid-pattern {
           position: absolute;
           inset: 0;
           background-image: 
-            linear-gradient(#f1f5f9 1px, transparent 1px),
-            linear-gradient(90deg, #f1f5f9 1px, transparent 1px);
+            linear-gradient(#eef2f6 1px, transparent 1px),
+            linear-gradient(90deg, #eef2f6 1px, transparent 1px);
           background-size: 50px 50px;
-          opacity: 0.6;
+          opacity: 0.8;
         }
 
         .blob {
           position: absolute;
           border-radius: 50%;
           filter: blur(100px);
-          opacity: 0.12;
+          opacity: 0.35;
           animation: globalBlobFloat 25s infinite alternate ease-in-out;
         }
 
@@ -83,7 +83,7 @@ function AppContent() {
           top: 30%;
           right: 15%;
           animation-delay: -12s;
-          opacity: 0.08;
+          opacity: 0.25;
         }
 
         @keyframes globalBlobFloat {

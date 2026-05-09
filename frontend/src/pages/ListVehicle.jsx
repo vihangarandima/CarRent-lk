@@ -190,7 +190,7 @@ const ListVehicle = () => {
 
       <style>{`
         .list-page {
-          background: #FAFAFA;
+          background: transparent;
           padding: 80px 20px;
           min-height: 100vh;
           font-family: 'Inter', sans-serif;

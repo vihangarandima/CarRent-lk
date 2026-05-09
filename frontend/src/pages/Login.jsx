@@ -98,7 +98,7 @@ const Login = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background-color: #FAFAFA;
+          background-color: transparent;
           padding: 20px;
           font-family: 'Inter', sans-serif;
         }
