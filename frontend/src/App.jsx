@@ -16,7 +16,6 @@ function AppContent() {
     <div className="app-container">
       {/* Global Background Aesthetics */}
       <div className="global-bg-overlay">
-        <div className="grid-pattern"></div>
         <div className="blob blob-1"></div>
         <div className="blob blob-2"></div>
         <div className="blob blob-3"></div>
@@ -40,16 +39,6 @@ function AppContent() {
           z-index: -10;
           overflow: hidden;
           background-color: #FFFFFF;
-        }
-
-        .grid-pattern {
-          position: absolute;
-          inset: 0;
-          background-image: 
-            linear-gradient(#eef2f6 1px, transparent 1px),
-            linear-gradient(90deg, #eef2f6 1px, transparent 1px);
-          background-size: 50px 50px;
-          opacity: 0.8;
         }
 
         .blob {

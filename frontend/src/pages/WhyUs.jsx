@@ -104,12 +104,12 @@ const WhyUs = () => {
         .why-us-header h1 {
           font-size: clamp(2.5rem, 5vw, 3.5rem);
           margin-bottom: 1.25rem;
-          color: var(--text);
+          color: #111827;
         }
 
         .subtitle {
           font-size: 1.1rem;
-          color: var(--text-muted);
+          color: #4b5563;
           line-height: 1.6;
         }
 
@@ -125,14 +125,17 @@ const WhyUs = () => {
           display: flex;
           flex-direction: column;
           gap: 1.25rem;
+          background: #ffffff;
+          border-radius: 1.5rem;
+          border: 1px solid rgba(0,0,0,0.06);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.02);
           transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
         }
         
         .feature-card:hover {
           transform: translateY(-5px);
-          border-color: var(--border-strong);
-          background: rgba(255,255,255,0.06);
-          box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+          border-color: rgba(0,0,0,0.12);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.08);
         }
 
         .feature-icon-wrapper {
@@ -145,28 +148,29 @@ const WhyUs = () => {
           margin-bottom: 0.5rem;
         }
 
-        /* Re-using glass colors */
-        .bg-purple-light { background: rgba(168,85,247,0.1); }
-        .bg-blue-light { background: rgba(56,189,248,0.1); }
-        .bg-orange-light { background: rgba(251,146,60,0.1); }
-        .bg-green-light { background: rgba(74,222,128,0.1); }
+        /* Light background colors for icons */
+        .bg-purple-light { background: #f3e8ff; }
+        .bg-blue-light { background: #e0f2fe; }
+        .bg-orange-light { background: #ffedd5; }
+        .bg-green-light { background: #dcfce7; }
         
-        .icon-purple { color: #c084fc; }
+        .icon-purple { color: #a855f7; }
         .icon-blue { color: #38bdf8; }
         .icon-orange { color: #fb923c; }
         .icon-green { color: #4ade80; }
 
         .feature-card h3 {
           font-size: 1.25rem;
-          color: var(--text);
-          font-weight: 700;
+          color: #111827;
+          font-weight: 800;
           margin: 0;
         }
 
         .feature-card p {
-          color: var(--text-muted);
+          color: #6b7280;
           margin: 0;
           font-size: 0.95rem;
+          line-height: 1.6;
         }
 
         .cta-section {
@@ -174,8 +178,8 @@ const WhyUs = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          background: rgba(124,58,237,0.05); /* Slight purple tint */
-          border-color: rgba(124,58,237,0.2);
+          background: linear-gradient(135deg, #a855f7 0%, #c084fc 100%);
+          box-shadow: 0 10px 30px rgba(168, 85, 247, 0.2);
           border-radius: 1.5rem;
           flex-wrap: wrap;
           gap: 2rem;
@@ -183,13 +187,14 @@ const WhyUs = () => {
 
         .cta-content h2 {
           font-size: 2rem;
-          color: var(--text);
+          color: #ffffff;
           margin: 0 0 0.5rem 0;
+          font-weight: 800;
         }
         
         .cta-content p {
           font-size: 1.1rem;
-          color: var(--text-muted);
+          color: rgba(255,255,255,0.9);
           margin: 0;
         }
 
