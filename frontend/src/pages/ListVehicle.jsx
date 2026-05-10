@@ -12,7 +12,7 @@ const mapContainerStyle = {
 const ListVehicle = () => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    brand: '', model: '', year: '', pricePerDay: '', location: '', description: '',
+    brand: '', model: '', year: '', pricePerDay: '', fuelType: '', transmission: '', location: '', description: '',
     availableFrom: '', availableTo: '', images: ['', '', '', '', ''],
     lat: 6.9271, lng: 79.8612
   });
@@ -113,6 +113,24 @@ const ListVehicle = () => {
                       <label>DAILY PRICE (LKR)</label>
                       <input type="number" name="pricePerDay" value={formData.pricePerDay} onChange={handleChange} placeholder="8500" required />
                     </div>
+                    <div className="input-field">
+                      <label>FUEL TYPE</label>
+                      <select name="fuelType" value={formData.fuelType} onChange={handleChange} required>
+                        <option value="" disabled>Select Fuel</option>
+                        <option value="Petrol">Petrol</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Hybrid">Hybrid</option>
+                        <option value="Electric">Electric</option>
+                      </select>
+                    </div>
+                    <div className="input-field">
+                      <label>TRANSMISSION</label>
+                      <select name="transmission" value={formData.transmission} onChange={handleChange} required>
+                        <option value="" disabled>Select</option>
+                        <option value="Auto">Auto</option>
+                        <option value="Manual">Manual</option>
+                      </select>
+                    </div>
                   </div>
                   <div className="input-field full-width" style={{ marginTop: '1.5rem' }}>
                     <label>DESCRIPTION</label>
@@ -200,7 +218,7 @@ const ListVehicle = () => {
         /* Header styling */
         .list-header { text-align: center; margin-bottom: 50px; }
         .hero-badge {
-          background: #c4c0c8ff;
+          background: #edededff;
           color: #7C3AED;
           padding: 6px 16px;
           border-radius: 100px;
@@ -232,7 +250,7 @@ const ListVehicle = () => {
           color: #6B7280;
         }
         .step-pill.active { background: #7C3AED; color: white; }
-        .step-line { width: 40px; height: 2px; background: #E5E7EB; }
+        .step-line { width: 40px; height: 2px; background: #6b6b6bff; }
 
         /* Layout Grid */
         .main-listing-layout {
@@ -253,16 +271,17 @@ const ListVehicle = () => {
         .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 25px; color: #1F2937; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .input-field label { display: block; font-size: 11px; font-weight: 800; color: #9CA3AF; margin-bottom: 8px; letter-spacing: 0.5px; }
-        input, textarea {
+        input, textarea, select {
           width: 100%;
           padding: 14px 20px;
           border-radius: 12px;
           border: 1px solid #E5E7EB;
-          background: #F9FAFB;
+          background: #164069ff;
           font-size: 15px;
           transition: 0.3s;
+          color: white; /* Added white to ensure readability on your dark blue background */
         }
-        input:focus { outline: none; border-color: #7C3AED; background: white; box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1); }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #7C3AED; background: white; color: #111827; box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1); }
 
         /* Buttons */
         .btn-primary-lg {
