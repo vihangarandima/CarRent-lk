@@ -24,6 +24,24 @@ const LandingPage = () => {
     fetchCars();
   }, []);
 
+  useEffect(() => {
+    const targetId = window.location.hash.replace("#", "");
+
+    if (!targetId) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      const targetElement = document.getElementById(targetId);
+
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <div className="landing-page">
       <Hero />

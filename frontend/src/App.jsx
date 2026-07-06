@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -21,6 +21,26 @@ import CompanyDetail from "./pages/CompanyDetail";
 import CompanyDashboard from "./pages/CompanyDashboard";
 
 function AppContent() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const targetId = location.hash.replace("#", "");
+
+    if (!targetId) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      const targetElement = document.getElementById(targetId);
+
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [location.pathname, location.hash]);
+
   return (
     <div className="app-container">
       {/* Global Background Aesthetics */}
