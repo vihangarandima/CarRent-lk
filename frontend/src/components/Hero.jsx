@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -11,7 +11,10 @@ const Hero = () => {
           {/* Badge */}
           <div className="hero-badge">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5L8 2z" fill="#8B5CF6" />
+              <path
+                d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5L8 2z"
+                fill="#f97316"
+              />
             </svg>
             <span>Sri Lanka's modern car marketplace</span>
           </div>
@@ -19,24 +22,37 @@ const Hero = () => {
           {/* Titles */}
           <h1 className="hero-title">
             Drive anything. <br />
-            <span className="purple-text">Anywhere in Lanka.</span>
+            <span className="orange-text">Anywhere in Lanka.</span>
           </h1>
 
           {/* Subtitle */}
           <p className="hero-subtitle">
-            Rent verified vehicles from trusted hosts, or list your own car and start earning — all in a few taps.
+            Rent verified vehicles from trusted hosts, or list your own car and
+            start earning — all in a few taps.
           </p>
 
           {/* CTA Buttons */}
           <div className="hero-actions">
-            <button className="btn-find" onClick={() => navigate('/vehicles')}>
+            <button className="btn-find" onClick={() => navigate("/vehicles")}>
               Find a car
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
             </button>
-            <button className="btn-list" onClick={() => navigate('/list-my-car')}>
+            <button
+              className="btn-list"
+              onClick={() => navigate("/list-my-car")}
+            >
               List your vehicle
             </button>
           </div>
@@ -44,19 +60,46 @@ const Hero = () => {
           {/* Features Checklist */}
           <div className="hero-features">
             <div className="feature-item">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
               <span>Verified hosts</span>
             </div>
             <div className="feature-item">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
               <span>Insured trips</span>
             </div>
             <div className="feature-item">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
               <span>24/7 support</span>
@@ -66,9 +109,9 @@ const Hero = () => {
 
         {/* Hero Image */}
         <div className="hero-image-container">
-          <img 
-            src="http://localhost:5000/uploads/maybach.png" 
-            alt="Premium Mercedes Maybach" 
+          <img
+            src="http://localhost:5000/uploads/maybach.png"
+            alt="Premium Mercedes Maybach"
             className="hero-car-img"
           />
         </div>
@@ -103,12 +146,12 @@ const Hero = () => {
           align-items: center;
           gap: 0.5rem;
           padding: 0.4rem 1rem;
-          background: #F5F3FF;
-          border: 1px solid #E9E3FF;
+          background: #FEF3C7;
+          border: 1px solid #FECF3F;
           border-radius: 100px;
           font-size: 0.85rem;
           font-weight: 500;
-          color: #6B7280;
+          color: #92400e;
           margin-bottom: 2rem;
         }
 
@@ -125,8 +168,12 @@ const Hero = () => {
           margin-bottom: 1.25rem;
         }
 
-        .purple-text {
-          color: #8B5CF6;
+        .orange-text {
+          color: #f97316;
+          background: linear-gradient(135deg, #f97316, #fb923c);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
 
         .hero-subtitle {
@@ -147,13 +194,13 @@ const Hero = () => {
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+          background: linear-gradient(135deg, #f97316, #fb923c);
           color: white;
           padding: 0.9rem 1.8rem;
           border-radius: 3rem;
           font-weight: 700;
           font-size: 1rem;
-          box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4);
+          box-shadow: 0 10px 25px rgba(249, 115, 22, 0.4);
           transition: transform 0.2s, box-shadow 0.2s;
           border: none;
           cursor: pointer;
@@ -161,7 +208,7 @@ const Hero = () => {
 
         .btn-find:hover {
           transform: translateY(-2px);
-          box-shadow: 0 15px 35px rgba(139, 92, 246, 0.5);
+          box-shadow: 0 15px 35px rgba(249, 115, 22, 0.5);
         }
 
         .btn-list {

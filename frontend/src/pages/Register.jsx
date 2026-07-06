@@ -4,6 +4,7 @@ import axios from "axios";
 import { Car, Coins, Building2, Eye, EyeOff } from "lucide-react";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
+import { API_URL } from "../config";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ const Register = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/register", {
+      const res = await axios.post(`${API_URL}/api/auth/register`, {
         ...formData,
         otp: enteredOtp,
       });
@@ -93,7 +94,7 @@ const Register = () => {
     setSendingOtp(true);
     setError("");
     try {
-      await axios.post("http://localhost:5000/api/auth/send-otp", {
+      await axios.post(`${API_URL}/api/auth/send-otp`, {
         email: formData.email,
       });
       setShowOtpModal(true);
@@ -115,7 +116,7 @@ const Register = () => {
 
       // Send to backend
       const res = await axios.post(
-        "http://localhost:5000/api/auth/firebase-login",
+        `${API_URL}/api/auth/firebase-login`,
         {
           name: user.displayName,
           email: user.email,
@@ -434,9 +435,19 @@ const Register = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background-color: transparent;
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
           padding: 40px 20px;
           font-family: 'Inter', sans-serif;
+          transition: background-color 0.3s ease;
+        }
+        .auth-page:hover {
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
         }
 
         .auth-card {
@@ -463,7 +474,7 @@ const Register = () => {
         }
 
         .logo-icon {
-          background: #7C3AED;
+          background: #f97316;
           width: 40px;
           height: 40px;
           border-radius: 12px;
@@ -473,11 +484,11 @@ const Register = () => {
         }
 
         .logo-text { font-size: 1.4rem; font-weight: 800; color: #111827; letter-spacing: -0.5px; }
-        .logo-text span { color: #7C3AED; }
+        .logo-text span { color: #f97316; }
 
         .hero-badge-mini {
-          background: #F5F3FF;
-          color: #7C3AED;
+          background: #fff7ed;
+          color: #f97316;
           padding: 6px 14px;
           border-radius: 100px;
           font-size: 11px;
@@ -511,9 +522,9 @@ const Register = () => {
 
         .input-wrapper input:focus {
           outline: none;
-          border-color: #7C3AED;
+          border-color: #f97316;
           background: #FFFFFF;
-          box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+          box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
         }
 
         .password-toggle-btn {
@@ -534,8 +545,8 @@ const Register = () => {
         }
 
         .password-toggle-btn:hover {
-          color: #7C3AED;
-          background-color: #F5F3FF;
+          color: #f97316;
+          background-color: #fff7ed;
         }
 
         .selected-role-display {
@@ -572,13 +583,13 @@ const Register = () => {
           font-weight: 800;
         }
 
-        .role-renter { background: #F5F3FF; color: #7C3AED; }
+        .role-renter { background: #fff7ed; color: #f97316; }
         .role-owner { background: #ECFDF5; color: #10B981; }
         .role-company { background: #ECFEFF; color: #06B6D4; }
 
         .change-role-link {
           font-size: 11px;
-          color: #7C3AED;
+          color: #f97316;
           font-weight: 700;
           text-decoration: none;
         }
@@ -628,8 +639,8 @@ const Register = () => {
 
         .btn-google-auth:hover:not(:disabled) {
           background: #F9FAFB;
-          border-color: #DDD6FE;
-          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.05);
+          border-color: #fed7aa;
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.05);
           transform: translateY(-1px);
         }
 
@@ -664,14 +675,14 @@ const Register = () => {
           flex-direction: column;
           gap: 1rem;
           padding: 1.25rem;
-          background: #F5F3FF;
+          background: #fff7ed;
           border-radius: 1rem;
-          border: 1.5px dashed #DDD6FE;
+          border: 1.5px dashed #fed7aa;
           animation: fadeIn 0.3s ease;
         }
 
         .btn-register {
-          background: #7C3AED;
+          background: #f97316;
           color: white;
           padding: 16px;
           border-radius: 100px;
@@ -685,15 +696,15 @@ const Register = () => {
           gap: 12px;
           margin-top: 10px;
           transition: all 0.3s ease;
-          box-shadow: 0 10px 20px rgba(124, 58, 237, 0.2);
+          box-shadow: 0 10px 20px rgba(249, 115, 22, 0.2);
         }
 
-        .btn-register:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(124, 58, 237, 0.3); background: #6D28D9; }
+        .btn-register:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(249, 115, 22, 0.3); background: #ea580c; }
         .btn-register:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .auth-footer { margin-top: 2rem; text-align: center; border-top: 1px solid #F1F5F9; padding-top: 1.5rem; }
         .auth-footer p { color: #6B7280; font-size: 0.9rem; }
-        .auth-footer a { color: #7C3AED; font-weight: 700; text-decoration: none; margin-left: 4px; }
+        .auth-footer a { color: #f97316; font-weight: 700; text-decoration: none; margin-left: 4px; }
         .auth-footer a:hover { text-decoration: underline; }
 
         .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -724,16 +735,16 @@ const Register = () => {
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
           border: 1px solid #F1F5F9;
         }
-        .mail-icon-badge { font-size: 32px; background: #F5F3FF; width: 64px; height: 64px; border-radius: 50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
+        .mail-icon-badge { font-size: 32px; background: #fff7ed; width: 64px; height: 64px; border-radius: 50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
         .otp-modal h3 { font-size: 22px; font-weight: 800; color: #1E293B; margin-bottom: 8px; }
         .otp-modal p { color: #64748B; font-size: 14px; line-height: 1.5; margin-bottom: 30px; }
         .otp-inputs { display:flex; gap:12px; justify-content:center; margin-bottom:24px; }
         .otp-inputs input { width:48px; height:56px; border-radius:12px; border:2px solid #E2E8F0; font-size:24px; font-weight:800; text-align:center; color:#1E293B; background:#F8FAFC; outline:none; transition: all 0.2s ease; }
-        .otp-inputs input:focus { border-color:#7C3AED; background:white; box-shadow:0 0 0 4px rgba(124,58,237,0.15); }
+        .otp-inputs input:focus { border-color:#f97316; background:white; box-shadow:0 0 0 4px rgba(249,115,22,0.15); }
         .otp-error-msg { color:#DC2626; font-size:13px; font-weight:600; margin-bottom:20px; }
         .otp-actions { display:flex; flex-direction:column; gap:12px; }
-        .btn-verify { width:100%; background:#7C3AED; color:white; font-weight:700; padding:14px; border-radius:100px; border:none; font-size:15px; cursor:pointer; box-shadow:0 4px 14px rgba(124,58,237,0.3); }
-        .btn-verify:hover { background:#6D28D9; transform:translateY(-1px); }
+        .btn-verify { width:100%; background:#f97316; color:white; font-weight:700; padding:14px; border-radius:100px; border:none; font-size:15px; cursor:pointer; box-shadow:0 4px 14px rgba(249,115,22,0.3); }
+        .btn-verify:hover { background:#ea580c; transform:translateY(-1px); }
         .btn-otp-cancel { background:none; border:none; color:#64748B; font-weight:700; font-size:14px; cursor:pointer; }
         .btn-otp-cancel:hover { color:#1E293B; text-decoration:underline; }
       `}</style>

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { API_URL } from "../config";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 
 const mapContainerStyle = {
@@ -18,6 +19,7 @@ const ListVehicle = () => {
     pricePerDay: "",
     fuelType: "",
     transmission: "",
+    vehicleType: "",
     location: "",
     description: "",
     availableFrom: new Date().toISOString().split("T")[0],
@@ -26,10 +28,17 @@ const ListVehicle = () => {
     lat: 6.9271,
     lng: 79.8612,
   });
+  const [mapError, setMapError] = useState(null);
 
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
   });
+
+  useEffect(() => {
+    if (loadError) {
+      setMapError("Google Maps API failed to load. Please check your API key.");
+    }
+  }, [loadError]);
 
   const nextStep = (e) => {
     e.preventDefault();
@@ -52,7 +61,7 @@ const ListVehicle = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/upload",
+        `${API_URL}/api/upload`,
         uploadData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -66,8 +75,29 @@ const ListVehicle = () => {
     }
   };
 
+  // Reverse geocoding: convert lat/lng to address
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`,
+      );
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        const address = data.results[0].formatted_address;
+        setFormData({ ...formData, location: address, lat, lng });
+      } else {
+        setFormData({ ...formData, lat, lng });
+      }
+    } catch (err) {
+      console.error("Geocoding error:", err);
+      setFormData({ ...formData, lat, lng });
+    }
+  };
+
   const onMapClick = (e) => {
-    setFormData({ ...formData, lat: e.latLng.lat(), lng: e.latLng.lng() });
+    const newLat = e.latLng.lat();
+    const newLng = e.latLng.lng();
+    reverseGeocode(newLat, newLng);
   };
 
   const handleSubmit = async (e) => {
@@ -80,7 +110,7 @@ const ListVehicle = () => {
         headers: { "Content-Type": "application/json", "x-auth-token": token },
       };
       const res = await axios.post(
-        "http://localhost:5000/api/vehicles",
+        `${API_URL}/api/vehicles`,
         formData,
         config,
       );
@@ -305,6 +335,24 @@ const ListVehicle = () => {
                       </select>
                     </div>
                     <div className="lv-field">
+                      <label>Vehicle Type</label>
+                      <select
+                        name="vehicleType"
+                        value={formData.vehicleType}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="" disabled>
+                          Select vehicle type
+                        </option>
+                        <option value="bicycle">Bicycle</option>
+                        <option value="threewheeler">Three-wheeler</option>
+                        <option value="car">Car</option>
+                        <option value="van">Van</option>
+                        <option value="others">Others</option>
+                      </select>
+                    </div>
+                    <div className="lv-field">
                       <label>Available From</label>
                       <input
                         type="date"
@@ -467,17 +515,63 @@ const ListVehicle = () => {
                     />
                   </div>
                   <div className="lv-map-wrapper">
-                    {isLoaded ? (
-                      <GoogleMap
-                        mapContainerStyle={mapContainerStyle}
-                        center={{ lat: formData.lat, lng: formData.lng }}
-                        zoom={14}
-                        onClick={onMapClick}
-                      >
-                        <Marker
-                          position={{ lat: formData.lat, lng: formData.lng }}
-                        />
-                      </GoogleMap>
+                    {mapError && (
+                      <div className="lv-map-error">
+                        <svg
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        <p>
+                          Unable to load map. Please check your Google Maps API
+                          key.
+                        </p>
+                      </div>
+                    )}
+                    {!mapError && isLoaded ? (
+                      <>
+                        <GoogleMap
+                          mapContainerStyle={mapContainerStyle}
+                          center={{ lat: formData.lat, lng: formData.lng }}
+                          zoom={14}
+                          onClick={onMapClick}
+                          options={{
+                            streetViewControl: false,
+                            mapTypeControl: false,
+                            fullscreenControl: false,
+                          }}
+                        >
+                          <Marker
+                            position={{ lat: formData.lat, lng: formData.lng }}
+                            title="Pickup Location"
+                            draggable={true}
+                            icon={{
+                              path: "M12 0C7.58 0 4 3.58 4 8c0 5.25 8 16 8 16s8-10.75 8-16c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z",
+                              fillColor: "#DC2626",
+                              fillOpacity: 1,
+                              strokeColor: "#FFFFFF",
+                              strokeWeight: 2,
+                              scale: 1.5,
+                              anchor: { x: 12, y: 24 },
+                            }}
+                            onDragEnd={(e) => {
+                              const newLat = e.latLng.lat();
+                              const newLng = e.latLng.lng();
+                              reverseGeocode(newLat, newLng);
+                            }}
+                          />
+                        </GoogleMap>
+                        <div className="lv-map-hint">
+                          Click on the map to set your pickup location
+                        </div>
+                      </>
                     ) : (
                       <div className="lv-map-loading">
                         <div className="lv-spinner"></div>
@@ -942,8 +1036,8 @@ const ListVehicle = () => {
           display: flex;
           align-items: center;
           gap: 8px;
-          background: rgba(124, 58, 237, 0.04);
-          border: 1px solid rgba(124, 58, 237, 0.1);
+          background: rgba(249, 115, 22, 0.04);
+          border: 1px solid rgba(249, 115, 22, 0.1);
           border-radius: 12px;
           padding: 12px 16px;
           font-size: 13.5px;
@@ -1020,7 +1114,7 @@ const ListVehicle = () => {
           gap: 6px;
         }
         .lv-upload-icon {
-          color: #C4B5FD;
+          color: #fed7aa;
           transition: color 0.2s;
         }
         .lv-upload-box:hover .lv-upload-icon { color: #f97316; }
@@ -1057,11 +1151,52 @@ const ListVehicle = () => {
           color: #9CA3AF;
           font-size: 14px;
         }
+        .lv-map-error {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          width: 100%;
+          aspect-ratio: 1 / 1;
+          background: #FEF2F2;
+          border: 2px solid #FCA5A5;
+          border-radius: 20px;
+          color: #DC2626;
+          font-size: 14px;
+          padding: 20px;
+          text-align: center;
+        }
+        .lv-map-error svg {
+          color: #DC2626;
+        }
+        .lv-map-hint {
+          position: absolute;
+          bottom: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(0, 0, 0, 0.7);
+          color: white;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 500;
+          opacity: 0;
+          animation: lvFadeInOut 3s ease-in-out infinite;
+          pointer-events: none;
+        }
+        @keyframes lvFadeInOut {
+          0%, 100% { opacity: 0; }
+          50% { opacity: 1; }
+        }
+        .lv-map-wrapper {
+          position: relative;
+        }
         .lv-spinner {
           width: 28px;
           height: 28px;
           border: 3px solid #E5E7EB;
-          border-top-color: #7C3AED;
+          border-top-color: #f97316;
           border-radius: 50%;
           animation: lvSpin 0.8s linear infinite;
         }
@@ -1073,26 +1208,25 @@ const ListVehicle = () => {
           gap: 14px;
           position: sticky;
           top: 100px;
-        }
         .lv-tip-card {
           background: rgba(255, 255, 255, 0.7);
           backdrop-filter: blur(16px);
           -webkit-backdrop-filter: blur(16px);
           padding: 22px;
           border-radius: 18px;
-          border: 1px solid rgba(124, 58, 237, 0.08);
+          border: 1px solid rgba(249, 115, 22, 0.08);
           transition: all 0.3s ease;
         }
         .lv-tip-card:hover {
-          border-color: rgba(124, 58, 237, 0.18);
+          border-color: rgba(249, 115, 22, 0.18);
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(124, 58, 237, 0.06);
+          box-shadow: 0 8px 24px rgba(249, 115, 22, 0.06);
         }
         .lv-tip-icon-wrap {
           width: 36px;
           height: 36px;
           border-radius: 10px;
-          background: rgba(124, 58, 237, 0.06);
+          background: rgba(249, 115, 22, 0.06);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1110,7 +1244,7 @@ const ListVehicle = () => {
           color: #6B7280;
           line-height: 1.55;
         }
-
+ 
         /* Earnings card */
         .lv-earnings-card {
           background: linear-gradient(145deg, #1a1030, #0f0a1e);
@@ -1119,7 +1253,7 @@ const ListVehicle = () => {
           text-align: center;
           position: relative;
           overflow: hidden;
-          border: 1px solid rgba(124, 58, 237, 0.2);
+          border: 1px solid rgba(249, 115, 22, 0.2);
         }
         .lv-earnings-glow {
           position: absolute;
@@ -1127,7 +1261,7 @@ const ListVehicle = () => {
           right: -40px;
           width: 120px;
           height: 120px;
-          background: rgba(124, 58, 237, 0.3);
+          background: rgba(249, 115, 22, 0.3);
           border-radius: 50%;
           filter: blur(40px);
           pointer-events: none;
@@ -1145,7 +1279,7 @@ const ListVehicle = () => {
           display: block;
           font-size: 28px;
           font-weight: 800;
-          background: linear-gradient(135deg, #A78BFA, #C4B5FD);
+          background: linear-gradient(135deg, #fb923c, #fed7aa);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -1171,7 +1305,7 @@ const ListVehicle = () => {
         .lv-earnings-bar-fill {
           width: 72%;
           height: 100%;
-          background: linear-gradient(90deg, #7C3AED, #A78BFA);
+          background: linear-gradient(90deg, #f97316, #fb923c);
           border-radius: 4px;
           animation: lvBarGrow 1.5s ease 0.5s both;
         }

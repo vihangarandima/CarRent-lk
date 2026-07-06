@@ -1,41 +1,41 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Car, Coins, Building2, ArrowRight } from 'lucide-react';
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Car, Coins, Building2, ArrowRight } from "lucide-react";
 
 const SelectRole = () => {
   const navigate = useNavigate();
 
   const roles = [
     {
-      id: 'renter',
-      title: 'Rent a Car',
-      desc: 'Browse and book premium, verified vehicles from trusted hosts across Sri Lanka in just a few clicks.',
+      id: "renter",
+      title: "Rent a Car",
+      desc: "Browse and book premium, verified vehicles from trusted hosts across Sri Lanka in just a few clicks.",
       icon: <Car size={32} />,
-      badge: 'Fast & Easy',
-      color: '#7C3AED',
-      bgColor: '#F5F3FF',
-      borderColor: '#DDD6FE',
+      badge: "Fast & Easy",
+      color: "#f97316",
+      bgColor: "#fff7ed",
+      borderColor: "#fed7aa",
     },
     {
-      id: 'owner',
-      title: 'List my Car',
-      desc: 'Turn your private vehicle into a reliable stream of passive income. Your vehicle is safe with our comprehensive coverage.',
+      id: "owner",
+      title: "List my Car",
+      desc: "Turn your private vehicle into a reliable stream of passive income. Your vehicle is safe with our comprehensive coverage.",
       icon: <Coins size={32} />,
-      badge: 'Earn Passive Income',
-      color: '#10B981',
-      bgColor: '#ECFDF5',
-      borderColor: '#A7F3D0',
+      badge: "Earn Passive Income",
+      color: "#10B981",
+      bgColor: "#ECFDF5",
+      borderColor: "#A7F3D0",
     },
     {
-      id: 'company',
-      title: 'Register Company',
-      desc: 'Manage your full fleet of vehicles, view bookings, list multiple cars, and scale your car rental company professionally.',
+      id: "company",
+      title: "Register Company",
+      desc: "Manage your full fleet of vehicles, view bookings, list multiple cars, and scale your car rental company professionally.",
       icon: <Building2 size={32} />,
-      badge: 'For Fleet Partners',
-      color: '#06B6D4',
-      bgColor: '#ECFEFF',
-      borderColor: '#CFFAFE',
-    }
+      badge: "For Fleet Partners",
+      color: "#06B6D4",
+      bgColor: "#ECFEFF",
+      borderColor: "#CFFAFE",
+    },
   ];
 
   return (
@@ -44,12 +44,23 @@ const SelectRole = () => {
         <div className="role-header">
           <Link to="/" className="brand-logo">
             <div className="logo-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                 <circle cx="8.5" cy="7" r="4"></circle>
               </svg>
             </div>
-            <span className="logo-text">CarRents<span>.lk</span></span>
+            <span className="logo-text">
+              CarRents<span>.lk</span>
+            </span>
           </Link>
 
           <div className="hero-badge-mini">
@@ -63,25 +74,34 @@ const SelectRole = () => {
 
         <div className="roles-grid">
           {roles.map((role) => (
-            <div 
+            <div
               key={role.id}
               className="role-card-wrapper"
               onClick={() => navigate(`/register?role=${role.id}`)}
               style={{
-                '--hover-color': role.color,
-                '--hover-bg': role.bgColor,
-                '--hover-border': role.borderColor
+                "--hover-color": role.color,
+                "--hover-bg": role.bgColor,
+                "--hover-border": role.borderColor,
               }}
             >
-              <div className="role-badge" style={{ backgroundColor: role.bgColor, color: role.color }}>
+              <div
+                className="role-badge"
+                style={{ backgroundColor: role.bgColor, color: role.color }}
+              >
                 {role.badge}
               </div>
-              <div className="role-icon-box" style={{ color: role.color, backgroundColor: role.bgColor }}>
+              <div
+                className="role-icon-box"
+                style={{ color: role.color, backgroundColor: role.bgColor }}
+              >
                 {role.icon}
               </div>
               <h3>{role.title}</h3>
               <p>{role.desc}</p>
-              <button className="role-card-btn" style={{ '--btn-color': role.color }}>
+              <button
+                className="role-card-btn"
+                style={{ "--btn-color": role.color }}
+              >
                 <span>Select & Continue</span>
                 <ArrowRight size={16} className="arrow-icon" />
               </button>
@@ -90,7 +110,9 @@ const SelectRole = () => {
         </div>
 
         <div className="role-footer">
-          <p>Already have an account? <Link to="/login">Sign in</Link></p>
+          <p>
+            Already have an account? <Link to="/login">Sign in</Link>
+          </p>
         </div>
       </div>
 
@@ -100,7 +122,17 @@ const SelectRole = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background-color: transparent;
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
+          transition: background-color 0.3s ease;
+        }
+        .role-page:hover {
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
           padding: 40px 20px;
           font-family: 'Inter', sans-serif;
         }
@@ -129,7 +161,7 @@ const SelectRole = () => {
         }
 
         .logo-icon {
-          background: #7C3AED;
+          background: #f97316;
           width: 40px;
           height: 40px;
           border-radius: 12px;
@@ -146,12 +178,12 @@ const SelectRole = () => {
         }
         
         .logo-text span { 
-          color: #7C3AED; 
+          color: #f97316; 
         }
 
         .hero-badge-mini {
-          background: #F5F3FF;
-          color: #7C3AED;
+          background: #fff7ed;
+          color: #f97316;
           padding: 6px 14px;
           border-radius: 100px;
           font-size: 11px;
@@ -289,7 +321,7 @@ const SelectRole = () => {
         }
 
         .role-footer a {
-          color: #7C3AED;
+          color: #f97316;
           font-weight: 700;
           text-decoration: none;
           margin-left: 4px;

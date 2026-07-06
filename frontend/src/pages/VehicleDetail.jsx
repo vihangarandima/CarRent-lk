@@ -1,28 +1,77 @@
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { MapPin, Star, Check, CheckCircle2, Send } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import { MapPin, Star, Check, CheckCircle2, Send, Navigation } from "lucide-react";
+import axios from "axios";
+import { API_URL } from "../config";
+import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
+
+const detailMapContainerStyle = {
+  width: "100%",
+  height: "100%",
+  borderRadius: "1rem",
+};
 
 const VehicleDetail = () => {
   const { id } = useParams();
-  const [bidPrice, setBidPrice] = useState('');
-  const [message, setMessage] = useState('');
+  const [bidPrice, setBidPrice] = useState("");
+  const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
+  const [vehicle, setVehicle] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock vehicle data
-  const vehicle = {
-    brand: 'Toyota', model: 'Aqua', year: 2018, pricePerDay: 8500, location: 'Colombo 07',
-    description: 'Very well maintained hybrid car. Perfect for city travel and long trips. Fuel efficient and comfortable. AC, music system, and full insurance included.',
-    image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=1200',
-    owner: 'Saman Perera',
-    rating: 4.9,
-    trips: 24,
-  };
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+  });
+
+  useEffect(() => {
+    const fetchVehicle = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/vehicles/${id}`);
+        setVehicle(res.data);
+      } catch (err) {
+        console.error("Error fetching vehicle:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVehicle();
+  }, [id]);
 
   const handleSend = (e) => {
     e.preventDefault();
-    if (!bidPrice) { alert('Please enter your offer amount'); return; }
+    if (!bidPrice) {
+      alert("Please enter your offer amount");
+      return;
+    }
     setSent(true);
   };
+
+  if (loading) {
+    return (
+      <div className="detail-wrap">
+        <div className="container" style={{ textAlign: "center", padding: "8rem 0" }}>
+          <div className="spinner" style={{ margin: "0 auto 1rem" }} />
+          <p style={{ color: "#6b7280" }}>Loading vehicle...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!vehicle) {
+    return (
+      <div className="detail-wrap">
+        <div className="container" style={{ textAlign: "center", padding: "8rem 0" }}>
+          <h2 style={{ color: "#111827" }}>Vehicle not found</h2>
+          <Link to="/vehicles" style={{ color: "#f97316", fontWeight: 700 }}>← Back to Listings</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const coverImage =
+    vehicle.images && vehicle.images.length > 0 && vehicle.images[0]
+      ? vehicle.images[0]
+      : "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=1200";
 
   return (
     <div className="detail-wrap">
@@ -36,9 +85,20 @@ const VehicleDetail = () => {
           {/* Left: Info */}
           <div className="detail-main">
             <div className="main-image-wrap">
-              <img src={vehicle.image} alt={`${vehicle.brand} ${vehicle.model}`} className="main-image" />
+              <img
+                src={coverImage}
+                alt={`${vehicle.brand} ${vehicle.model}`}
+                className="main-image"
+              />
               <div className="image-badge">
-                <MapPin size={14} style={{ marginRight: '4px', verticalAlign: 'middle', display: 'inline-block' }} />
+                <MapPin
+                  size={14}
+                  style={{
+                    marginRight: "4px",
+                    verticalAlign: "middle",
+                    display: "inline-block",
+                  }}
+                />
                 <span>{vehicle.location}</span>
               </div>
             </div>
@@ -46,11 +106,22 @@ const VehicleDetail = () => {
             <div className="vehicle-header">
               <div>
                 <span className="vehicle-year-chip">{vehicle.year}</span>
-                <h1>{vehicle.brand} {vehicle.model}</h1>
+                <h1>
+                  {vehicle.brand} {vehicle.model}
+                </h1>
               </div>
               <div className="vehicle-rating">
                 <span>
-                  <Star size={16} fill="#f59e0b" color="#f59e0b" style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} />
+                  <Star
+                    size={16}
+                    fill="#f59e0b"
+                    color="#f59e0b"
+                    style={{
+                      marginRight: "6px",
+                      verticalAlign: "middle",
+                      display: "inline-block",
+                    }}
+                  />
                   {vehicle.rating}
                 </span>
                 <small>{vehicle.trips} trips</small>
@@ -65,7 +136,12 @@ const VehicleDetail = () => {
             <div className="features-section">
               <h3>What's Included</h3>
               <div className="features-grid">
-                {['Air Conditioning', 'Full Insurance', 'Music System', 'Free Delivery'].map(f => (
+                {[
+                  "Air Conditioning",
+                  "Full Insurance",
+                  "Music System",
+                  "Free Delivery",
+                ].map((f) => (
                   <div key={f} className="feature-tag">
                     <Check size={16} className="feature-check" />
                     <span>{f}</span>
@@ -73,19 +149,72 @@ const VehicleDetail = () => {
                 ))}
               </div>
             </div>
+
+            {/* Location Map Section */}
+            {vehicle.lat && vehicle.lng && (
+              <div className="location-map-section">
+                <h3>
+                  <Navigation size={18} className="feature-check" />
+                  Pickup Location
+                </h3>
+                <p className="location-address">
+                  <MapPin size={14} /> {vehicle.location}
+                </p>
+                <div className="detail-map-wrapper">
+                  {isLoaded ? (
+                    <GoogleMap
+                      mapContainerStyle={detailMapContainerStyle}
+                      center={{ lat: vehicle.lat, lng: vehicle.lng }}
+                      zoom={15}
+                      options={{
+                        streetViewControl: false,
+                        mapTypeControl: false,
+                        fullscreenControl: false,
+                        zoomControl: true,
+                        styles: [
+                          { featureType: "poi", stylers: [{ visibility: "off" }] },
+                          { featureType: "transit", stylers: [{ visibility: "off" }] },
+                        ],
+                      }}
+                    >
+                      <Marker
+                        position={{ lat: vehicle.lat, lng: vehicle.lng }}
+                        title={`${vehicle.brand} ${vehicle.model} - Pickup Location`}
+                        icon={{
+                          path: "M12 0C7.58 0 4 3.58 4 8c0 5.25 8 16 8 16s8-10.75 8-16c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z",
+                          fillColor: "#f97316",
+                          fillOpacity: 1,
+                          strokeColor: "#ffffff",
+                          strokeWeight: 2,
+                          scale: 2,
+                          anchor: { x: 12, y: 24 },
+                        }}
+                      />
+                    </GoogleMap>
+                  ) : (
+                    <div className="detail-map-loading">
+                      <div className="spinner" />
+                      <span>Loading Map...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right: Bid Sidebar */}
           <aside className="bid-panel">
             <div className="bid-card">
               <div className="price-row">
-                <span className="price">LKR {vehicle.pricePerDay.toLocaleString()}</span>
+                <span className="price">
+                  LKR {vehicle.pricePerDay?.toLocaleString()}
+                </span>
                 <span className="per-day">/ day</span>
               </div>
               <div className="owner-row">
-                <div className="owner-avatar">{vehicle.owner[0]}</div>
+                <div className="owner-avatar">{vehicle.owner?.name?.[0] || "U"}</div>
                 <div>
-                  <strong>{vehicle.owner}</strong>
+                  <strong>{vehicle.owner?.name || "Vehicle Owner"}</strong>
                   <p>Vehicle Owner</p>
                 </div>
               </div>
@@ -119,7 +248,16 @@ const VehicleDetail = () => {
                       rows={3}
                     />
                   </div>
-                  <button className="btn-primary" type="submit" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <button
+                    className="btn-primary"
+                    type="submit"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                    }}
+                  >
                     <span>Send Offer</span>
                     <Send size={16} />
                   </button>
@@ -132,8 +270,17 @@ const VehicleDetail = () => {
 
       <style>{`
         .detail-wrap {
-          padding: 2rem 0 6rem;
+          padding: 2rem 0 6rem;          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
+          transition: background-color 0.3s ease;
         }
+        .detail-wrap:hover {
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;        }
         .breadcrumb {
           margin-bottom: 1.5rem;
         }
@@ -313,11 +460,69 @@ const VehicleDetail = () => {
         .sent-msg h3 { color: var(--accent); }
         .sent-msg p { color: var(--text-muted); font-size: 0.9rem; }
 
+        /* Location Map Section */
+        .location-map-section {
+          margin-bottom: 2rem;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid var(--border);
+          border-radius: 1rem;
+          padding: 1.5rem;
+          animation: fadeInMap 0.5s ease both 0.2s;
+        }
+        .location-map-section h3 {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 0.5rem;
+          font-size: 1.1rem;
+        }
+        .location-address {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          color: var(--text-muted);
+          font-size: 0.9rem;
+          margin-bottom: 1rem;
+        }
+        .detail-map-wrapper {
+          width: 100%;
+          height: 280px;
+          border-radius: 1rem;
+          overflow: hidden;
+          border: 1px solid rgba(249, 115, 22, 0.1);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+        }
+        .detail-map-loading {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+          gap: 0.75rem;
+          color: #6b7280;
+          background: #f9fafb;
+          border-radius: 1rem;
+        }
+        .spinner {
+          width: 40px;
+          height: 40px;
+          border: 4px solid rgba(0, 0, 0, 0.05);
+          border-top-color: #f97316;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeInMap {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
         @media (max-width: 900px) {
           .detail-grid { grid-template-columns: 1fr; }
           .bid-panel { position: relative; top: auto; }
           .main-image { height: 280px; }
           .features-grid { grid-template-columns: 1fr; }
+          .detail-map-wrapper { height: 220px; }
         }
       `}</style>
     </div>

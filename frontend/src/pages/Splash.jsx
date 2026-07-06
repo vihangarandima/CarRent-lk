@@ -33,8 +33,8 @@ const Splash = () => {
                 <circle cx="20" cy="20" r="6" fill="url(#logo-grad)" />
                 <defs>
                   <linearGradient id="logo-grad" x1="0" y1="0" x2="40" y2="40">
-                    <stop stopColor="#8b5cf6" />
-                    <stop offset="1" stopColor="#06b6d4" />
+                    <stop stopColor="#f97316" />
+                    <stop offset="1" stopColor="#ea580c" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -92,13 +92,13 @@ const Splash = () => {
               <div className="card-features">
                 <div className="feature-item">
                   <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-                    <path d="M15 5L7 13L3 9" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M15 5L7 13L3 9" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span>Quick Setup</span>
                 </div>
                 <div className="feature-item">
                   <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-                    <path d="M15 5L7 13L3 9" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M15 5L7 13L3 9" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span>Secure Payments</span>
                 </div>
@@ -224,11 +224,11 @@ const Splash = () => {
           width: 100%;
           height: 100%;
           background: linear-gradient(135deg, 
-            rgba(139, 92, 246, 0.85) 0%, 
-            rgba(109, 40, 217, 0.75) 25%, 
-            rgba(6, 182, 212, 0.7) 50%, 
-            rgba(16, 185, 129, 0.75) 75%, 
-            rgba(5, 150, 105, 0.85) 100%
+            rgba(249, 115, 22, 0.85) 0%, 
+            rgba(234, 88, 12, 0.75) 25%, 
+            rgba(217, 119, 6, 0.7) 50%, 
+            rgba(245, 158, 11, 0.75) 75%, 
+            rgba(180, 83, 9, 0.85) 100%
           );
           backdrop-filter: blur(2px);
         }
@@ -456,7 +456,7 @@ const Splash = () => {
         }
 
         .purple-glow {
-          background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(249, 115, 22, 0.3) 0%, transparent 70%);
         }
 
         .green-glow {
@@ -488,7 +488,7 @@ const Splash = () => {
         }
 
         .card-purple .card-icon-badge {
-          background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+          background: linear-gradient(135deg, #fb923c, #f97316);
           color: white;
         }
 
@@ -568,13 +568,13 @@ const Splash = () => {
         }
 
         .btn-purple {
-          background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+          background: linear-gradient(135deg, #fb923c, #f97316);
         }
 
         .btn-purple:hover {
-          background: linear-gradient(135deg, #7c3aed, #6d28d9);
+          background: linear-gradient(135deg, #f97316, #ea580c);
           transform: translateY(-2px);
-          box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+          box-shadow: 0 10px 30px rgba(249, 115, 22, 0.4);
         }
 
         .btn-green {

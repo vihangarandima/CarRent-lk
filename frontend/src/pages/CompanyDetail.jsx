@@ -1,22 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
-import { Building2, MapPin, Phone, Mail, Car, ArrowLeft } from 'lucide-react';
-import VehicleCard from '../components/VehicleCard';
+import React, { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import axios from "axios";
+import { Building2, MapPin, Phone, Mail, Car, ArrowLeft } from "lucide-react";
+import VehicleCard from "../components/VehicleCard";
+import { API_URL } from "../config";
 
 const CompanyDetail = () => {
   const { id } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchCompany = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/companies/${id}`);
+        const res = await axios.get(
+          `${API_URL}/api/companies/${id}`,
+        );
         setData(res.data);
       } catch (err) {
-        setError('Company not found.');
+        setError("Company not found.");
       } finally {
         setLoading(false);
       }
@@ -24,8 +27,19 @@ const CompanyDetail = () => {
     fetchCompany();
   }, [id]);
 
-  if (loading) return <div className="company-detail-loading"><div className="spinner"/></div>;
-  if (error || !data) return <div className="company-detail-error"><p>{error || 'Something went wrong.'}</p><Link to="/companies">← Back to Companies</Link></div>;
+  if (loading)
+    return (
+      <div className="company-detail-loading">
+        <div className="spinner" />
+      </div>
+    );
+  if (error || !data)
+    return (
+      <div className="company-detail-error">
+        <p>{error || "Something went wrong."}</p>
+        <Link to="/companies">← Back to Companies</Link>
+      </div>
+    );
 
   const { vehicles = [], ...company } = data;
 
@@ -33,7 +47,9 @@ const CompanyDetail = () => {
     <div className="company-detail-page">
       {/* Back link */}
       <div className="company-detail-nav">
-        <Link to="/companies" className="back-link"><ArrowLeft size={16}/> All Companies</Link>
+        <Link to="/companies" className="back-link">
+          <ArrowLeft size={16} /> All Companies
+        </Link>
       </div>
 
       {/* Header */}
@@ -43,18 +59,34 @@ const CompanyDetail = () => {
             {company.logo ? (
               <img src={company.logo} alt={company.companyName} />
             ) : (
-              <div className="company-logo-placeholder-lg"><Building2 size={40} color="#8B5CF6"/></div>
+              <div className="company-logo-placeholder-lg">
+                <Building2 size={40} color="#f97316" />
+              </div>
             )}
           </div>
           <div className="company-detail-info">
             <div className="company-verified-pill">✓ Verified Partner</div>
             <h1>{company.companyName}</h1>
             <div className="company-metadata">
-              {company.address && <span><MapPin size={14}/> {company.address}</span>}
-              {company.phone && <span><Phone size={14}/> {company.phone}</span>}
-              {company.contactEmail && <span><Mail size={14}/> {company.contactEmail}</span>}
+              {company.address && (
+                <span>
+                  <MapPin size={14} /> {company.address}
+                </span>
+              )}
+              {company.phone && (
+                <span>
+                  <Phone size={14} /> {company.phone}
+                </span>
+              )}
+              {company.contactEmail && (
+                <span>
+                  <Mail size={14} /> {company.contactEmail}
+                </span>
+              )}
             </div>
-            {company.description && <p className="company-detail-desc">{company.description}</p>}
+            {company.description && (
+              <p className="company-detail-desc">{company.description}</p>
+            )}
           </div>
         </div>
       </div>
@@ -63,30 +95,48 @@ const CompanyDetail = () => {
       <div className="company-detail-fleet">
         <div className="company-fleet-inner">
           <div className="fleet-heading">
-            <h2><Car size={22}/> Fleet <span>({vehicles.length} vehicles)</span></h2>
+            <h2>
+              <Car size={22} /> Fleet <span>({vehicles.length} vehicles)</span>
+            </h2>
           </div>
           {vehicles.length === 0 ? (
             <div className="fleet-empty">
-              <Car size={40} color="#DDD6FE"/>
+              <Car size={40} color="#DDD6FE" />
               <p>This company hasn't listed any vehicles yet.</p>
             </div>
           ) : (
             <div className="fleet-grid">
-              {vehicles.map((v, i) => <VehicleCard key={v._id} vehicle={v} index={i} />)}
+              {vehicles.map((v, i) => (
+                <VehicleCard key={v._id} vehicle={v} index={i} />
+              ))}
             </div>
           )}
         </div>
       </div>
 
       <style>{`
-        .company-detail-page { min-height: 100vh; font-family: 'Inter', sans-serif; }
+        .company-detail-page { 
+          min-height: 100vh; 
+          font-family: 'Inter', sans-serif; 
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
+          transition: background-color 0.3s ease;
+        }
+        .company-detail-page:hover {
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
+        }
 
         .company-detail-loading {
           min-height: 60vh; display: flex; align-items: center; justify-content: center;
         }
-        .spinner {
-          width: 40px; height: 40px; border: 3px solid #EDE9FE;
-          border-top-color: #7C3AED; border-radius: 50%;
+         .spinner {
+          width: 40px; height: 40px; border: 3px solid #ffedd5;
+          border-top-color: #f97316; border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -95,7 +145,7 @@ const CompanyDetail = () => {
           min-height: 50vh; display: flex; flex-direction: column;
           align-items: center; justify-content: center; gap: 1rem;
         }
-        .company-detail-error a { color: #7C3AED; font-weight: 600; text-decoration: none; }
+        .company-detail-error a { color: #f97316; font-weight: 600; text-decoration: none; }
 
         .company-detail-nav { max-width: 1280px; margin: 0 auto; padding: 1.5rem 2rem 0; }
         .back-link {
@@ -103,12 +153,12 @@ const CompanyDetail = () => {
           color: #6B7280; font-weight: 600; font-size: 0.9rem;
           text-decoration: none; transition: color 0.2s;
         }
-        .back-link:hover { color: #7C3AED; }
+        .back-link:hover { color: #f97316; }
 
         .company-detail-header {
-          background: linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%);
+          background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
           padding: 2.5rem 2rem 3rem;
-          border-bottom: 1px solid #DDD6FE;
+          border-bottom: 1px solid #fed7aa;
         }
         .company-detail-header-inner {
           max-width: 1280px; margin: 0 auto;

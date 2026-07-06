@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
+import { API_URL } from "../config";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -17,7 +18,7 @@ const Login = () => {
     setLoading(true);
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        `${API_URL}/api/auth/login`,
         formData,
       );
       localStorage.setItem("token", res.data.token);
@@ -44,7 +45,7 @@ const Login = () => {
 
       // Send to backend
       const res = await axios.post(
-        "http://localhost:5000/api/auth/firebase-login",
+        `${API_URL}/api/auth/firebase-login`,
         {
           name: user.displayName,
           email: user.email,
@@ -189,9 +190,19 @@ const Login = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background-color: transparent;
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
           padding: 20px;
           font-family: 'Inter', sans-serif;
+          transition: background-color 0.3s ease;
+        }
+        .auth-page:hover {
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
         }
 
         .auth-card {
@@ -225,8 +236,8 @@ const Login = () => {
 
         .btn-google-auth:hover:not(:disabled) {
           background: #F9FAFB;
-          border-color: #DDD6FE;
-          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.05);
+          border-color: #fed7aa;
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.05);
           transform: translateY(-1px);
         }
 
@@ -250,7 +261,7 @@ const Login = () => {
         }
 
         .logo-icon {
-          background: #7C3AED;
+          background: #f97316;
           width: 40px;
           height: 40px;
           border-radius: 12px;
@@ -267,12 +278,12 @@ const Login = () => {
         }
 
         .logo-text span {
-          color: #7C3AED;
+          color: #f97316;
         }
 
         .hero-badge-mini {
-          background: #F5F3FF;
-          color: #7C3AED;
+          background: #fff7ed;
+          color: #f97316;
           padding: 6px 14px;
           border-radius: 100px;
           font-size: 12px;
@@ -319,7 +330,7 @@ const Login = () => {
 
         #forgot-link {
           font-size: 11px;
-          color: #7C3AED;
+          color: #f97316;
           font-weight: 700;
           text-decoration: none;
         }
@@ -336,14 +347,14 @@ const Login = () => {
 
         .input-wrapper input:focus {
           outline: none;
-          border-color: #7C3AED;
+          border-color: #f97316;
           background: #FFFFFF;
-          box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+          box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
         }
 
         /* Button Styling */
         .btn-login {
-          background: #7C3AED;
+          background: #f97316;
           color: white;
           padding: 16px;
           border-radius: 100px;
@@ -357,13 +368,13 @@ const Login = () => {
           gap: 12px;
           margin-top: 10px;
           transition: all 0.3s ease;
-          box-shadow: 0 10px 20px rgba(124, 58, 237, 0.2);
+          box-shadow: 0 10px 20px rgba(249, 115, 22, 0.2);
         }
 
         .btn-login:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 12px 24px rgba(124, 58, 237, 0.3);
-          background: #6D28D9;
+          box-shadow: 0 12px 24px rgba(249, 115, 22, 0.3);
+          background: #ea580c;
         }
 
         .btn-login:disabled {
@@ -394,7 +405,7 @@ const Login = () => {
         }
 
         .auth-footer a {
-          color: #7C3AED;
+          color: #f97316;
           font-weight: 700;
           text-decoration: none;
           margin-left: 4px;

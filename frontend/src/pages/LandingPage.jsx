@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import Hero from '../components/Hero';
-import VehicleCard from '../components/VehicleCard';
-import { ShieldCheck, HeartHandshake, Clock } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { API_URL } from "../config";
+import Hero from "../components/Hero";
+import VehicleCard from "../components/VehicleCard";
+import { ShieldCheck, HeartHandshake, Clock } from "lucide-react";
 
 const LandingPage = () => {
   const [featuredCars, setFeaturedCars] = useState([]);
@@ -11,12 +12,12 @@ const LandingPage = () => {
   useEffect(() => {
     const fetchCars = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/vehicles');
+        const response = await axios.get(`${API_URL}/api/vehicles`);
         // Just take the first 4 for the preview
         setFeaturedCars(response.data.slice(0, 4));
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching cars:', error);
+        console.error("Error fetching cars:", error);
         setLoading(false);
       }
     };
@@ -26,24 +27,32 @@ const LandingPage = () => {
   return (
     <div className="landing-page">
       <Hero />
-      
+
       {/* Popular Car Rentals Section */}
       <section className="section featured-preview container">
         <div className="section-header">
           <span className="section-badge">Popular Rentals</span>
-          <h2 className="section-title">Rent verified vehicles from <br/>trusted hosts</h2>
-          <p className="section-subtitle">Whether you need a luxury sedan for a wedding or a rugged SUV for a road trip, we've got you covered.</p>
+          <h2 className="section-title">
+            Rent verified vehicles from <br />
+            trusted hosts
+          </h2>
+          <p className="section-subtitle">
+            Whether you need a luxury sedan for a wedding or a rugged SUV for a
+            road trip, we've got you covered.
+          </p>
         </div>
-        
+
         <div className="vehicle-grid">
           {loading ? (
             <div className="loading-spinner">Loading cars...</div>
           ) : featuredCars.length > 0 ? (
-            featuredCars.map(car => (
+            featuredCars.map((car) => (
               <VehicleCard key={car._id} vehicle={car} />
             ))
           ) : (
-            <div className="no-cars">No vehicles found. Start by listing your car!</div>
+            <div className="no-cars">
+              No vehicles found. Start by listing your car!
+            </div>
           )}
         </div>
       </section>
@@ -55,12 +64,14 @@ const LandingPage = () => {
             <span className="section-badge">Simple Process</span>
             <h2 className="section-title">Rent in 4 simple steps</h2>
           </div>
-          
+
           <div className="steps-grid">
             <div className="step-card">
               <div className="step-icon">1</div>
               <h3>Browse & Select</h3>
-              <p>Explore our wide range of verified vehicles across the island.</p>
+              <p>
+                Explore our wide range of verified vehicles across the island.
+              </p>
             </div>
             <div className="step-card">
               <div className="step-icon">2</div>
@@ -75,7 +86,9 @@ const LandingPage = () => {
             <div className="step-card">
               <div className="step-icon">4</div>
               <h3>Return & Rate</h3>
-              <p>Return the car and share your experience with the community.</p>
+              <p>
+                Return the car and share your experience with the community.
+              </p>
             </div>
           </div>
         </div>
@@ -86,7 +99,10 @@ const LandingPage = () => {
         <div className="why-us-content">
           <div className="why-us-text">
             <span className="section-badge text-left">Why CarRents.lk?</span>
-            <h2 className="section-title text-left">The most trusted car <br/>sharing marketplace</h2>
+            <h2 className="section-title text-left">
+              The most trusted car <br />
+              sharing marketplace
+            </h2>
             <ul className="benefits-list">
               <li>
                 <div className="benefit-icon">
@@ -94,7 +110,9 @@ const LandingPage = () => {
                 </div>
                 <div>
                   <h4>Fully Insured</h4>
-                  <p>Every trip is covered by our comprehensive insurance policy.</p>
+                  <p>
+                    Every trip is covered by our comprehensive insurance policy.
+                  </p>
                 </div>
               </li>
               <li>
@@ -136,6 +154,17 @@ const LandingPage = () => {
         .landing-page {
           color: #111827;
           position: relative;
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
+          transition: background-color 0.3s ease;
+        }
+        .landing-page:hover {
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
         }
 
         .container {
@@ -160,8 +189,8 @@ const LandingPage = () => {
         .section-badge {
           display: inline-block;
           padding: 0.4rem 1rem;
-          background: #F5F3FF;
-          color: #8B5CF6;
+          background: #fff7ed;
+          color: #f97316;
           border-radius: 100px;
           font-size: 0.875rem;
           font-weight: 700;
@@ -216,7 +245,7 @@ const LandingPage = () => {
           justify-content: center;
           font-size: 1.5rem;
           font-weight: 800;
-          color: #8B5CF6;
+          color: #f97316;
           margin: 0 auto 1.5rem;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
@@ -245,7 +274,7 @@ const LandingPage = () => {
         .why-us-image {
           flex: 1;
           height: 400px;
-          background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+          background: linear-gradient(135deg, #f97316 0%, #fdbb2d 100%);
           border-radius: 2rem;
           position: relative;
           display: flex;
@@ -262,7 +291,7 @@ const LandingPage = () => {
         .benefit-icon {
           width: 48px;
           height: 48px;
-          background: #F5F3FF;
+          background: #fff7ed;
           border-radius: 12px;
           display: flex;
           align-items: center;
@@ -273,7 +302,7 @@ const LandingPage = () => {
         }
 
         .benefit-icon svg {
-          color: #8B5CF6;
+          color: #f97316;
           transition: transform 0.3s ease;
         }
 
@@ -286,14 +315,14 @@ const LandingPage = () => {
 
         .benefits-list li:hover .benefit-icon {
           transform: scale(1.1) rotate(8deg);
-          background: #EDE9FE;
-          border-color: #8B5CF6;
-          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+          background: #ffedd5;
+          border-color: #f97316;
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
         }
 
         .benefits-list li:hover .benefit-icon svg {
           transform: scale(1.1);
-          color: #7C3AED;
+          color: #ea580c;
         }
 
         .benefits-list h4 {
@@ -326,7 +355,7 @@ const LandingPage = () => {
         .stat-number {
           font-size: 2rem;
           font-weight: 800;
-          color: #8B5CF6;
+          color: #f97316;
         }
 
         .stat-label {

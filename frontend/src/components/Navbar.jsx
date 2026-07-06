@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import logo from "../assets/images/logo.png";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user") || "null");
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path;
@@ -16,46 +17,71 @@ const Navbar = () => {
         {/* Logo */}
         <Link to="/" className="logo">
           <div className="logo-icon">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <circle cx="16" cy="16" r="16" fill="#8B5CF6" />
-              <path d="M8 20l2-6h12l2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="11" cy="21" r="2" fill="white" />
-              <circle cx="21" cy="21" r="2" fill="white" />
-            </svg>
+            {/* Logo imported from src/assets */}
+            <img src={logo} alt="CarRents.lk Logo" className="logo-img" />
           </div>
-          <span className="logo-text">CarRents<span className="logo-domain">.lk</span></span>
+          <span className="logo-text">
+            CarRents<span className="logo-domain">.lk</span>
+          </span>
         </Link>
 
         {/* Nav Links - Centered */}
         <div className="nav-links">
-          <Link to="/vehicles" className="nav-item">Rent</Link>
-          {user && user.role === 'company' ? (
-            <Link to="/company-dashboard" className="nav-item">Dashboard</Link>
+          <Link to="/vehicles" className="nav-item">
+            Rent
+          </Link>
+          {user && user.role === "company" ? (
+            <Link to="/company-dashboard" className="nav-item">
+              Dashboard
+            </Link>
           ) : (
-            <Link to="/list-my-car" className="nav-item">List Vehicle</Link>
+            <Link to="/list-my-car" className="nav-item">
+              List Vehicle
+            </Link>
           )}
-          <Link to="/companies" className="nav-item">Companies</Link>
-          <a href="#how-it-works" className="nav-item">How it works</a>
-          <Link to="/why-us" className="nav-item">Why us</Link>
+          <Link to="/companies" className="nav-item">
+            Companies
+          </Link>
+          <a href="#how-it-works" className="nav-item">
+            How it works
+          </a>
+          <Link to="/why-us" className="nav-item">
+            Why us
+          </Link>
         </div>
 
         {/* Auth Buttons */}
         <div className="nav-auth">
           {token ? (
-            <Link to="/profile" className="nav-item btn-primary" style={{ padding: '0.65rem 1.5rem', background: 'transparent', border: '2px solid #8b5cf6', color: '#8b5cf6' }}>Profile</Link>
+            <Link
+              to="/profile"
+              className="nav-item btn-primary"
+              style={{
+                padding: "0.65rem 1.5rem",
+                background: "transparent",
+                border: "2px solid #f97316",
+                color: "#f97316",
+              }}
+            >
+              Profile
+            </Link>
           ) : (
             <>
-              <Link to="/login" className="nav-item sign-in">Sign in</Link>
-              <Link to="/select-role" className="btn-getstarted">Get started</Link>
+              <Link to="/login" className="nav-item sign-in">
+                Sign in
+              </Link>
+              <Link to="/select-role" className="btn-getstarted">
+                Get started
+              </Link>
             </>
           )}
         </div>
 
         {/* Mobile Menu Toggle */}
         <button className="burger" onClick={() => setMenuOpen(!menuOpen)}>
-          <span className={menuOpen ? 'open' : ''}></span>
-          <span className={menuOpen ? 'open' : ''}></span>
-          <span className={menuOpen ? 'open' : ''}></span>
+          <span className={menuOpen ? "open" : ""}></span>
+          <span className={menuOpen ? "open" : ""}></span>
+          <span className={menuOpen ? "open" : ""}></span>
         </button>
       </div>
 
@@ -90,6 +116,14 @@ const Navbar = () => {
           text-decoration: none;
         }
 
+        /* Formats your custom .png logo */
+        .logo-img {
+          width: 32px;
+          height: 32px;
+          object-fit: contain; /* Keeps image proportions intact without stretching */
+          display: block;
+        }
+
         .logo-text {
           font-size: 1.25rem;
           font-weight: 700;
@@ -97,7 +131,7 @@ const Navbar = () => {
         }
 
         .logo-domain {
-          color: #8b5cf6;
+          color: #f97316;
         }
 
         .nav-links {
@@ -132,7 +166,7 @@ const Navbar = () => {
         }
 
         .btn-getstarted {
-          background: #8b5cf6;
+          background: #f97316;
           color: white;
           padding: 0.65rem 1.5rem;
           border-radius: 0.75rem;
@@ -140,11 +174,13 @@ const Navbar = () => {
           text-decoration: none;
           transition: background 0.2s, transform 0.2s;
           border: none;
+          box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
         }
 
         .btn-getstarted:hover {
-          background: #7c3aed;
+          background: #ea580c;
           transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
         }
 
         .burger {

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { API_URL } from "../config";
 import {
   Car,
   Calendar,
@@ -52,7 +53,7 @@ const Profile = () => {
     setLoading(true);
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/auth/update-profile",
+        `${API_URL}/api/auth/update-profile`,
         {
           userId: user.id,
           name: editName,
@@ -529,7 +530,18 @@ const Profile = () => {
         
         .profile-page {
           padding: 2.5rem 0 6rem;
-          /* Inherits the global premium background from parent */
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
+          transition: background-color 0.3s ease;
+        }
+        
+        .profile-page:hover {
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
         }
         
         .profile-header-card {

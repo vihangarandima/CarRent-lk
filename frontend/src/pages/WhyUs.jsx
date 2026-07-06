@@ -1,69 +1,78 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { ShieldCheck, Zap, HeartHandshake, Clock, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { motion } from "framer-motion";
+import {
+  ShieldCheck,
+  Zap,
+  HeartHandshake,
+  Clock,
+  ChevronRight,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 
 const WhyUs = () => {
   const features = [
     {
-      icon: <ShieldCheck size={28} className="icon-purple" />,
+      icon: <ShieldCheck size={28} className="icon-orange" />,
       title: "Verified Hosts & Vehicles",
       desc: "Every host and vehicle is manually verified by our team to guarantee safety, quality, and a premium experience.",
-      iconBg: "bg-purple-light"
+      iconBg: "bg-orange-light",
     },
     {
       icon: <Zap size={28} className="icon-blue" />,
       title: "Instant Booking",
       desc: "No waiting around. Browse, select, and book your dream vehicle instantly with our streamlined process.",
-      iconBg: "bg-blue-light"
+      iconBg: "bg-blue-light",
     },
     {
       icon: <HeartHandshake size={28} className="icon-orange" />,
       title: "Transparent Pricing",
       desc: "What you see is what you pay. We hate hidden fees as much as you do. Everything is crystal clear from the start.",
-      iconBg: "bg-orange-light"
+      iconBg: "bg-orange-light",
     },
     {
       icon: <Clock size={28} className="icon-green" />,
       title: "24/7 Dedicated Support",
       desc: "On the road or anywhere else, our support team is available round-the-clock to ensure your journey is seamless.",
-      iconBg: "bg-green-light"
-    }
+      iconBg: "bg-green-light",
+    },
   ];
 
   return (
     <div className="why-us-page page">
       <div className="container">
-        <motion.div 
+        <motion.div
           className="why-us-header"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
           <div className="badge badge-primary mb-4">Our Promise</div>
-          <h1>Why Choose <span className="text-gradient">CarRents.lk?</span></h1>
-          <p className="subtitle">We're redefining the vehicle rental experience in Sri Lanka through trust, transparency, and technology.</p>
+          <h1>
+            Why Choose <span className="text-gradient">CarRents.lk?</span>
+          </h1>
+          <p className="subtitle">
+            We're redefining the vehicle rental experience in Sri Lanka through
+            trust, transparency, and technology.
+          </p>
         </motion.div>
 
         <div className="features-grid">
           {features.map((f, i) => (
-            <motion.div 
-              key={i} 
+            <motion.div
+              key={i}
               className="feature-card glass-card"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
             >
-              <div className={`feature-icon-wrapper ${f.iconBg}`}>
-                {f.icon}
-              </div>
+              <div className={`feature-icon-wrapper ${f.iconBg}`}>{f.icon}</div>
               <h3>{f.title}</h3>
               <p>{f.desc}</p>
             </motion.div>
           ))}
         </div>
 
-        <motion.div 
+        <motion.div
           className="cta-section glass-card"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -71,7 +80,10 @@ const WhyUs = () => {
         >
           <div className="cta-content">
             <h2>Ready to hit the road?</h2>
-            <p>Join thousands of satisfied travelers who have experienced the CarRents.lk difference.</p>
+            <p>
+              Join thousands of satisfied travelers who have experienced the
+              CarRents.lk difference.
+            </p>
           </div>
           <div className="cta-actions">
             <Link to="/vehicles" className="btn btn-primary">
@@ -84,6 +96,17 @@ const WhyUs = () => {
       <style>{`
         .why-us-page {
           padding-top: 4rem;
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
+          transition: background-color 0.3s ease;
+        }
+        .why-us-page:hover {
+          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
+                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
+          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
+          background-attachment: fixed;
         }
 
         .why-us-header {
@@ -134,7 +157,7 @@ const WhyUs = () => {
         
         .feature-card:hover {
           transform: translateY(-5px);
-          border-color: #a855f7;
+          border-color: #f97316;
           box-shadow: 0 10px 30px rgba(168,85,247,0.15);
         }
 
@@ -149,12 +172,14 @@ const WhyUs = () => {
         }
 
         /* Light background colors for icons */
-        .bg-purple-light { background: #f3e8ff; }
+        .bg-orange-light { background: #FEF3C7; }
+        .bg-purple-light { background: #FEF3C7; }
         .bg-blue-light { background: #e0f2fe; }
         .bg-orange-light { background: #ffedd5; }
         .bg-green-light { background: #dcfce7; }
         
-        .icon-purple { color: #a855f7; }
+        .icon-orange { color: #f97316; }
+        .icon-purple { color: #f97316; }
         .icon-blue { color: #38bdf8; }
         .icon-orange { color: #fb923c; }
         .icon-green { color: #4ade80; }
@@ -178,7 +203,7 @@ const WhyUs = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          background: linear-gradient(135deg, #a855f7 0%, #c084fc 100%);
+          background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
           box-shadow: 0 10px 30px rgba(168, 85, 247, 0.2);
           border-radius: 1.5rem;
           flex-wrap: wrap;

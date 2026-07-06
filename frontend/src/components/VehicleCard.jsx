@@ -1,59 +1,95 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Sparkles, MapPin, Users, Fuel, Settings2, Star, Building2 } from 'lucide-react';
+import React from "react";
+import { Link } from "react-router-dom";
+import {
+  Sparkles,
+  MapPin,
+  Users,
+  Fuel,
+  Settings2,
+  Star,
+  Building2,
+} from "lucide-react";
 
 const VehicleCard = ({ vehicle, index }) => {
   // Gradients matching the beautiful colors in screenshot 2
-  const coverImage = vehicle.images && vehicle.images.length > 0 && vehicle.images[0]
-    ? vehicle.images[0]
-    : 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=600';
-  
+  const coverImage =
+    vehicle.images && vehicle.images.length > 0 && vehicle.images[0]
+      ? vehicle.images[0]
+      : "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=600";
+
   // Decide pill tag appropriately
-  let tag = 'Nearest';
-  if (vehicle.brand === 'BMW' || vehicle.pricePerDay > 15000) tag = 'Luxury';
-  else if (vehicle.fuelType === 'Hybrid' || vehicle.fuelType === 'Electric') tag = 'Eco';
-  else if (index === 1 || index === 4 || vehicle.rating > 4.8) tag = 'Top rated';
+  let tag = "Nearest";
+  if (vehicle.brand === "BMW" || vehicle.pricePerDay > 15000) tag = "Luxury";
+  else if (vehicle.fuelType === "Hybrid" || vehicle.fuelType === "Electric")
+    tag = "Eco";
+  else if (index === 1 || index === 4 || vehicle.rating > 4.8)
+    tag = "Top rated";
 
   // Mock distance
-  const distance = (2.4 + ((index || 0) * 0.7)).toFixed(1);
+  const distance = (2.4 + (index || 0) * 0.7).toFixed(1);
 
   return (
     <div className="v-card-modern">
-      <div className="v-card-header-gradient" style={{ 
-        backgroundImage: `url(${coverImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center'
-      }}>
+      <div
+        className="v-card-header-gradient"
+        style={{
+          backgroundImage: `url(${coverImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
         <div className="v-card-tags">
-          <span className="v-tag-left"><Sparkles size={12}/> {tag}</span>
-          <span className="v-tag-right"><MapPin size={12}/> {distance} km</span>
+          <span className="v-tag-left">
+            <Sparkles size={12} /> {tag}
+          </span>
+          <span className="v-tag-right">
+            <MapPin size={12} /> {distance} km
+          </span>
         </div>
       </div>
-      
+
       <div className="v-card-content">
         <div className="v-card-title-row">
-          <h3>{vehicle.brand} {vehicle.model}</h3>
-          <div className="v-rating"><Star size={14} fill="#f59e0b" color="#f59e0b"/> 4.95</div>
+          <h3>
+            {vehicle.brand} {vehicle.model}
+          </h3>
+          <div className="v-rating">
+            <Star size={14} fill="#f59e0b" color="#f59e0b" /> 4.95
+          </div>
         </div>
         <p className="v-location">{vehicle.location}</p>
         {vehicle.company && (
-          <Link to={`/companies/${vehicle.company._id}`} className="v-company-badge">
-            <Building2 size={12}/> {vehicle.company.companyName}
+          <Link
+            to={`/companies/${vehicle.company._id}`}
+            className="v-company-badge"
+          >
+            <Building2 size={12} /> {vehicle.company.companyName}
           </Link>
         )}
-        
+
         <div className="v-features">
-          <span><Users size={14}/> {vehicle.seats || 5}</span>
-          <span><Fuel size={14}/> {vehicle.fuelType || 'Petrol'}</span>
-          <span><Settings2 size={14}/> {vehicle.transmission || 'Auto'}</span>
+          <span>
+            <Users size={14} /> {vehicle.seats || 5}
+          </span>
+          <span>
+            <Fuel size={14} /> {vehicle.fuelType || "Petrol"}
+          </span>
+          <span>
+            <Settings2 size={14} /> {vehicle.transmission || "Auto"}
+          </span>
         </div>
 
         <div className="v-footer">
           <div className="v-price-block">
             <span className="v-price-label">From</span>
-            <div className="v-price-value">LKR {vehicle.pricePerDay?.toLocaleString()}<span>/day</span></div>
+            <div className="v-price-value">
+              LKR {vehicle.pricePerDay?.toLocaleString()}
+              <span>/day</span>
+            </div>
           </div>
-          <Link to={`/vehicle/${vehicle._id}`} className="v-book-btn">Book →</Link>
+          <Link to={`/vehicle/${vehicle._id}`} className="v-book-btn">
+            Book →
+          </Link>
         </div>
       </div>
 
@@ -182,7 +218,7 @@ const VehicleCard = ({ vehicle, index }) => {
         .v-price-value {
           font-size: 1.35rem;
           font-weight: 800;
-          color: #a855f7;
+          color: #f97316;
           line-height: 1;
         }
         
@@ -193,27 +229,30 @@ const VehicleCard = ({ vehicle, index }) => {
         }
 
         .v-book-btn {
-          background: #a855f7;
+          background: #f97316;
           color: white;
           padding: 0.65rem 1.25rem;
           border-radius: 100px;
           font-weight: 600;
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+          transition: all 0.2s ease;
           font-size: 0.9rem;
           text-decoration: none;
           transition: 0.2s;
         }
 
         .v-book-btn:hover {
-          background: #9333ea;
+          background: #ea580c;
           transform: translateX(2px);
+          box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
         }
 
         .v-company-badge {
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          background: #EDE9FE;
-          color: #6D28D9;
+          background: #FEF3C7;
+          color: #92400e;
           font-size: 0.72rem;
           font-weight: 700;
           padding: 3px 10px;
@@ -222,7 +261,7 @@ const VehicleCard = ({ vehicle, index }) => {
           margin-bottom: 0.75rem;
           transition: background 0.2s;
         }
-        .v-company-badge:hover { background: #DDD6FE; }
+        .v-company-badge:hover { background: #FCD34D; }
       `}</style>
     </div>
   );
