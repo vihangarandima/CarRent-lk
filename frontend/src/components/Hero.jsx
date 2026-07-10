@@ -21,7 +21,7 @@ const Hero = () => {
 
           {/* Titles */}
           <h1 className="hero-title">
-            Drive anything. <br />
+            Drive nothing. <br />
             <span className="orange-text">Anywhere in Lanka.</span>
           </h1>
 
