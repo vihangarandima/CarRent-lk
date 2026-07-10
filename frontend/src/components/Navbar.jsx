@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import logo from "../assets/images/logo.png";
+import logo from "../assets/images/logo.png.jpeg";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -192,8 +192,8 @@ const Navbar = () => {
 
         /* Formats your custom .png logo */
         .logo-img {
-          width: 32px;
-          height: 32px;
+          width: 70px;
+          height: 70px;
           object-fit: contain; /* Keeps image proportions intact without stretching */
           display: block;
         }

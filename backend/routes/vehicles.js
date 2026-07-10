@@ -37,7 +37,7 @@ router.get("/", async (req, res) => {
 
     const vehicles = await Vehicle.find(query)
       .populate("owner", "name email")
-      .populate("company", "companyName logo");
+      .populate("company", "companyName logo address");
     res.json(vehicles);
   } catch (err) {
     res.status(500).send("Server Error");

@@ -30,15 +30,34 @@ function AppContent() {
       return;
     }
 
-    const timer = window.setTimeout(() => {
+    const scrollToTarget = () => {
       const targetElement = document.getElementById(targetId);
 
       if (targetElement) {
-        targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 0);
+        const navbarHeight = document.querySelector(".navbar")?.getBoundingClientRect().height ?? 80;
+        const offset = navbarHeight + 24;
+        const targetTop = window.scrollY + targetElement.getBoundingClientRect().top - offset;
 
-    return () => window.clearTimeout(timer);
+        window.scrollTo({
+          top: Math.max(targetTop, 0),
+          behavior: "smooth",
+        });
+      }
+
+    };
+
+    const initialTimer = window.setTimeout(() => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(scrollToTarget);
+      });
+    }, 150);
+
+    const correctionTimer = window.setTimeout(scrollToTarget, 500);
+
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearTimeout(correctionTimer);
+    };
   }, [location.pathname, location.hash]);
 
   return (

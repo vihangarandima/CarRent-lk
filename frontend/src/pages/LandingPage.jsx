@@ -24,24 +24,6 @@ const LandingPage = () => {
     fetchCars();
   }, []);
 
-  useEffect(() => {
-    const targetId = window.location.hash.replace("#", "");
-
-    if (!targetId) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      const targetElement = document.getElementById(targetId);
-
-      if (targetElement) {
-        targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, []);
-
   return (
     <div className="landing-page">
       <Hero />
@@ -193,6 +175,10 @@ const LandingPage = () => {
 
         .section {
           padding: 6rem 0;
+        }
+
+        #how-it-works {
+          scroll-margin-top: 112px;
         }
 
         .bg-light {
@@ -388,6 +374,34 @@ const LandingPage = () => {
           }
           .section-title {
             font-size: 2.5rem;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .section {
+            padding: 4rem 0;
+          }
+
+          #how-it-works {
+            scroll-margin-top: 96px;
+          }
+
+          .section-title {
+            font-size: 2rem;
+          }
+
+          .steps-grid {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+          }
+
+          .step-card {
+            max-width: 420px;
+            margin: 0 auto;
+          }
+
+          .why-us-content {
+            gap: 2.5rem;
           }
         }
       `}</style>

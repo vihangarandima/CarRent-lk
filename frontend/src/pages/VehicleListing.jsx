@@ -36,6 +36,14 @@ const listingMapContainerStyle = {
 
 const sriLankaCenter = { lat: 7.8731, lng: 80.7718 };
 
+const normalizeSearchText = (value = "") =>
+  value
+    .toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
 const VehicleListing = () => {
   const [filter, setFilter] = useState({
     location: "",
@@ -100,12 +108,19 @@ const VehicleListing = () => {
   }, []);
 
   const filtered = vehicles.filter((v) => {
+    const searchLocation = normalizeSearchText(filter.location);
+    const vehicleLocation = normalizeSearchText(v.location);
+    const companyLocation = normalizeSearchText(v.company?.address);
+    const companyName = normalizeSearchText(v.company?.companyName);
+
     const matchBrand =
       !filter.brand ||
       v.brand?.toLowerCase().includes(filter.brand.toLowerCase());
     const matchLocation =
-      !filter.location ||
-      v.location?.toLowerCase().includes(filter.location.toLowerCase());
+      !searchLocation ||
+      vehicleLocation.includes(searchLocation) ||
+      companyLocation.includes(searchLocation) ||
+      companyName.includes(searchLocation);
     const matchMinPrice =
       !filter.minPrice || v.pricePerDay >= parseInt(filter.minPrice);
     const matchMaxPrice =
