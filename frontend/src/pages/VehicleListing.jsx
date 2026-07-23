@@ -773,17 +773,7 @@ const VehicleListing = () => {
         .listing-page {
           min-height: calc(100vh - 68px);
           padding-bottom: 80px;
-          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
-                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
-          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
-          background-attachment: fixed;
-          transition: background-color 0.3s ease;
-        }
-        .listing-page:hover {
-          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
-                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
-          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
-          background-attachment: fixed;
+          background: var(--bg);
         }
 
         /* Modern Header */
@@ -793,6 +783,20 @@ const VehicleListing = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
+          background: linear-gradient(180deg, var(--primary-soft) 0%, var(--bg) 100%);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .modern-header-section::before {
+          content: "";
+          position: absolute;
+          width: 500px;
+          height: 500px;
+          background: radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 70%);
+          top: -200px;
+          right: -100px;
+          pointer-events: none;
         }
 
         .vehicle-type-card-section {
@@ -903,15 +907,16 @@ const VehicleListing = () => {
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
-          background: #ffffff;
-          border: 1px solid rgba(0,0,0,0.06);
+          background: var(--primary-soft);
+          border: 1px solid rgba(249, 115, 22, 0.2);
           padding: 0.4rem 1rem;
           border-radius: 100px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: #111827;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: var(--primary-dark);
           margin-bottom: 1.5rem;
+          position: relative;
+          z-index: 1;
         }
 
         .icon-orange-txt { color: #f97316; }
@@ -919,35 +924,41 @@ const VehicleListing = () => {
         .icon-gray-txt { color: #9ca3af; }
 
         .modern-title {
+          font-family: var(--font-display);
           font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 800;
-          color: #111827;
-          line-height: 1.1;
-          letter-spacing: -1px;
+          color: var(--text);
+          line-height: 1.08;
+          letter-spacing: -0.03em;
           margin: 0 0 1rem 0;
+          position: relative;
+          z-index: 1;
         }
 
         .text-orange {
-          color: #f97316;
+          background: var(--grad-primary);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
 
         .modern-subtitle {
           font-size: 1.1rem;
-          color: #6b7280;
+          color: var(--text-muted);
           max-width: 600px;
           line-height: 1.6;
           margin: 0;
+          position: relative;
+          z-index: 1;
         }
 
         /* Massive 3 Step Search Block */
         .search-card-block {
-          background: rgba(255, 255, 255, 0.85);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.6);
-          border-radius: 2rem;
+          background: white;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-xl);
           padding: 2rem;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.04);
+          box-shadow: var(--shadow-card);
           margin-bottom: 4rem;
         }
 

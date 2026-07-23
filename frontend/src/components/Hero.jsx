@@ -1,313 +1,567 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  MapPin,
+  Calendar,
+  Search,
+  Shield,
+  Star,
+  TrendingDown,
+  ArrowRight,
+} from "lucide-react";
 
 const Hero = () => {
   const navigate = useNavigate();
+  const [location, setLocation] = useState("");
+  const [pickup, setPickup] = useState("");
+  const [dropoff, setDropoff] = useState("");
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (location) params.set("location", location);
+    navigate(`/vehicles${params.toString() ? `?${params}` : ""}`);
+  };
 
   return (
-    <section className="hero">
+    <section className="hero mesh-bg">
       <div className="container hero-container">
-        <div className="hero-content">
-          {/* Badge */}
+        <motion.div
+          className="hero-content"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        >
           <div className="hero-badge">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5L8 2z"
-                fill="#f97316"
-              />
-            </svg>
-            <span>Sri Lanka's modern car marketplace</span>
+            <span className="badge-dot" />
+            <span>Sri Lanka's #1 car sharing marketplace</span>
           </div>
 
-          {/* Titles */}
           <h1 className="hero-title">
-            Drive nothing. <br />
-            <span className="orange-text">Anywhere in Lanka.</span>
+            Find Your Perfect Car, <br />
+            Drive Your <span className="orange-text">Dreams.</span>
           </h1>
 
-          {/* Subtitle */}
           <p className="hero-subtitle">
-            Rent verified vehicles from trusted hosts, or list your own car and
-            start earning — all in a few taps.
+            Rent verified vehicles from trusted hosts across the island — or
+            list your own car and start earning in minutes.
           </p>
 
-          {/* CTA Buttons */}
           <div className="hero-actions">
             <button className="btn-find" onClick={() => navigate("/vehicles")}>
-              Find a car
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
+              Browse Cars
+              <ArrowRight size={18} />
             </button>
             <button
               className="btn-list"
               onClick={() => navigate("/list-my-car")}
             >
-              List your vehicle
+              List Your Vehicle
             </button>
           </div>
 
-          {/* Features Checklist */}
-          <div className="hero-features">
-            <div className="feature-item">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#10B981"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              <span>Verified hosts</span>
+          <div className="hero-stats">
+            <div className="stat-item">
+              <Shield size={18} />
+              <div>
+                <strong>10,000+</strong>
+                <span>Cars Listed</span>
+              </div>
             </div>
-            <div className="feature-item">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#10B981"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              <span>Insured trips</span>
+            <div className="stat-divider" />
+            <div className="stat-item">
+              <Star size={18} />
+              <div>
+                <strong>4.9/5</strong>
+                <span>Trusted Hosts</span>
+              </div>
             </div>
-            <div className="feature-item">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#10B981"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              <span>24/7 support</span>
+            <div className="stat-divider" />
+            <div className="stat-item">
+              <TrendingDown size={18} />
+              <div>
+                <strong>Best</strong>
+                <span>Prices</span>
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Hero Image */}
-        <div className="hero-image-container">
-          <img
-            src="http://localhost:5000/uploads/maybach.png"
-            alt="Premium Mercedes Maybach"
-            className="hero-car-img"
-          />
-        </div>
+        <motion.div
+          className="hero-visual"
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <div className="hero-image-wrap">
+            <div className="hero-spotlight" />
+            <img
+              src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=1200"
+              alt="Premium cars available for rent"
+              className="hero-car-img"
+            />
+          </div>
+        </motion.div>
       </div>
+
+      <motion.div
+        className="hero-search-wrap container"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div className="hero-search-card">
+          <div className="search-tabs">
+            <button className="search-tab active">Search Cars</button>
+            <button className="search-tab" type="button">
+              Body Type
+            </button>
+            <button className="search-tab" type="button">
+              Price Range
+            </button>
+          </div>
+
+          <div className="search-fields">
+            <div className="search-field">
+              <label>Location</label>
+              <div className="search-input-wrap">
+                <MapPin size={18} className="field-icon" />
+                <input
+                  type="text"
+                  placeholder="Colombo, Kandy, Galle..."
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="search-field">
+              <label>Pick-up Date</label>
+              <div className="search-input-wrap">
+                <Calendar size={18} className="field-icon" />
+                <input
+                  type="date"
+                  value={pickup}
+                  onChange={(e) => setPickup(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="search-field">
+              <label>Return Date</label>
+              <div className="search-input-wrap">
+                <Calendar size={18} className="field-icon" />
+                <input
+                  type="date"
+                  value={dropoff}
+                  onChange={(e) => setDropoff(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <button className="search-submit" onClick={handleSearch}>
+              <Search size={20} />
+              Search Cars
+            </button>
+          </div>
+        </div>
+      </motion.div>
 
       <style>{`
         .hero {
-          padding: 3rem 0;
-          background: transparent;
+          padding: 3rem 0 0;
+          position: relative;
           overflow: hidden;
-          min-height: calc(100vh - 80px);
-          display: flex;
-          align-items: center;
+          background: linear-gradient(180deg, #fff9f0 0%, #fff2e4 55%, #ffffff 100%);
         }
 
         .hero-container {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 2rem;
-          width: 100%;
+          gap: 3rem;
+          padding-bottom: 2rem;
+          position: relative;
+          z-index: 2;
         }
 
         .hero-content {
           flex: 1;
-          max-width: 620px;
-          z-index: 2;
+          max-width: 580px;
         }
 
         .hero-badge {
           display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.4rem 1rem;
-          background: #FEF3C7;
-          border: 1px solid #FECF3F;
-          border-radius: 100px;
-          font-size: 0.85rem;
-          font-weight: 500;
-          color: #92400e;
-          margin-bottom: 2rem;
+          gap: 0.6rem;
+          padding: 0.45rem 1rem 0.45rem 0.75rem;
+          background: var(--primary-soft);
+          border: 1px solid rgba(249, 115, 22, 0.2);
+          border-radius: var(--radius-pill);
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: var(--primary-dark);
+          margin-bottom: 1.75rem;
         }
 
-        .hero-badge span {
-          color: #4B5563;
+        .badge-dot {
+          width: 8px;
+          height: 8px;
+          background: var(--primary);
+          border-radius: 50%;
+          animation: pulse-glow 2s infinite;
         }
 
         .hero-title {
-          font-size: 3.8rem;
+          font-family: var(--font-display);
+          font-size: clamp(2.5rem, 5.5vw, 4rem);
           font-weight: 800;
-          color: #1F2937;
-          line-height: 1.1;
-          letter-spacing: -1.5px;
+          color: var(--text);
+          line-height: 1.08;
+          letter-spacing: -0.03em;
           margin-bottom: 1.25rem;
         }
 
         .orange-text {
-          color: #f97316;
-          background: linear-gradient(135deg, #f97316, #fb923c);
+          background: var(--grad-primary);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+          font-style: italic;
         }
 
         .hero-subtitle {
-          font-size: 1.15rem;
-          color: #6B7280;
-          line-height: 1.6;
+          font-size: 1.1rem;
+          color: var(--text-muted);
+          line-height: 1.75;
           margin-bottom: 2rem;
-          max-width: 500px;
+          max-width: 520px;
         }
 
         .hero-actions {
           display: flex;
-          gap: 1.25rem;
-          margin-bottom: 3.5rem;
+          gap: 1rem;
+          margin-bottom: 2.5rem;
+          flex-wrap: wrap;
         }
 
         .btn-find {
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 0.75rem;
-          background: linear-gradient(135deg, #f97316, #fb923c);
+          gap: 0.6rem;
+          background: var(--grad-primary);
           color: white;
-          padding: 0.9rem 1.8rem;
-          border-radius: 3rem;
+          padding: 0.95rem 2rem;
+          border-radius: var(--radius-pill);
           font-weight: 700;
           font-size: 1rem;
-          box-shadow: 0 10px 25px rgba(249, 115, 22, 0.4);
-          transition: transform 0.2s, box-shadow 0.2s;
+          box-shadow: 0 8px 28px var(--primary-glow);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           border: none;
           cursor: pointer;
         }
 
         .btn-find:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 15px 35px rgba(249, 115, 22, 0.5);
+          transform: translateY(-3px);
+          box-shadow: 0 14px 36px rgba(249, 115, 22, 0.45);
         }
 
         .btn-list {
           background: white;
-          color: #1F2937;
-          padding: 0.9rem 2rem;
-          border-radius: 3rem;
+          color: var(--text);
+          padding: 0.95rem 2rem;
+          border-radius: var(--radius-pill);
           font-weight: 700;
           font-size: 1rem;
-          border: 1px solid #E5E7EB;
-          transition: all 0.2s;
+          border: 2px solid var(--border);
+          transition: all 0.3s ease;
           cursor: pointer;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
 
         .btn-list:hover {
-          background: #F9FAFB;
-          border-color: #D1D5DB;
+          border-color: var(--primary);
+          color: var(--primary);
+          background: var(--primary-soft);
+          transform: translateY(-2px);
         }
 
-        .hero-features {
+        .hero-stats {
           display: flex;
-          gap: 2rem;
+          align-items: center;
+          gap: 1.5rem;
           flex-wrap: wrap;
         }
 
-        .feature-item {
+        .stat-item {
           display: flex;
           align-items: center;
           gap: 0.65rem;
-          color: #6B7280;
-          font-weight: 500;
-          font-size: 1rem;
         }
 
-        .hero-image-container {
-          flex: 1.5;
-          display: flex;
-          justify-content: flex-end;
+        .stat-item svg {
+          color: var(--primary);
+          flex-shrink: 0;
+        }
+
+        .stat-item strong {
+          display: block;
+          font-size: 1rem;
+          font-weight: 800;
+          color: var(--text);
+          line-height: 1.2;
+        }
+
+        .stat-item span {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+
+        .stat-divider {
+          width: 1px;
+          height: 36px;
+          background: var(--border);
+        }
+
+        .hero-visual {
+          flex: 1.2;
           position: relative;
         }
 
-        /* The Glow Effect */
-        .hero-image-container::before {
-          content: "";
+        .hero-image-wrap {
+          position: relative;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 420px;
+        }
+
+        .hero-spotlight {
           position: absolute;
-          width: 140%;
-          height: 140%;
-          background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          z-index: 1;
+          width: 90%;
+          height: 90%;
+          background: radial-gradient(
+            ellipse at center,
+            rgba(249, 115, 22, 0.15) 0%,
+            rgba(249, 115, 22, 0.05) 40%,
+            transparent 70%
+          );
+          border-radius: 50%;
+          z-index: 0;
         }
 
         .hero-car-img {
-          width: 100%;
-          max-width: none;
+          width: 110%;
+          max-width: 640px;
           position: relative;
-          z-index: 2;
-          transform: translate(120px, -40px);
-          filter: drop-shadow(0 20px 40px rgba(0,0,0,0.05));
-          animation: carFloat 6s ease-in-out infinite;
+          z-index: 1;
+          filter: drop-shadow(0 30px 60px rgba(15, 23, 42, 0.12));
+          animation: float 6s ease-in-out infinite;
         }
 
-        @keyframes carFloat {
-          0%, 100% { transform: translate(120px, -40px); }
-          50% { transform: translate(120px, -60px); }
+        .hero-search-wrap {
+          position: relative;
+          z-index: 10;
+          margin-top: 2.5rem;
+          padding-bottom: 4rem;
         }
 
-        @media (max-width: 1200px) {
-          .hero-title { font-size: 3.5rem; }
-          .hero-car-img { width: 90%; transform: translate(15px, -30px); }
-          @keyframes carFloat {
-            0%, 100% { transform: translate(15px, -30px); }
-            50% { transform: translate(15px, -45px); }
+        .hero-search-card {
+          background: white;
+          border-radius: var(--radius-xl);
+          padding: 2rem 2rem 2.25rem;
+          box-shadow: 0 26px 70px rgba(15, 23, 42, 0.12);
+          border: 1px solid var(--border);
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .hero-search-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 30px 80px rgba(15, 23, 42, 0.14);
+        }
+
+        .search-tabs {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 1.5rem;
+          border-bottom: 1px solid var(--border);
+          padding-bottom: 1rem;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+
+        .search-tabs::-webkit-scrollbar {
+          display: none;
+        }
+
+        .search-tab {
+          padding: 0.5rem 1rem;
+          border-radius: var(--radius-pill);
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          white-space: nowrap;
+        }
+
+        .search-tab.active {
+          background: var(--primary-soft);
+          color: var(--primary);
+        }
+
+        .search-tab:hover:not(.active) {
+          color: var(--text);
+          background: var(--surface-hover);
+        }
+
+        .search-fields {
+          display: grid;
+          grid-template-columns: 1.5fr 1fr 1fr auto;
+          gap: 1rem;
+          align-items: end;
+        }
+
+        .search-field label {
+          display: block;
+          font-size: 0.72rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: var(--text-muted);
+          margin-bottom: 0.5rem;
+        }
+
+        .search-input-wrap {
+          display: flex;
+          align-items: center;
+          gap: 0.65rem;
+          background: var(--bg);
+          border: 1.5px solid var(--border);
+          border-radius: var(--radius-sm);
+          padding: 0.85rem 1rem;
+          transition: all 0.2s ease;
+        }
+
+        .search-input-wrap:focus-within {
+          border-color: var(--primary);
+          box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
+          background: white;
+        }
+
+        .field-icon {
+          color: var(--primary);
+          flex-shrink: 0;
+        }
+
+        .search-input-wrap input {
+          border: none;
+          background: transparent;
+          outline: none;
+          font-family: inherit;
+          font-size: 0.95rem;
+          color: var(--text);
+          width: 100%;
+        }
+
+        .search-input-wrap input::placeholder {
+          color: var(--text-hint);
+        }
+
+        .search-submit {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          background: var(--grad-primary);
+          color: white;
+          padding: 0.95rem 1.75rem;
+          border-radius: var(--radius-sm);
+          font-weight: 700;
+          font-size: 0.95rem;
+          border: none;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 6px 20px var(--primary-glow);
+          white-space: nowrap;
+          height: 52px;
+        }
+
+        .search-submit:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 28px rgba(249, 115, 22, 0.4);
+        }
+
+        @media (max-width: 1100px) {
+          .search-fields {
+            grid-template-columns: 1fr 1fr;
+          }
+          .search-submit {
+            grid-column: 1 / -1;
           }
         }
 
         @media (max-width: 1024px) {
-          .hero { padding: 4rem 0; min-height: auto; }
-          .hero-container { flex-direction: column; text-align: center; }
-          .hero-content { max-width: 100%; display: flex; flex-direction: column; align-items: center; }
-          .hero-subtitle { max-width: 80%; }
-          .hero-actions { justify-content: center; }
-          .hero-features { justify-content: center; }
-          .hero-image-container { justify-content: center; width: 100%; margin-top: 3rem; }
-          .hero-car-img { width: 100%; transform: none; }
-          @keyframes carFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
+          .hero-container {
+            flex-direction: column;
+            text-align: center;
+          }
+          .hero-content {
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+          .hero-subtitle {
+            max-width: 90%;
+          }
+          .hero-actions {
+            justify-content: center;
+          }
+          .hero-stats {
+            justify-content: center;
+          }
+          .hero-visual {
+            width: 100%;
+            margin-top: 1rem;
+          }
+          .hero-car-img {
+            width: 100%;
           }
         }
 
         @media (max-width: 640px) {
-          .hero-title { font-size: 2.8rem; }
-          .hero-actions { flex-direction: column; gap: 1rem; width: 100%; }
-          .btn-find, .btn-list { width: 100%; justify-content: center; }
-          .hero-features { flex-direction: column; gap: 1rem; align-items: flex-start; }
+          .hero {
+            padding-top: 2rem;
+          }
+          .search-fields {
+            grid-template-columns: 1fr;
+          }
+          .hero-actions {
+            flex-direction: column;
+            width: 100%;
+          }
+          .btn-find,
+          .btn-list {
+            width: 100%;
+            justify-content: center;
+          }
+          .hero-stats {
+            flex-direction: column;
+            gap: 1rem;
+          }
+          .stat-divider {
+            display: none;
+          }
+          .hero-search-card {
+            padding: 1.25rem;
+          }
+          .search-tabs {
+            overflow-x: auto;
+            flex-wrap: nowrap;
+          }
         }
       `}</style>
     </section>

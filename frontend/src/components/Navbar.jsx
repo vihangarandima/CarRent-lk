@@ -8,8 +8,13 @@ const Navbar = () => {
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  const isActive = (path) => location.pathname === path;
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -22,7 +27,6 @@ const Navbar = () => {
         document.body.style.overflow = "";
       };
     }
-
     document.body.style.overflow = "";
     return undefined;
   }, [menuOpen]);
@@ -30,20 +34,15 @@ const Navbar = () => {
   const closeMenu = () => setMenuOpen(false);
 
   return (
-    <nav className="navbar">
+    <nav className={`navbar ${scrolled ? "scrolled" : ""}`}>
       <div className="nav-inner">
-        {/* Logo */}
         <Link to="/" className="logo">
-          <div className="logo-icon">
-            {/* Logo imported from src/assets */}
-            <img src={logo} alt="CarRents.lk Logo" className="logo-img" />
-          </div>
+          <img src={logo} alt="CarRents.lk Logo" className="logo-img" />
           <span className="logo-text">
             CarRents<span className="logo-domain">.lk</span>
           </span>
         </Link>
 
-        {/* Nav Links - Centered */}
         <div className="nav-links">
           <Link to="/vehicles" className="nav-item">
             Rent
@@ -68,49 +67,61 @@ const Navbar = () => {
           </Link>
         </div>
 
-        {/* Auth Buttons */}
         <div className="nav-auth">
-          {token ? (
-            <Link
-              to="/profile"
-              className="nav-item btn-primary"
-              style={{
-                padding: "0.65rem 1.5rem",
-                background: "transparent",
-                border: "2px solid #f97316",
-                color: "#f97316",
-              }}
+          <div className="nav-icon-placeholder" title="Favorites (Coming Soon)">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+          </div>
+          {token ? (
+            <Link to="/profile" className="nav-item profile-btn">
               Profile
             </Link>
           ) : (
             <>
               <Link to="/login" className="nav-item sign-in">
-                Sign in
+                Sign In
               </Link>
               <Link to="/select-role" className="btn-getstarted">
-                Get started
+                Get Started
               </Link>
             </>
           )}
         </div>
 
-        {/* Mobile Menu Toggle */}
         <button
           className={`burger ${menuOpen ? "open" : ""}`}
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
-          aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-label={
+            menuOpen ? "Close navigation menu" : "Open navigation menu"
+          }
           aria-expanded={menuOpen}
           aria-controls="mobile-menu"
         >
-          <span></span>
-          <span></span>
-          <span></span>
+          <span />
+          <span />
+          <span />
         </button>
       </div>
 
-      {menuOpen ? <button className="mobile-backdrop" type="button" aria-label="Close menu backdrop" onClick={closeMenu} /> : null}
+      {menuOpen ? (
+        <button
+          className="mobile-backdrop"
+          type="button"
+          aria-label="Close menu backdrop"
+          onClick={closeMenu}
+        />
+      ) : null}
 
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`} id="mobile-menu">
         <div className="mobile-menu-links">
@@ -126,14 +137,22 @@ const Navbar = () => {
               Dashboard
             </Link>
           ) : (
-            <Link to="/list-my-car" className="mobile-nav-item" onClick={closeMenu}>
+            <Link
+              to="/list-my-car"
+              className="mobile-nav-item"
+              onClick={closeMenu}
+            >
               List Vehicle
             </Link>
           )}
           <Link to="/companies" className="mobile-nav-item" onClick={closeMenu}>
             Companies
           </Link>
-          <Link to="/#how-it-works" className="mobile-nav-item" onClick={closeMenu}>
+          <Link
+            to="/#how-it-works"
+            className="mobile-nav-item"
+            onClick={closeMenu}
+          >
             How it works
           </Link>
           <Link to="/why-us" className="mobile-nav-item" onClick={closeMenu}>
@@ -143,15 +162,27 @@ const Navbar = () => {
 
         <div className="mobile-menu-actions">
           {token ? (
-            <Link to="/profile" className="mobile-btn-outline" onClick={closeMenu}>
+            <Link
+              to="/profile"
+              className="mobile-btn-outline"
+              onClick={closeMenu}
+            >
               Profile
             </Link>
           ) : (
             <>
-              <Link to="/login" className="mobile-nav-item mobile-sign-in" onClick={closeMenu}>
+              <Link
+                to="/login"
+                className="mobile-nav-item mobile-sign-in"
+                onClick={closeMenu}
+              >
                 Sign in
               </Link>
-              <Link to="/select-role" className="mobile-btn-primary" onClick={closeMenu}>
+              <Link
+                to="/select-role"
+                className="mobile-btn-primary"
+                onClick={closeMenu}
+              >
                 Get started
               </Link>
             </>
@@ -161,47 +192,63 @@ const Navbar = () => {
 
       <style>{`
         .navbar {
-          height: 80px;
-          background: rgba(255, 255, 255, 0.8);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-          display: flex;
-          align-items: center;
           position: sticky;
-          top: 0;
+          top: 1rem;
           z-index: 1000;
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          padding: 0 1rem;
+          background: transparent;
+        }
+
+        .navbar.scrolled {
+          top: 0.5rem;
         }
 
         .nav-inner {
-          max-width: 1280px;
-          width: 100%;
+          width: min(1200px, 100%);
           margin: 0 auto;
-          padding: 0 2rem;
+          padding: 0.85rem 1.25rem;
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          background: linear-gradient(135deg, rgba(251, 191, 36, 0.95), rgba(249, 115, 22, 0.95));
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          box-shadow: 0 26px 55px rgba(249, 115, 22, 0.24);
+          backdrop-filter: blur(22px);
+          -webkit-backdrop-filter: blur(22px);
+          pointer-events: auto;
         }
 
         .logo {
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.75rem;
           text-decoration: none;
+          color: white;
+          padding: 0.5rem 0.85rem;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        /* Formats your custom .png logo */
         .logo-img {
-          width: 70px;
-          height: 70px;
-          object-fit: contain; /* Keeps image proportions intact without stretching */
-          display: block;
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          object-fit: cover;
+          background: white;
+          padding: 0.35rem;
         }
 
         .logo-text {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #111827;
+          font-size: 1rem;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          color: white;
         }
 
         .logo-domain {
@@ -210,82 +257,141 @@ const Navbar = () => {
 
         .nav-links {
           display: flex;
+          align-items: center;
+          justify-content: center;
           gap: 2rem;
-          position: absolute;
-          left: 50%;
-          transform: translateX(-50%);
-        }
-
-        .nav-links .nav-item {
-          white-space: nowrap;
+          flex: 1;
+          min-width: 0;
+          padding: 0 1rem;
         }
 
         .nav-item {
-          color: #6b7280;
-          font-weight: 500;
+          color: rgba(255, 255, 255, 0.76);
+          font-weight: 600;
           font-size: 0.95rem;
           text-decoration: none;
-          transition: color 0.2s;
+          position: relative;
+          transition: color 0.2s ease, transform 0.2s ease;
+          padding: 0.65rem 0;
         }
 
         .nav-item:hover {
-          color: #111827;
+          color: white;
+          transform: translateY(-1px);
+        }
+
+        .nav-item::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          bottom: 0;
+          transform: translateX(-50%);
+          width: 0;
+          height: 2px;
+          background: #f97316;
+          border-radius: 999px;
+          transition: width 0.22s ease;
+        }
+
+        .nav-item:hover::after {
+          width: 100%;
         }
 
         .nav-auth {
           display: flex;
           align-items: center;
-          gap: 1.5rem;
+          gap: 0.75rem;
+        }
+
+        .nav-icon-placeholder {
+          width: 44px;
+          height: 44px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(255, 255, 255, 0.8);
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 50%;
+          transition: background 0.2s ease, color 0.2s ease;
+          cursor: pointer;
+        }
+
+        .nav-icon-placeholder:hover {
+          color: white;
+          background: rgba(255, 255, 255, 0.14);
         }
 
         .sign-in {
-          color: #111827;
-          font-weight: 600;
+          color: white;
+          font-weight: 700;
+        }
+
+        .btn-getstarted,
+        .profile-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          font-weight: 700;
+          font-size: 0.95rem;
+          text-decoration: none;
+          padding: 0.75rem 1.35rem;
+          min-height: 44px;
+          white-space: nowrap;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
 
         .btn-getstarted {
-          background: #f97316;
           color: white;
-          padding: 0.65rem 1.5rem;
-          border-radius: 0.75rem;
-          font-weight: 600;
-          text-decoration: none;
-          transition: background 0.2s, transform 0.2s;
-          border: none;
-          box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+          background: linear-gradient(135deg, #f97316, #fbbf24);
+          box-shadow: 0 18px 36px rgba(249, 115, 22, 0.24);
+          border: 1px solid transparent;
         }
 
         .btn-getstarted:hover {
-          background: #ea580c;
           transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+          box-shadow: 0 22px 42px rgba(249, 115, 22, 0.28);
+        }
+
+        .profile-btn {
+          color: white;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        .profile-btn:hover {
+          transform: translateY(-1px);
+          background: rgba(255, 255, 255, 0.18);
         }
 
         .burger {
           display: none;
           flex-direction: column;
-          gap: 4px;
-          background: none;
-          border: none;
+          gap: 5px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
           cursor: pointer;
-          padding: 0.5rem;
-          border-radius: 0.75rem;
-          transition: background 0.2s ease;
+          padding: 0.75rem;
+          border-radius: 16px;
+          transition: transform 0.2s ease, background 0.2s ease;
+          z-index: 2;
         }
 
         .burger:hover {
-          background: rgba(249, 115, 22, 0.08);
+          transform: translateY(-1px);
+          background: rgba(255, 255, 255, 0.14);
         }
 
         .burger span {
-          width: 24px;
+          width: 22px;
           height: 2px;
-          background: #374151;
+          background: white;
           transition: 0.3s;
+          border-radius: 999px;
         }
 
         .burger.open span:nth-child(1) {
-          transform: translateY(6px) rotate(45deg);
+          transform: translateY(7px) rotate(45deg);
         }
 
         .burger.open span:nth-child(2) {
@@ -293,7 +399,7 @@ const Navbar = () => {
         }
 
         .burger.open span:nth-child(3) {
-          transform: translateY(-6px) rotate(-45deg);
+          transform: translateY(-7px) rotate(-45deg);
         }
 
         .mobile-menu {
@@ -308,6 +414,7 @@ const Navbar = () => {
         .mobile-menu-actions {
           display: flex;
           flex-direction: column;
+          gap: 0.75rem;
         }
 
         .mobile-nav-item,
@@ -317,119 +424,127 @@ const Navbar = () => {
           align-items: center;
           justify-content: center;
           width: 100%;
-          min-height: 48px;
-          border-radius: 0.9rem;
-          font-weight: 600;
+          min-height: 52px;
+          border-radius: 18px;
+          font-weight: 700;
           text-align: center;
         }
 
         .mobile-nav-item {
-          color: #111827;
-          background: rgba(255, 255, 255, 0.7);
-          border: 1px solid rgba(17, 24, 39, 0.08);
+          color: var(--text);
+          background: var(--bg);
+          border: 1px solid var(--border);
+          padding: 1rem;
         }
 
         .mobile-nav-item:hover {
-          background: rgba(249, 115, 22, 0.08);
-          color: #f97316;
-        }
-
-        .mobile-sign-in {
-          color: #111827;
+          background: var(--primary-soft);
+          color: var(--primary);
+          border-color: rgba(249, 115, 22, 0.2);
         }
 
         .mobile-btn-outline {
-          border: 2px solid #f97316;
-          color: #f97316;
-          background: rgba(255, 255, 255, 0.75);
+          border: 2px solid var(--primary);
+          color: var(--primary);
+          background: white;
+          padding: 1rem;
         }
 
         .mobile-btn-primary {
-          background: #f97316;
+          background: var(--grad-primary);
           color: white;
-          box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+          box-shadow: 0 8px 24px rgba(249, 115, 22, 0.18);
+          padding: 1rem;
         }
 
         @media (max-width: 1024px) {
-          .nav-links {
-            display: none;
-          }
-
+          .nav-links,
           .nav-auth {
             display: none;
           }
 
           .burger {
             display: flex;
-          }
-
-          .burger {
-            width: 44px;
-            height: 44px;
+            width: 50px;
+            height: 50px;
             align-items: center;
             justify-content: center;
           }
 
           .mobile-menu {
             display: grid;
-            gap: 0.75rem;
+            gap: 1rem;
             position: fixed;
-            top: 80px;
-            left: 0;
+            top: 84px;
             right: 0;
-            padding: 1rem 1.25rem 1.25rem;
-            background: rgba(255, 255, 255, 0.96);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-            box-shadow: 0 18px 35px rgba(17, 24, 39, 0.12);
-            max-height: calc(100vh - 80px);
+            width: min(360px, 100%);
+            height: calc(100vh - 84px);
+            padding: 1.25rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(24px);
+            border-left: 1px solid rgba(229, 231, 235, 0.8);
+            box-shadow: -12px 0 36px rgba(15, 23, 42, 0.12);
+            transform: translateX(100%);
+            transition: transform 0.28s ease;
             overflow-y: auto;
             z-index: 1001;
           }
 
+          .mobile-menu.open {
+            transform: translateX(0);
+          }
+
           .mobile-menu:not(.open) {
-            display: none;
+            pointer-events: none;
           }
 
           .mobile-backdrop {
             display: block;
             position: fixed;
-            inset: 80px 0 0;
+            inset: 84px 0 0;
             width: 100%;
-            background: rgba(17, 24, 39, 0.28);
+            background: rgba(15, 23, 42, 0.32);
             border: none;
             padding: 0;
             z-index: 1000;
           }
-
-          .mobile-menu-actions {
-            gap: 0.75rem;
-          }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
           .nav-inner {
-            padding: 0 1rem;
+            padding: 0.75rem 0.85rem;
           }
 
           .logo-text {
-            font-size: 1.05rem;
+            font-size: 0.98rem;
           }
 
           .logo-img {
-            width: 28px;
-            height: 28px;
-          }
-
-          .burger {
             width: 40px;
             height: 40px;
-            padding: 0.4rem;
           }
 
-          .mobile-menu {
-            padding: 0.9rem 1rem 1rem;
+          .nav-auth {
+            gap: 0.65rem;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .nav-inner {
+            gap: 0.75rem;
+          }
+
+          .nav-links {
+            display: none;
+          }
+
+          .logo {
+            padding: 0.55rem 0.75rem;
+          }
+
+          .logo-img {
+            width: 36px;
+            height: 36px;
           }
         }
       `}</style>

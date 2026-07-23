@@ -96,17 +96,8 @@ const WhyUs = () => {
       <style>{`
         .why-us-page {
           padding-top: 4rem;
-          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
-                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
-          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
-          background-attachment: fixed;
+          background: #f8fafc;
           transition: background-color 0.3s ease;
-        }
-        .why-us-page:hover {
-          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
-                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
-          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
-          background-attachment: fixed;
         }
 
         .why-us-header {
@@ -158,7 +149,7 @@ const WhyUs = () => {
         .feature-card:hover {
           transform: translateY(-5px);
           border-color: #f97316;
-          box-shadow: 0 10px 30px rgba(168,85,247,0.15);
+          box-shadow: 0 10px 30px rgba(249,115,22,0.15);
         }
 
         .feature-icon-wrapper {
@@ -204,7 +195,7 @@ const WhyUs = () => {
           align-items: center;
           justify-content: space-between;
           background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
-          box-shadow: 0 10px 30px rgba(168, 85, 247, 0.2);
+          box-shadow: 0 10px 30px rgba(249, 115, 22, 0.2);
           border-radius: 1.5rem;
           flex-wrap: wrap;
           gap: 2rem;

@@ -1,75 +1,74 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
-  Sparkles,
   MapPin,
   Users,
   Fuel,
   Settings2,
-  Star,
   Building2,
+  ArrowRight,
 } from "lucide-react";
 
-const VehicleCard = ({ vehicle, index }) => {
-  // Gradients matching the beautiful colors in screenshot 2
+const VehicleCard = ({ vehicle, index = 0 }) => {
   const coverImage =
     vehicle.images && vehicle.images.length > 0 && vehicle.images[0]
       ? vehicle.images[0]
       : "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=600";
 
-  // Decide pill tag appropriately
-  let tag = "Nearest";
-  if (vehicle.brand === "BMW" || vehicle.pricePerDay > 15000) tag = "Luxury";
-  else if (vehicle.fuelType === "Hybrid" || vehicle.fuelType === "Electric")
-    tag = "Eco";
-  else if (index === 1 || index === 4 || vehicle.rating > 4.8)
-    tag = "Top rated";
-
-  // Mock distance
-  const distance = (2.4 + (index || 0) * 0.7).toFixed(1);
+  const year = vehicle.year || "2024";
+  const originalPrice = (vehicle.pricePerDay * 1.12).toLocaleString();
 
   return (
-    <div className="v-card-modern">
-      <div
-        className="v-card-header-gradient"
-        style={{
-          backgroundImage: `url(${coverImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="v-card-tags">
-          <span className="v-tag-left">
-            <Sparkles size={12} /> {tag}
-          </span>
-          <span className="v-tag-right">
-            <MapPin size={12} /> {distance} km
-          </span>
+    <motion.div
+      className="v-card"
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.08, duration: 0.5 }}
+      whileHover={{ y: -8 }}
+    >
+      <div className="v-card-image-area">
+        <div className="v-spotlight" />
+        <img src={coverImage} alt={`${vehicle.brand} ${vehicle.model}`} />
+        <div className="v-card-badges">
+          <span className="v-year-badge">{year}</span>
+          <button className="v-heart-btn" type="button" aria-label="Save">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+          </button>
         </div>
+        {vehicle.vehicleType && (
+          <span className="v-type-badge">{vehicle.vehicleType}</span>
+        )}
       </div>
 
-      <div className="v-card-content">
-        <div className="v-card-title-row">
+      <div className="v-card-body">
+        <div className="v-card-header">
           <h3>
             {vehicle.brand} {vehicle.model}
           </h3>
-          <div className="v-rating">
-            <Star size={14} fill="#f59e0b" color="#f59e0b" /> 4.95
-          </div>
+          {vehicle.company && (
+            <Link
+              to={`/companies/${vehicle.company._id}`}
+              className="v-company-link"
+            >
+              <Building2 size={12} /> {vehicle.company.companyName}
+            </Link>
+          )}
         </div>
-        <p className="v-location">{vehicle.location}</p>
-        {vehicle.company && (
-          <Link
-            to={`/companies/${vehicle.company._id}`}
-            className="v-company-badge"
-          >
-            <Building2 size={12} /> {vehicle.company.companyName}
-          </Link>
-        )}
 
-        <div className="v-features">
+        <div className="v-specs">
           <span>
-            <Users size={14} /> {vehicle.seats || 5}
+            <Users size={14} /> {vehicle.seats || 5} seats
           </span>
           <span>
             <Fuel size={14} /> {vehicle.fuelType || "Petrol"}
@@ -79,191 +78,258 @@ const VehicleCard = ({ vehicle, index }) => {
           </span>
         </div>
 
-        <div className="v-footer">
-          <div className="v-price-block">
-            <span className="v-price-label">From</span>
-            <div className="v-price-value">
+        <div className="v-card-footer">
+          <div className="v-location">
+            <MapPin size={13} />
+            <span>{vehicle.location || "Sri Lanka"}</span>
+          </div>
+          <div className="v-pricing">
+            <span className="v-price-old">LKR {originalPrice}</span>
+            <div className="v-price-main">
               LKR {vehicle.pricePerDay?.toLocaleString()}
-              <span>/day</span>
+              <small>/day</small>
             </div>
           </div>
-          <Link to={`/vehicle/${vehicle._id}`} className="v-book-btn">
-            Book →
-          </Link>
         </div>
+
+        <Link to={`/vehicle/${vehicle._id}`} className="v-cta">
+          View Details <ArrowRight size={16} />
+        </Link>
       </div>
 
       <style>{`
-        .v-card-modern {
-          background: #ffffff;
-          border-radius: 1.5rem;
+        .v-card {
+          background: white;
+          border-radius: var(--radius-lg);
           overflow: hidden;
-          border: 1px solid rgba(0,0,0,0.06);
-          box-shadow: 0 10px 30px rgba(0,0,0,0.04);
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow-card);
+          transition: box-shadow 0.35s ease, border-color 0.35s ease;
           display: flex;
           flex-direction: column;
         }
 
-        .v-card-modern:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        .v-card:hover {
+          box-shadow: var(--shadow-card-hover);
+          border-color: rgba(249, 115, 22, 0.25);
         }
 
-        .v-card-header-gradient {
-          height: 180px;
+        .v-card-image-area {
           position: relative;
-          padding: 1.25rem;
+          height: 210px;
+          background: linear-gradient(180deg, #1c1917 0%, #292524 100%);
           display: flex;
-          justify-content: space-between;
+          align-items: center;
+          justify-content: center;
           overflow: hidden;
         }
 
-        .v-card-tags {
-          width: 100%;
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          z-index: 2;
-        }
-
-        .v-tag-left, .v-tag-right {
-          background: #ffffff;
-          color: #111827;
-          border-radius: 100px;
-          padding: 0.35rem 0.8rem;
-          font-size: 0.75rem;
-          font-weight: 700;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.3rem;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-
-        .v-watermark-icon {
+        .v-spotlight {
           position: absolute;
-          bottom: -20px;
-          right: -20px;
+          width: 70%;
+          height: 70%;
+          background: radial-gradient(
+            ellipse at center,
+            rgba(249, 115, 22, 0.2) 0%,
+            rgba(249, 115, 22, 0.05) 50%,
+            transparent 70%
+          );
+          border-radius: 50%;
           z-index: 1;
         }
 
-        .v-card-content {
-          padding: 1.5rem;
+        .v-card-image-area img {
+          width: 85%;
+          height: auto;
+          object-fit: contain;
+          position: relative;
+          z-index: 2;
+          filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.3));
+          transition: transform 0.4s ease;
+        }
+
+        .v-card:hover .v-card-image-area img {
+          transform: scale(1.05);
+        }
+
+        .v-card-badges {
+          position: absolute;
+          top: 1rem;
+          left: 1rem;
+          right: 1rem;
+          display: flex;
+          justify-content: space-between;
+          z-index: 3;
+        }
+
+        .v-year-badge {
+          background: rgba(255, 255, 255, 0.95);
+          color: var(--text);
+          padding: 0.3rem 0.65rem;
+          border-radius: 6px;
+          font-size: 0.72rem;
+          font-weight: 800;
+        }
+
+        .v-heart-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-hint);
+          cursor: pointer;
+          transition: all 0.25s ease;
+        }
+
+        .v-heart-btn:hover {
+          color: #ef4444;
+          background: white;
+          transform: scale(1.1);
+        }
+
+        .v-type-badge {
+          position: absolute;
+          bottom: 0.75rem;
+          left: 1rem;
+          background: var(--primary);
+          color: white;
+          font-size: 0.68rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0.25rem 0.6rem;
+          border-radius: var(--radius-pill);
+          z-index: 3;
+        }
+
+        .v-card-body {
+          padding: 1.25rem;
           display: flex;
           flex-direction: column;
           flex: 1;
         }
 
-        .v-card-title-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 0.25rem;
+        .v-card-header {
+          margin-bottom: 0.85rem;
         }
 
-        .v-card-title-row h3 {
-          font-size: 1.25rem;
+        .v-card-header h3 {
+          font-family: var(--font-body);
+          font-size: 1.1rem;
           font-weight: 800;
-          color: #111827;
-          margin: 0;
-          letter-spacing: -0.5px;
+          color: var(--text);
+          margin: 0 0 0.35rem;
+          line-height: 1.3;
         }
 
-        .v-rating {
+        .v-company-link {
           display: inline-flex;
           align-items: center;
-          gap: 0.25rem;
-          font-size: 0.85rem;
-          font-weight: 700;
-          color: #111827;
+          gap: 4px;
+          color: var(--text-muted);
+          font-size: 0.78rem;
+          font-weight: 600;
+          transition: color 0.2s;
         }
 
-        .v-location {
-          color: #6b7280;
-          font-size: 0.9rem;
-          margin: 0 0 1.25rem 0;
+        .v-company-link:hover {
+          color: var(--primary);
         }
 
-        .v-features {
+        .v-specs {
           display: flex;
-          align-items: center;
-          gap: 1rem;
-          margin-bottom: 2rem;
+          flex-wrap: wrap;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid var(--border);
         }
 
-        .v-features span {
+        .v-specs span {
           display: inline-flex;
           align-items: center;
-          gap: 0.35rem;
-          font-size: 0.85rem;
-          color: #6b7280;
+          gap: 0.3rem;
+          font-size: 0.78rem;
+          color: var(--text-muted);
           font-weight: 500;
         }
 
-        .v-footer {
+        .v-specs span svg {
+          color: var(--primary);
+        }
+
+        .v-card-footer {
           display: flex;
           justify-content: space-between;
           align-items: flex-end;
-          margin-top: auto;
+          margin-bottom: 1rem;
         }
 
-        .v-price-label {
-          display: block;
-          font-size: 0.8rem;
-          color: #6b7280;
-          font-weight: 600;
-          margin-bottom: 0.2rem;
-        }
-
-        .v-price-value {
-          font-size: 1.35rem;
-          font-weight: 800;
-          color: #f97316;
-          line-height: 1;
-        }
-        
-        .v-price-value span {
-          font-size: 0.85rem;
-          color: #6b7280;
+        .v-location {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          color: var(--text-muted);
+          font-size: 0.78rem;
           font-weight: 500;
         }
 
-        .v-book-btn {
-          background: #f97316;
-          color: white;
-          padding: 0.65rem 1.25rem;
-          border-radius: 100px;
-          font-weight: 600;
-          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-          transition: all 0.2s ease;
-          font-size: 0.9rem;
-          text-decoration: none;
-          transition: 0.2s;
+        .v-location svg {
+          color: var(--primary);
+          flex-shrink: 0;
         }
 
-        .v-book-btn:hover {
-          background: #ea580c;
-          transform: translateX(2px);
-          box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
+        .v-pricing {
+          text-align: right;
         }
 
-        .v-company-badge {
-          display: inline-flex;
+        .v-price-old {
+          display: block;
+          font-size: 0.75rem;
+          color: var(--text-hint);
+          text-decoration: line-through;
+          margin-bottom: 2px;
+        }
+
+        .v-price-main {
+          font-size: 1.2rem;
+          font-weight: 800;
+          color: var(--primary);
+          line-height: 1;
+        }
+
+        .v-price-main small {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+
+        .v-cta {
+          display: flex;
           align-items: center;
-          gap: 5px;
-          background: #FEF3C7;
-          color: #92400e;
-          font-size: 0.72rem;
+          justify-content: center;
+          gap: 0.4rem;
+          background: var(--grad-primary);
+          color: white;
+          padding: 0.75rem;
+          border-radius: var(--radius-sm);
           font-weight: 700;
-          padding: 3px 10px;
-          border-radius: 100px;
-          text-decoration: none;
-          margin-bottom: 0.75rem;
-          transition: background 0.2s;
+          font-size: 0.9rem;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 16px var(--primary-glow);
+          margin-top: auto;
         }
-        .v-company-badge:hover { background: #FCD34D; }
+
+        .v-cta:hover {
+          box-shadow: 0 8px 24px rgba(249, 115, 22, 0.4);
+          gap: 0.65rem;
+        }
       `}</style>
-    </div>
+    </motion.div>
   );
 };
 

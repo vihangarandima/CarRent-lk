@@ -60,18 +60,14 @@ const ListVehicle = () => {
     uploadData.append("image", file);
 
     try {
-      const res = await axios.post(
-        `${API_URL}/api/upload`,
-        uploadData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
-      );
+      const res = await axios.post(`${API_URL}/api/upload`, uploadData);
       const newImages = [...formData.images];
       newImages[index] = res.data.url;
       setFormData({ ...formData, images: newImages });
     } catch (err) {
-      alert("Failed to upload image.");
+      const message =
+        err.response?.data?.msg || err.message || "Failed to upload image.";
+      alert(message);
     }
   };
 
@@ -109,11 +105,7 @@ const ListVehicle = () => {
       const config = {
         headers: { "Content-Type": "application/json", "x-auth-token": token },
       };
-      const res = await axios.post(
-        `${API_URL}/api/vehicles`,
-        formData,
-        config,
-      );
+      const res = await axios.post(`${API_URL}/api/vehicles`, formData, config);
       alert("Vehicle listed successfully!");
       setStep(1);
     } catch (err) {

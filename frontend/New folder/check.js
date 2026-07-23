@@ -1,0 +1,1 @@
+const fs = require('fs'); const content = fs.readFileSync('c:/Users/USER/Desktop/CarRents.lk/frontend/src/pages/Profile.jsx', 'utf8'); const lines = content.split('\n'); for (let i = 40; i <= 46; i++) { console.log(lines[i]); console.log(Buffer.from(lines[i]).toString('hex')); }

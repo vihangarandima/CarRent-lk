@@ -270,17 +270,10 @@ const VehicleDetail = () => {
 
       <style>{`
         .detail-wrap {
-          padding: 2rem 0 6rem;          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
-                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
-          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
-          background-attachment: fixed;
+          padding: 2rem 0 6rem;          
+          background: #f8fafc;
           transition: background-color 0.3s ease;
         }
-        .detail-wrap:hover {
-          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
-                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
-          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
-          background-attachment: fixed;        }
         .breadcrumb {
           margin-bottom: 1.5rem;
         }
@@ -290,7 +283,7 @@ const VehicleDetail = () => {
           font-size: 0.9rem;
           transition: color 0.2s;
         }
-        .breadcrumb a:hover { color: white; }
+        .breadcrumb a:hover { color: #0f172a; }
         .detail-grid {
           display: grid;
           grid-template-columns: 1fr 360px;
@@ -342,21 +335,23 @@ const VehicleDetail = () => {
           flex-direction: column;
           align-items: center;
           gap: 0.25rem;
-          background: rgba(255,255,255,0.05);
+          background: #ffffff;
           border: 1px solid var(--border);
           border-radius: 0.75rem;
           padding: 0.75rem 1rem;
           text-align: center;
           flex-shrink: 0;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
         .vehicle-rating span { font-weight: 800; font-size: 1.1rem; }
         .vehicle-rating small { color: var(--text-muted); font-size: 0.8rem; }
         .about-section, .features-section {
           margin-bottom: 2rem;
-          background: rgba(255,255,255,0.03);
+          background: #ffffff;
           border: 1px solid var(--border);
           border-radius: 1rem;
           padding: 1.5rem;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
         .about-section h3, .features-section h3 {
           margin-bottom: 0.75rem;
@@ -388,11 +383,11 @@ const VehicleDetail = () => {
         /* Bid Panel */
         .bid-panel { position: sticky; top: 88px; }
         .bid-card {
-          background: rgba(255,255,255,0.05);
+          background: #ffffff;
           border: 1px solid var(--border);
           border-radius: 1.25rem;
           padding: 1.75rem;
-          backdrop-filter: blur(20px);
+          box-shadow: 0 10px 25px rgba(0,0,0,0.05);
         }
         .price-row {
           display: flex;
@@ -403,7 +398,7 @@ const VehicleDetail = () => {
         .price {
           font-size: 2rem;
           font-weight: 900;
-          color: white;
+          color: #0f172a;
           letter-spacing: -1px;
         }
         .per-day { color: var(--text-muted); font-weight: 500; }
@@ -426,13 +421,13 @@ const VehicleDetail = () => {
           color: white;
           flex-shrink: 0;
         }
-        .owner-row strong { display: block; color: white; font-size: 0.95rem; }
+        .owner-row strong { display: block; color: #0f172a; font-size: 0.95rem; }
         .owner-row p { color: var(--text-muted); font-size: 0.8rem; margin: 0; }
         .bid-form h3 { margin-bottom: 0.3rem; font-size: 1.1rem; }
         .bid-form > p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; }
         .bid-form { display: flex; flex-direction: column; gap: 1rem; }
         .bid-form textarea {
-          background: rgba(255,255,255,0.04);
+          background: #f8fafc;
           border: 1.5px solid var(--border);
           padding: 0.85rem 1rem;
           border-radius: 0.5rem;
@@ -446,7 +441,8 @@ const VehicleDetail = () => {
         }
         .bid-form textarea:focus {
           border-color: var(--primary);
-          background: rgba(124,58,237,0.06);
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
         }
         .sent-msg {
           text-align: center;
@@ -463,10 +459,11 @@ const VehicleDetail = () => {
         /* Location Map Section */
         .location-map-section {
           margin-bottom: 2rem;
-          background: rgba(255,255,255,0.03);
+          background: #ffffff;
           border: 1px solid var(--border);
           border-radius: 1rem;
           padding: 1.5rem;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
           animation: fadeInMap 0.5s ease both 0.2s;
         }
         .location-map-section h3 {
