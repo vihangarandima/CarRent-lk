@@ -11,7 +11,6 @@ import VehicleListing from "./pages/VehicleListing";
 import VehicleDetail from "./pages/VehicleDetail";
 import ListVehicle from "./pages/ListVehicle";
 import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import SelectRole from "./pages/SelectRole";
@@ -23,9 +22,6 @@ import CompanyDashboard from "./pages/CompanyDashboard";
 
 function AppContent() {
   const location = useLocation();
-  const hideFooter = ["/login", "/register", "/select-role", "/splash"].includes(
-    location.pathname,
-  );
 
   useEffect(() => {
     const targetId = location.hash.replace("#", "");
@@ -38,18 +34,16 @@ function AppContent() {
       const targetElement = document.getElementById(targetId);
 
       if (targetElement) {
-        const navbarHeight =
-          document.querySelector(".navbar")?.getBoundingClientRect().height ??
-          80;
+        const navbarHeight = document.querySelector(".navbar")?.getBoundingClientRect().height ?? 80;
         const offset = navbarHeight + 24;
-        const targetTop =
-          window.scrollY + targetElement.getBoundingClientRect().top - offset;
+        const targetTop = window.scrollY + targetElement.getBoundingClientRect().top - offset;
 
         window.scrollTo({
           top: Math.max(targetTop, 0),
           behavior: "smooth",
         });
       }
+
     };
 
     const initialTimer = window.setTimeout(() => {
@@ -68,68 +62,117 @@ function AppContent() {
 
   return (
     <div className="app-container">
-      <div className="app-bg-orbs" aria-hidden="true">
-        <div className="orb orb-1" />
-        <div className="orb orb-2" />
-        <div className="orb orb-3" />
+      {/* Global Background Aesthetics */}
+      <div className="global-bg-overlay">
+        {/* Gravity Particles */}
+        <div className="gravity-container">
+          <div className="particle particle-1"></div>
+          <div className="particle particle-2"></div>
+          <div className="particle particle-3"></div>
+          <div className="particle particle-4"></div>
+          <div className="particle particle-5"></div>
+          <div className="particle particle-6"></div>
+          <div className="particle particle-7"></div>
+          <div className="particle particle-8"></div>
+          <div className="particle particle-9"></div>
+          <div className="particle particle-10"></div>
+          <div className="particle particle-11"></div>
+          <div className="particle particle-12"></div>
+        </div>
+
+        {/* Blobs */}
+        <div className="blob blob-1"></div>
+        <div className="blob blob-2"></div>
+        <div className="blob blob-3"></div>
       </div>
 
       <Navbar />
 
       <style>{`
+      
         .app-container {
+          position: relative;
+          min-height: 100vh;
+        }
+
+          .app-container {
           position: relative;
           min-height: 100vh;
           display: flex;
           flex-direction: column;
           background: var(--bg);
+          transition: padding-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .app-bg-orbs {
+        /* Add padding when sidebar is active - using body class */
+        body.has-sidebar-nav .app-container {
+          padding-left: 108px;
+        }
+
+        /* On mobile, remove padding */
+        @media (max-width: 1024px) {
+          body.has-sidebar-nav .app-container {
+            padding-left: 0;
+          }
+        }
+
+        .global-bg-overlay {
           position: fixed;
-          inset: 0;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
           pointer-events: none;
-          z-index: 0;
+          z-index: -10;
           overflow: hidden;
+          background-color: #FFFFFF;
         }
 
-        .orb {
+        .blob {
           position: absolute;
           border-radius: 50%;
           filter: blur(100px);
+          opacity: 0.35;
+          animation: globalBlobFloat 25s infinite alternate ease-in-out;
         }
 
-        .orb-1 {
+        .blob-1 {
           width: 600px;
           height: 600px;
-          background: rgba(249, 115, 22, 0.07);
-          top: -200px;
-          right: -150px;
+          background: #f97316;
+          top: -150px;
+          right: -100px;
         }
 
-        .orb-2 {
+        .blob-2 {
+          width: 500px;
+          height: 500px;
+          background: #fb923c;
+          bottom: -100px;
+          left: -100px;
+          animation-delay: -7s;
+        }
+
+        .blob-3 {
           width: 400px;
           height: 400px;
-          background: rgba(251, 146, 60, 0.05);
-          bottom: 20%;
-          left: -100px;
+          background: #fbbf24;
+          top: 30%;
+          right: 15%;
+          animation-delay: -12s;
+          opacity: 0.25;
         }
 
-        .orb-3 {
-          width: 300px;
-          height: 300px;
-          background: rgba(249, 115, 22, 0.04);
-          top: 50%;
-          right: 10%;
+        @keyframes globalBlobFloat {
+          0% { transform: translate(0, 0) scale(1); }
+          100% { transform: translate(60px, 120px) scale(1.15); }
         }
 
         main {
           position: relative;
           z-index: 1;
-          flex: 1;
         }
       `}</style>
-
       <main>
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -148,8 +191,6 @@ function AppContent() {
           <Route path="/company-dashboard" element={<CompanyDashboard />} />
         </Routes>
       </main>
-
-      {!hideFooter && <Footer />}
     </div>
   );
 }
