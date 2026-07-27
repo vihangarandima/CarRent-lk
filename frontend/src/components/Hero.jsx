@@ -1,16 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
   MapPin,
   Calendar,
   Search,
-  Shield,
-  Star,
-  TrendingDown,
   ArrowRight,
 } from "lucide-react";
-
 const Hero = () => {
   const navigate = useNavigate();
   const [location, setLocation] = useState("");
@@ -23,23 +19,42 @@ const Hero = () => {
     navigate(`/vehicles${params.toString() ? `?${params}` : ""}`);
   };
 
+  // Scroll animations for dome (lightray)
+  const { scrollY } = useScroll();
+  const domeScale = useTransform(scrollY, [0, 600], [1, 2.5]);
+  const domeOpacity = useTransform(scrollY, [0, 600], [1, 0.6]);
+
+  // Car drives horizontally to the right when scrolling down
+  const carDriveX = useTransform(scrollY, [0, 800], [-1000, 1500]);
+
   return (
-    <section className="hero mesh-bg">
-      <div className="container hero-container">
+    <section className="hero-wrapper">
+      {/* Background Dome (Moon Lightray) */}
+      <motion.div
+        className="dome-bg"
+        style={{
+          scale: domeScale,
+          opacity: domeOpacity,
+          x: "-50%"
+        }}
+      />
+
+      <div className="hero-main">
+        {/* Text Overlay centered high up */}
         <motion.div
-          className="hero-content"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+          className="hero-content"
         >
           <div className="hero-badge">
-            <span className="badge-dot" />
-            <span>Sri Lanka's #1 car sharing marketplace</span>
+            <span className="badge-dot"></span>
+            Sri Lanka's #1 car sharing marketplace.
           </div>
 
           <h1 className="hero-title">
             Find Your Perfect Car, <br />
-            Drive Your <span className="orange-text">Dreams.</span>
+            Drive Your <span className="dreams-text">Dreams.</span>
           </h1>
 
           <p className="hero-subtitle">
@@ -47,520 +62,437 @@ const Hero = () => {
             list your own car and start earning in minutes.
           </p>
 
-          <div className="hero-actions">
-            <button className="btn-find" onClick={() => navigate("/vehicles")}>
-              Browse Cars
-              <ArrowRight size={18} />
+          <div className="hero-buttons">
+            <button className="btn-primary" onClick={() => navigate("/vehicles")}>
+              Browse Cars <ArrowRight size={18} />
             </button>
-            <button
-              className="btn-list"
-              onClick={() => navigate("/list-my-car")}
-            >
+            <button className="btn-secondary" onClick={() => navigate("/list-my-car")}>
               List Your Vehicle
             </button>
-          </div>
-
-          <div className="hero-stats">
-            <div className="stat-item">
-              <Shield size={18} />
-              <div>
-                <strong>10,000+</strong>
-                <span>Cars Listed</span>
-              </div>
-            </div>
-            <div className="stat-divider" />
-            <div className="stat-item">
-              <Star size={18} />
-              <div>
-                <strong>4.9/5</strong>
-                <span>Trusted Hosts</span>
-              </div>
-            </div>
-            <div className="stat-divider" />
-            <div className="stat-item">
-              <TrendingDown size={18} />
-              <div>
-                <strong>Best</strong>
-                <span>Prices</span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          className="hero-visual"
-          initial={{ opacity: 0, x: 40 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <div className="hero-image-wrap">
-            <div className="hero-spotlight" />
-            <img
-              src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=1200"
-              alt="Premium cars available for rent"
-              className="hero-car-img"
-            />
           </div>
         </motion.div>
       </div>
 
+      {/* Search Card & Car standing on it */}
       <motion.div
-        className="hero-search-wrap container"
+        className="search-card-wrapper"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div className="hero-search-card">
-          <div className="search-tabs">
-            <button className="search-tab active">Search Cars</button>
-            <button className="search-tab" type="button">
-              Body Type
-            </button>
-            <button className="search-tab" type="button">
-              Price Range
-            </button>
+        <div className="car-on-card-wrap">
+          <motion.div
+            className="car-on-card"
+            style={{ x: carDriveX }}
+          >
+            {/* Side view transparent Porsche */}
+
+            <img
+              src="/assets/images/car_1.png"
+              alt="Side View Luxury Car"
+              className="car-side-img"
+            />
+          </motion.div>
+        </div>
+
+        <div className="search-card">
+          <div className="search-field">
+            <label>Location</label>
+            <div className="input-group">
+              <MapPin size={20} className="input-icon" />
+              <input
+                type="text"
+                placeholder="Colombo, Kandy, Galle..."
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="search-fields">
-            <div className="search-field">
-              <label>Location</label>
-              <div className="search-input-wrap">
-                <MapPin size={18} className="field-icon" />
-                <input
-                  type="text"
-                  placeholder="Colombo, Kandy, Galle..."
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                />
-              </div>
+          <div className="search-field">
+            <label>Pick-up Date</label>
+            <div className="input-group">
+              <Calendar size={20} className="input-icon" />
+              <input
+                type="date"
+                value={pickup}
+                onChange={(e) => setPickup(e.target.value)}
+              />
             </div>
-
-            <div className="search-field">
-              <label>Pick-up Date</label>
-              <div className="search-input-wrap">
-                <Calendar size={18} className="field-icon" />
-                <input
-                  type="date"
-                  value={pickup}
-                  onChange={(e) => setPickup(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="search-field">
-              <label>Return Date</label>
-              <div className="search-input-wrap">
-                <Calendar size={18} className="field-icon" />
-                <input
-                  type="date"
-                  value={dropoff}
-                  onChange={(e) => setDropoff(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <button className="search-submit" onClick={handleSearch}>
-              <Search size={20} />
-              Search Cars
-            </button>
           </div>
+
+          <div className="search-field">
+            <label>Return Date</label>
+            <div className="input-group">
+              <Calendar size={20} className="input-icon" />
+              <input
+                type="date"
+                value={dropoff}
+                onChange={(e) => setDropoff(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <button className="btn-search" onClick={handleSearch}>
+            <Search size={20} />
+            Search Cars
+          </button>
         </div>
       </motion.div>
 
       <style>{`
-        .hero {
-          padding: 3rem 0 0;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@1,600;1,700&display=swap');
+
+        .hero-wrapper {
+          background-color: #FDF8F2; /* Soft warm cream */
+          height: 100vh;
+          height: 130dvh;
+          min-height: 750px;
           position: relative;
           overflow: hidden;
-          background: linear-gradient(180deg, #fff9f0 0%, #fff2e4 55%, #ffffff 100%);
-        }
-
-        .hero-container {
+          font-family: 'Inter', system-ui, sans-serif;
+          color: #111111;
           display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 3rem;
-          padding-bottom: 2rem;
-          position: relative;
-          z-index: 2;
+          flex-direction: column;
         }
 
-        .hero-content {
+        /* Background Dome/Halo (Moon Lightray) */
+        .dome-bg {
+          position: absolute;
+          top: -20%;
+          left: 50%;
+          width: 90vw;
+          height: 90vw;
+          max-width: 1400px;
+          max-height: 1400px;
+          background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(255, 248, 235, 0.95) 20%, rgba(255, 235, 190, 0.3) 50%, rgba(253, 248, 242, 0) 75%);
+          border-radius: 50%;
+          box-shadow: 0 0 160px 120px rgba(255, 255, 255, 0.9);
+          z-index: 1;
+          pointer-events: none;
+          transform-origin: center center;
+        }
+
+        /* Main Content */
+        .hero-main {
           flex: 1;
-          max-width: 580px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          position: relative;
+          z-index: 30; /* Higher than car so text sits in front */
+          padding-top: 8rem;
+          padding-bottom: 2rem;
+          text-align: center;
+          pointer-events: none; /* Prevents container from blocking clicks to the card below */
+        }
+
+        /* Text Overlay */
+        .hero-content {
+          position: relative;
+          z-index: 30;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          pointer-events: auto; /* Re-enable clicks for text and buttons */
         }
 
         .hero-badge {
+          background: rgba(255, 255, 255, 0.9);
+          backdrop-filter: blur(8px);
+          color: #111111;
+          padding: 0.4rem 1rem 0.4rem 0.5rem;
+          border-radius: 999px;
+          font-weight: 600;
+          font-size: 0.85rem;
+          margin-bottom: 1.5rem;
           display: inline-flex;
           align-items: center;
-          gap: 0.6rem;
-          padding: 0.45rem 1rem 0.45rem 0.75rem;
-          background: var(--primary-soft);
-          border: 1px solid rgba(249, 115, 22, 0.2);
-          border-radius: var(--radius-pill);
-          font-size: 0.82rem;
-          font-weight: 700;
-          color: var(--primary-dark);
-          margin-bottom: 1.75rem;
+          gap: 0.5rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+          border: 1px solid rgba(0,0,0,0.05);
         }
 
         .badge-dot {
           width: 8px;
           height: 8px;
-          background: var(--primary);
+          background: #FF8A00;
           border-radius: 50%;
-          animation: pulse-glow 2s infinite;
+          display: block;
         }
 
         .hero-title {
-          font-family: var(--font-display);
-          font-size: clamp(2.5rem, 5.5vw, 4rem);
+          font-size: clamp(2.5rem, 5vw, 4rem);
           font-weight: 800;
-          color: var(--text);
-          line-height: 1.08;
-          letter-spacing: -0.03em;
-          margin-bottom: 1.25rem;
+          line-height: 1.1;
+          margin-bottom: 1rem;
+          max-width: 900px;
+          letter-spacing: -0.02em;
+          text-shadow: 0 4px 40px rgba(253, 248, 242, 0.9), 0 0 20px rgba(253, 248, 242, 0.8), 0 0 10px rgba(255, 255, 255, 1);
         }
 
-        .orange-text {
-          background: var(--grad-primary);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+        .dreams-text {
+          font-family: 'Playfair Display', serif;
+          color: #FF8A00;
           font-style: italic;
+          font-weight: 700;
         }
 
         .hero-subtitle {
-          font-size: 1.1rem;
-          color: var(--text-muted);
-          line-height: 1.75;
-          margin-bottom: 2rem;
-          max-width: 520px;
+          font-size: 1.05rem;
+          color: #333333;
+          font-weight: 500;
+          max-width: 650px;
+          margin: 0 auto 1.5rem;
+          line-height: 1.6;
+          text-shadow: 0 4px 20px rgba(253, 248, 242, 0.9), 0 0 10px rgba(255, 255, 255, 1);
         }
 
-        .hero-actions {
+        .hero-buttons {
           display: flex;
           gap: 1rem;
-          margin-bottom: 2.5rem;
-          flex-wrap: wrap;
+          justify-content: center;
         }
 
-        .btn-find {
+        .btn-primary {
+          background: #FF8A00;
+          color: white;
+          padding: 0.8rem 1.8rem;
+          border-radius: 999px;
+          font-weight: 600;
+          font-size: 1rem;
           display: inline-flex;
           align-items: center;
-          gap: 0.6rem;
-          background: var(--grad-primary);
-          color: white;
-          padding: 0.95rem 2rem;
-          border-radius: var(--radius-pill);
-          font-weight: 700;
-          font-size: 1rem;
-          box-shadow: 0 8px 28px var(--primary-glow);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          gap: 0.5rem;
           border: none;
           cursor: pointer;
+          box-shadow: 0 10px 25px rgba(255, 138, 0, 0.3);
+          transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
         }
 
-        .btn-find:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 14px 36px rgba(249, 115, 22, 0.45);
-        }
-
-        .btn-list {
-          background: white;
-          color: var(--text);
-          padding: 0.95rem 2rem;
-          border-radius: var(--radius-pill);
-          font-weight: 700;
-          font-size: 1rem;
-          border: 2px solid var(--border);
-          transition: all 0.3s ease;
-          cursor: pointer;
-        }
-
-        .btn-list:hover {
-          border-color: var(--primary);
-          color: var(--primary);
-          background: var(--primary-soft);
+        .btn-primary:hover {
+          background: #FF9100;
           transform: translateY(-2px);
+          box-shadow: 0 14px 30px rgba(255, 138, 0, 0.4);
         }
 
-        .hero-stats {
-          display: flex;
-          align-items: center;
-          gap: 1.5rem;
-          flex-wrap: wrap;
-        }
-
-        .stat-item {
-          display: flex;
-          align-items: center;
-          gap: 0.65rem;
-        }
-
-        .stat-item svg {
-          color: var(--primary);
-          flex-shrink: 0;
-        }
-
-        .stat-item strong {
-          display: block;
+        .btn-secondary {
+          background: rgba(253, 248, 242, 0.8);
+          backdrop-filter: blur(4px);
+          color: #111111;
+          padding: 0.8rem 1.8rem;
+          border-radius: 999px;
+          font-weight: 600;
           font-size: 1rem;
-          font-weight: 800;
-          color: var(--text);
-          line-height: 1.2;
+          border: 2px solid #111111;
+          cursor: pointer;
+          transition: all 0.2s;
         }
 
-        .stat-item span {
-          font-size: 0.78rem;
-          color: var(--text-muted);
-          font-weight: 500;
+        .btn-secondary:hover {
+          background: #111111;
+          color: white;
         }
 
-        .stat-divider {
-          width: 1px;
-          height: 36px;
-          background: var(--border);
-        }
-
-        .hero-visual {
-          flex: 1.2;
-          position: relative;
-        }
-
-        .hero-image-wrap {
-          position: relative;
+        /* Floating Search Card & Car Wrapper */
+        .search-card-wrapper {
+          position: absolute;
+          bottom: 5rem;
+          left: 0;
+          right: 0;
+          z-index: 20;
+          padding: 0 5%;
           display: flex;
           justify-content: center;
-          align-items: center;
-          min-height: 420px;
         }
 
-        .hero-spotlight {
+        /* Car standing on top of the search card */
+        .car-on-card-wrap {
           position: absolute;
-          width: 90%;
-          height: 90%;
-          background: radial-gradient(
-            ellipse at center,
-            rgba(249, 115, 22, 0.15) 0%,
-            rgba(249, 115, 22, 0.05) 40%,
-            transparent 70%
-          );
-          border-radius: 50%;
-          z-index: 0;
-        }
-
-        .hero-car-img {
-          width: 110%;
-          max-width: 640px;
-          position: relative;
-          z-index: 1;
-          filter: drop-shadow(0 30px 60px rgba(15, 23, 42, 0.12));
-          animation: float 6s ease-in-out infinite;
-        }
-
-        .hero-search-wrap {
-          position: relative;
-          z-index: 10;
-          margin-top: 2.5rem;
-          padding-bottom: 4rem;
-        }
-
-        .hero-search-card {
-          background: white;
-          border-radius: var(--radius-xl);
-          padding: 2rem 2rem 2.25rem;
-          box-shadow: 0 26px 70px rgba(15, 23, 42, 0.12);
-          border: 1px solid var(--border);
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .hero-search-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 30px 80px rgba(15, 23, 42, 0.14);
-        }
-
-        .search-tabs {
+          bottom: 100%;
+          left: 0;
+          width: 100%;
           display: flex;
-          gap: 0.5rem;
-          margin-bottom: 1.5rem;
-          border-bottom: 1px solid var(--border);
-          padding-bottom: 1rem;
-          overflow-x: auto;
-          scrollbar-width: none;
+          justify-content: center;
+          pointer-events: none;
+          margin-bottom: -45px; /* Pull car down so tires rest beautifully on the card */
+          z-index: 21;
         }
 
-        .search-tabs::-webkit-scrollbar {
-          display: none;
+        .car-on-card {
+          width: 850px; /* Big side view car */
+          max-width: 120vw; /* Allow it to overflow the screen slightly on mobile */
+          will-change: transform;
         }
 
-        .search-tab {
-          padding: 0.5rem 1rem;
-          border-radius: var(--radius-pill);
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: var(--text-muted);
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          transition: all 0.25s ease;
-          white-space: nowrap;
+        .car-side-img {
+          position: relative;
+          top: 270px;
+          width: 100%;
+          height: auto;
+          filter: drop-shadow(-10px 30px 15px rgba(0,0,0,0.3)); /* Fake ground shadow */
+          transform: scaleX(-1); /* Flips the left-facing car so it faces right and drives right */
         }
 
-        .search-tab.active {
-          background: var(--primary-soft);
-          color: var(--primary);
-        }
-
-        .search-tab:hover:not(.active) {
-          color: var(--text);
-          background: var(--surface-hover);
-        }
-
-        .search-fields {
-          display: grid;
-          grid-template-columns: 1.5fr 1fr 1fr auto;
+        .search-card {
+          background: #FFFFFF;
+          border-radius: 20px;
+          padding: 1rem 1.5rem;
+          display: flex;
+          align-items: center;
           gap: 1rem;
-          align-items: end;
+          box-shadow: 0 24px 50px rgba(0,0,0,0.06);
+          width: 100%;
+          max-width: 1100px;
+          flex-wrap: wrap;
+          border: 1px solid rgba(0,0,0,0.03);
+          position: relative;
+          z-index: 20;
+        }
+
+        .search-field {
+          flex: 1;
+          min-width: 180px;
+          display: flex;
+          flex-direction: column;
+          gap: 0.3rem;
+          padding: 0.25rem 1rem;
+          border-right: 1px solid #EEEEEE;
+        }
+        
+        .search-field:nth-last-child(2) {
+          border-right: none;
         }
 
         .search-field label {
-          display: block;
-          font-size: 0.72rem;
+          font-size: 0.7rem;
           font-weight: 700;
+          color: #888888;
           text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: var(--text-muted);
-          margin-bottom: 0.5rem;
+          letter-spacing: 0.05em;
         }
 
-        .search-input-wrap {
+        .input-group {
           display: flex;
           align-items: center;
-          gap: 0.65rem;
-          background: var(--bg);
-          border: 1.5px solid var(--border);
-          border-radius: var(--radius-sm);
-          padding: 0.85rem 1rem;
-          transition: all 0.2s ease;
+          gap: 0.75rem;
+          position: relative;
         }
 
-        .search-input-wrap:focus-within {
-          border-color: var(--primary);
-          box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
-          background: white;
-        }
-
-        .field-icon {
-          color: var(--primary);
-          flex-shrink: 0;
-        }
-
-        .search-input-wrap input {
+        .input-group input {
           border: none;
           background: transparent;
           outline: none;
-          font-family: inherit;
-          font-size: 0.95rem;
-          color: var(--text);
           width: 100%;
+          font-size: 0.95rem;
+          color: #111111;
+          font-weight: 600;
+          font-family: inherit;
+        }
+        
+        .input-group input::placeholder {
+          color: #AAAAAA;
+          font-weight: 500;
         }
 
-        .search-input-wrap input::placeholder {
-          color: var(--text-hint);
+        .input-group input[type="date"] {
+          color: #111111;
+          text-transform: uppercase;
+          font-size: 0.9rem;
+        }
+        
+        .input-group input[type="date"]::-webkit-calendar-picker-indicator {
+          opacity: 0;
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          cursor: pointer;
         }
 
-        .search-submit {
+        .input-icon {
+          color: #FF8A00;
+          flex-shrink: 0;
+        }
+
+        .btn-search {
+          background: #FF8A00;
+          color: white;
+          border: none;
+          border-radius: 12px;
+          padding: 1rem 2rem;
+          font-weight: 700;
+          font-size: 1rem;
           display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          background: var(--grad-primary);
-          color: white;
-          padding: 0.95rem 1.75rem;
-          border-radius: var(--radius-sm);
-          font-weight: 700;
-          font-size: 0.95rem;
-          border: none;
+          gap: 0.75rem;
           cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 6px 20px var(--primary-glow);
-          white-space: nowrap;
-          height: 52px;
+          box-shadow: 0 10px 25px rgba(255, 138, 0, 0.3);
+          transition: transform 0.2s, background 0.2s;
+          height: 100%;
+          min-height: 56px;
         }
 
-        .search-submit:hover {
+        .btn-search:hover {
+          background: #FF9100;
           transform: translateY(-2px);
-          box-shadow: 0 10px 28px rgba(249, 115, 22, 0.4);
         }
 
-        @media (max-width: 1100px) {
-          .search-fields {
-            grid-template-columns: 1fr 1fr;
-          }
-          .search-submit {
-            grid-column: 1 / -1;
-          }
-        }
-
+        /* Responsive */
         @media (max-width: 1024px) {
-          .hero-container {
-            flex-direction: column;
-            text-align: center;
+          .hero-wrapper {
+            height: auto;
+            min-height: 100vh;
           }
-          .hero-content {
-            max-width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+          .hero-main {
+            padding-bottom: 12rem;
           }
-          .hero-subtitle {
-            max-width: 90%;
+          .search-card {
+            border-radius: 16px;
           }
-          .hero-actions {
-            justify-content: center;
-          }
-          .hero-stats {
-            justify-content: center;
-          }
-          .hero-visual {
-            width: 100%;
-            margin-top: 1rem;
-          }
-          .hero-car-img {
-            width: 100%;
+          .car-on-card {
+            width: 700px;
           }
         }
 
-        @media (max-width: 640px) {
-          .hero {
-            padding-top: 2rem;
-          }
-          .search-fields {
-            grid-template-columns: 1fr;
-          }
-          .hero-actions {
-            flex-direction: column;
-            width: 100%;
-          }
-          .btn-find,
-          .btn-list {
-            width: 100%;
-            justify-content: center;
-          }
-          .hero-stats {
+        @media (max-width: 900px) {
+          .search-card {
             flex-direction: column;
             gap: 1rem;
           }
-          .stat-divider {
-            display: none;
+          .search-field {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid #EEEEEE;
+            padding: 0 0 0.75rem 0;
           }
-          .hero-search-card {
-            padding: 1.25rem;
+          .search-field:nth-last-child(2) {
+            border-bottom: none;
+            padding-bottom: 0;
           }
-          .search-tabs {
-            overflow-x: auto;
-            flex-wrap: nowrap;
+          .btn-search {
+            width: 100%;
+            justify-content: center;
+            min-height: 50px;
+            margin-top: 0.5rem;
+          }
+          .car-on-card {
+            width: 550px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .hero-title {
+            font-size: clamp(2.2rem, 7vw, 3rem);
+          }
+          .hero-buttons {
+            flex-direction: column;
+            width: 100%;
+            max-width: 300px;
+          }
+          .btn-primary, .btn-secondary {
+            width: 100%;
+            justify-content: center;
           }
         }
       `}</style>
@@ -569,3 +501,4 @@ const Hero = () => {
 };
 
 export default Hero;
+
