@@ -7,6 +7,7 @@ import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { addDays, subDays } from "date-fns";
+import ReviewSection from "../components/ReviewSection";
 
 const detailMapContainerStyle = {
   width: "100%",
@@ -30,6 +31,7 @@ const VehicleDetail = () => {
 
   const [sent, setSent] = useState(false);
   const [vehicle, setVehicle] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const { isLoaded } = useJsApiLoader({
@@ -37,18 +39,31 @@ const VehicleDetail = () => {
   });
 
   useEffect(() => {
-    const fetchVehicle = async () => {
+    const fetchVehicleData = async () => {
       try {
-        const res = await axios.get(`${API_URL}/api/vehicles/${id}`);
-        setVehicle(res.data);
+        const [vehicleRes, reviewsRes] = await Promise.all([
+          axios.get(`${API_URL}/api/vehicles/${id}`),
+          axios.get(`${API_URL}/api/vehicles/${id}/reviews`)
+        ]);
+        setVehicle(vehicleRes.data);
+        setReviews(reviewsRes.data);
       } catch (err) {
-        console.error("Error fetching vehicle:", err);
+        console.error("Error fetching vehicle data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchVehicle();
+    fetchVehicleData();
   }, [id]);
+
+  const handleReviewAdded = (newReview) => {
+    setReviews([newReview, ...reviews]);
+  };
+
+  const avgRating = reviews.length > 0 
+    ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
+    : "5.0";
+  const numReviews = reviews.length;
 
   const handleContact = (e) => {
     e.preventDefault();
@@ -135,9 +150,9 @@ const VehicleDetail = () => {
                       display: "inline-block",
                     }}
                   />
-                  {vehicle.rating || "5.0"}
+                  {avgRating}
                 </span>
-                <small>{vehicle.trips || "0"} trips</small>
+                <small>{numReviews} reviews</small>
               </div>
             </div>
 
@@ -205,14 +220,20 @@ const VehicleDetail = () => {
                       />
                     </GoogleMap>
                   ) : (
-                    <div className="detail-map-loading">
-                      <div className="spinner" />
-                      <span>Loading Map...</span>
+                    <div className="map-loading-placeholder">
+                      <Navigation size={24} color="#9ca3af" />
+                      <p>Loading Map...</p>
                     </div>
                   )}
                 </div>
               </div>
             )}
+
+            <ReviewSection 
+              vehicleId={vehicle._id} 
+              reviews={reviews} 
+              onReviewAdded={handleReviewAdded} 
+            />
           </div>
 
           {/* Right: Booking Sidebar */}

@@ -187,7 +187,7 @@ const CompanyDashboard = () => {
           <header className="dash-top-header">
             <div>
               <h1 className="page-title">
-                Welcome back, <span className="text-orange">{company.companyName}</span>! 👋
+                Welcome back, <span className="text-orange">{company.companyName}</span>!
               </h1>
               <p className="page-subtitle">Here is what's happening with your fleet today.</p>
             </div>
