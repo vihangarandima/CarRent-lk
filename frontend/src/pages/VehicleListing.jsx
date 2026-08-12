@@ -1165,8 +1165,8 @@ const VehicleListing = () => {
 
         .vehicle-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 1.5rem;
+          grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+          gap: 1.25rem;
         }
 
         .loading-state, .empty-state {

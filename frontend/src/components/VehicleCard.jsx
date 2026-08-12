@@ -29,7 +29,6 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
       whileHover={{ y: -8 }}
     >
       <div className="v-card-image-area">
-        <div className="v-spotlight" />
         <img src={coverImage} alt={`${vehicle.brand} ${vehicle.model}`} />
         <div className="v-card-badges">
           <span className="v-year-badge">{year}</span>
@@ -116,35 +115,17 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
 
         .v-card-image-area {
           position: relative;
-          height: 210px;
-          background: linear-gradient(180deg, #1c1917 0%, #292524 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          height: 160px;
+          background: #F8FAFC;
           overflow: hidden;
         }
 
-        .v-spotlight {
-          position: absolute;
-          width: 70%;
-          height: 70%;
-          background: radial-gradient(
-            ellipse at center,
-            rgba(249, 115, 22, 0.2) 0%,
-            rgba(249, 115, 22, 0.05) 50%,
-            transparent 70%
-          );
-          border-radius: 50%;
-          z-index: 1;
-        }
-
         .v-card-image-area img {
-          width: 85%;
-          height: auto;
-          object-fit: contain;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
           position: relative;
           z-index: 2;
-          filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.3));
           transition: transform 0.4s ease;
         }
 
@@ -207,7 +188,7 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         }
 
         .v-card-body {
-          padding: 1.25rem;
+          padding: 1rem;
           display: flex;
           flex-direction: column;
           flex: 1;
@@ -219,7 +200,7 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
 
         .v-card-header h3 {
           font-family: var(--font-body);
-          font-size: 1.1rem;
+          font-size: 1rem;
           font-weight: 800;
           color: var(--text);
           margin: 0 0 0.35rem;
@@ -296,7 +277,7 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         }
 
         .v-price-main {
-          font-size: 1.2rem;
+          font-size: 1.1rem;
           font-weight: 800;
           color: var(--primary);
           line-height: 1;
