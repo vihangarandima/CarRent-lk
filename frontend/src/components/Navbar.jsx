@@ -33,32 +33,78 @@ const Navbar = () => {
 
   const closeMenu = () => setMenuOpen(false);
 
+  const listTarget =
+    user?.role === "company"
+      ? "/company-list-vehicle"
+      : user?.role === "owner"
+      ? "/list-my-car"
+      : "/choose-listing-type";
+
+  const mode = localStorage.getItem('appMode') || 'hosting';
+  const isTraveling = mode === 'traveling';
+
+  const profileTarget =
+    user?.role === "admin"
+      ? "/admin"
+      : user?.role === "company" && !isTraveling
+      ? "/company-dashboard"
+      : "/profile";
+
+  const profileLabel =
+    user?.role === "admin"
+      ? "Admin Portal"
+      : user?.role === "company" && !isTraveling
+      ? "Company Dashboard"
+      : "My Profile";
+
+  const listLabel = 
+    user?.role === "renter" ? "List Your Car" : "List Car";
+
   return (
     <>
-      <nav className={`hero-nav ${scrolled ? "scrolled" : ""}`}>
+      <nav className={`hero-nav ${scrolled ? "scrolled" : ""} ${location.pathname === '/' && !scrolled ? "on-dark" : ""}`}>
         <Link to="/" className="nav-logo">
-          CarRents.lk
+          <span className="brand-yamu">Yamu</span>
+          <span className="brand-orange">&nbsp;Car Rentals</span>
         </Link>
-        
+
         <div className="nav-links hidden-mobile">
-          <Link to="/vehicles">Rent</Link>
-          {user && user.role === "company" ? (
-            <Link to="/company-dashboard">Dashboard</Link>
-          ) : (
-            <Link to="/list-my-car">List Vehicle</Link>
-          )}
-          <Link to="/companies">Companies</Link>
+          <Link to="/vehicles">Find Cars</Link>
+          <Link to="/companies">Rent-A-Car Fleets</Link>
           <Link to="/#how-it-works">How it works</Link>
           <Link to="/why-us">Why us</Link>
         </div>
-        
+
         <div className="nav-actions hidden-mobile">
           {token ? (
-            <Link to="/profile" className="nav-btn-outline">Profile</Link>
+            <>
+              {/* List Vehicle Button */}
+              {user?.role !== "admin" && (
+                <Link to={listTarget} className="nav-list-btn" title="List a Vehicle">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  <span>{listLabel}</span>
+                </Link>
+              )}
+
+              <Link
+                to={profileTarget}
+                className="nav-profile-pill"
+              >
+                {user?.profileImage ? (
+                  <img src={user.profileImage} alt={user.name || "Profile"} className="nav-avatar-img" />
+                ) : (
+                  <div className="nav-avatar-circle">{user?.name?.[0]?.toUpperCase() || "P"}</div>
+                )}
+                <span>{profileLabel}</span>
+              </Link>
+            </>
           ) : (
             <>
               <Link to="/login" className="nav-signin">Sign In</Link>
-              <Link to="/select-role" className="nav-btn">Get Started</Link>
+              <Link to="/register" className="nav-btn">Get Started</Link>
             </>
           )}
         </div>
@@ -85,20 +131,8 @@ const Navbar = () => {
 
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`} id="mobile-menu">
         <div className="mobile-menu-links">
-          <Link to="/vehicles" className="mobile-nav-item" onClick={closeMenu}>
-            Rent
-          </Link>
-          {user && user.role === "company" ? (
-            <Link to="/company-dashboard" className="mobile-nav-item" onClick={closeMenu}>
-              Dashboard
-            </Link>
-          ) : (
-            <Link to="/list-my-car" className="mobile-nav-item" onClick={closeMenu}>
-              List Vehicle
-            </Link>
-          )}
           <Link to="/companies" className="mobile-nav-item" onClick={closeMenu}>
-            Companies
+            Rent-A-Car Fleets
           </Link>
           <Link to="/#how-it-works" className="mobile-nav-item" onClick={closeMenu}>
             How it works
@@ -110,15 +144,15 @@ const Navbar = () => {
 
         <div className="mobile-menu-actions">
           {token ? (
-            <Link to="/profile" className="mobile-btn-outline" onClick={closeMenu}>
-              Profile
+            <Link to={profileTarget} className="mobile-btn-outline" onClick={closeMenu}>
+              {profileLabel}
             </Link>
           ) : (
             <>
               <Link to="/login" className="mobile-btn-outline" onClick={closeMenu}>
                 Sign in
               </Link>
-              <Link to="/select-role" className="mobile-btn-primary" onClick={closeMenu}>
+              <Link to="/register" className="mobile-btn-primary" onClick={closeMenu}>
                 Get started
               </Link>
             </>
@@ -151,12 +185,18 @@ const Navbar = () => {
         .nav-logo {
           font-size: 1.5rem;
           font-weight: 800;
-          color: #111111;
           text-decoration: none;
-          letter-spacing: -0.5px;
+          letter-spacing: -0.02em;
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+        }
+
+        .nav-logo .brand-yamu {
+          color: #111827;
+        }
+
+        .nav-logo .brand-orange {
+          color: #f97316;
         }
 
         .nav-links {
@@ -179,7 +219,7 @@ const Navbar = () => {
         .nav-actions {
           display: flex;
           align-items: center;
-          gap: 1.5rem;
+          gap: 0.75rem;
         }
 
         .nav-signin {
@@ -192,6 +232,22 @@ const Navbar = () => {
         
         .nav-signin:hover {
           color: #FF8A00;
+        }
+
+        .hero-nav.on-dark .brand-yamu {
+          color: #ffffff;
+        }
+        .hero-nav.on-dark .nav-links a {
+          color: rgba(255, 255, 255, 0.9);
+        }
+        .hero-nav.on-dark .nav-links a:hover {
+          color: #FF8A00;
+        }
+        .hero-nav.on-dark .nav-signin {
+          color: #ffffff;
+        }
+        .hero-nav.on-dark .burger span {
+          background: #ffffff;
         }
 
         .nav-btn {
@@ -213,21 +269,72 @@ const Navbar = () => {
           box-shadow: 0 6px 16px rgba(255, 138, 0, 0.3);
         }
 
-        .nav-btn-outline {
-          background: transparent;
-          color: #111111;
-          border: 2px solid #111111;
-          padding: 0.6rem 1.4rem;
+        /* List Vehicle Button — compact pill to the left of profile */
+        .nav-list-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+          color: white;
+          padding: 0.4rem 1rem 0.4rem 0.75rem;
           border-radius: 999px;
-          font-weight: 600;
-          font-size: 0.95rem;
+          font-weight: 700;
+          font-size: 0.85rem;
           text-decoration: none;
-          transition: all 0.2s;
+          transition: all 0.25s ease;
+          box-shadow: 0 3px 10px rgba(249, 115, 22, 0.25);
+          white-space: nowrap;
         }
 
-        .nav-btn-outline:hover {
-          background: #111111;
-          color: white;
+        .nav-list-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(249, 115, 22, 0.35);
+        }
+
+        .nav-list-btn svg {
+          flex-shrink: 0;
+        }
+
+        .nav-profile-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(255, 255, 255, 0.9);
+          border: 1.5px solid #cbd5e1;
+          padding: 0.35rem 1.1rem 0.35rem 0.4rem;
+          border-radius: 999px;
+          color: #0f172a;
+          font-weight: 700;
+          font-size: 0.9rem;
+          text-decoration: none;
+          transition: all 0.25s ease;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .nav-profile-pill:hover {
+          border-color: #f97316;
+          color: #ea580c;
+          box-shadow: 0 4px 14px rgba(249, 115, 22, 0.18);
+        }
+
+        .nav-avatar-img {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          object-fit: cover;
+        }
+
+        .nav-avatar-circle {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.88rem;
+          font-weight: 800;
         }
 
         /* Mobile Burger */

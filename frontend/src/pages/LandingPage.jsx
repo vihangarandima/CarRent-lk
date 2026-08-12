@@ -76,7 +76,7 @@ const testimonials = [
     name: "Sarah Mitchell",
     location: "Kandy",
     rating: 5,
-    text: "As a tourist, CarRents.lk made renting so easy. Transparent pricing, no hidden fees, and 24/7 support when I had a question.",
+    text: "As a tourist, Yamu Car Rentals made renting so easy. Transparent pricing, no hidden fees, and 24/7 support when I had a question.",
     avatar:
       "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100",
   },
@@ -271,7 +271,7 @@ const LandingPage = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <span className="section-badge">Why CarRents.lk?</span>
+              <span className="section-badge">Why Yamu Car Rentals?</span>
               <h2 className="section-title">
                 The most trusted car sharing marketplace in{" "}
                 <span className="text-gradient">Sri Lanka</span>
@@ -659,11 +659,16 @@ const LandingPage = () => {
         .step-num {
           font-family: var(--font-display);
           font-size: 2.5rem;
-          font-weight: 800;
-          color: var(--primary-soft);
+          font-weight: 900;
+          color: #ea580c;
+          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
           line-height: 1;
-          display: block;
+          display: inline-block;
           margin-bottom: 1rem;
+          letter-spacing: -0.03em;
         }
 
         .step-img-wrap {

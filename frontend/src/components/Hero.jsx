@@ -29,6 +29,9 @@ const Hero = () => {
 
   return (
     <section className="hero-wrapper">
+      {/* Matching Luxury Background Image Layer */}
+      <div className="hero-bg-image" />
+
       {/* Background Dome (Moon Lightray) */}
       <motion.div
         className="dome-bg"
@@ -66,7 +69,7 @@ const Hero = () => {
             <button className="btn-primary" onClick={() => navigate("/vehicles")}>
               Browse Cars <ArrowRight size={18} />
             </button>
-            <button className="btn-secondary" onClick={() => navigate("/list-my-car")}>
+            <button className="btn-secondary" onClick={() => navigate("/choose-listing-type")}>
               List Your Vehicle
             </button>
           </div>
@@ -141,8 +144,6 @@ const Hero = () => {
       </motion.div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@1,600;1,700&display=swap');
-
         .hero-wrapper {
           background-color: #FDF8F2; /* Soft warm cream */
           height: 100vh;
@@ -150,24 +151,49 @@ const Hero = () => {
           min-height: 750px;
           position: relative;
           overflow: hidden;
-          font-family: 'Inter', system-ui, sans-serif;
+          font-family: var(--font-body);
           color: #111111;
           display: flex;
           flex-direction: column;
         }
 
-        /* Background Dome/Halo (Moon Lightray) */
+        .hero-bg-image {
+          position: absolute;
+          inset: 0;
+          background-image: url('/assets/images/hero_bg_matching.png');
+          background-size: cover;
+          background-position: center bottom;
+          opacity: 1;
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        .hero-bg-image::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            180deg,
+            rgba(253, 248, 242, 0.82) 0%,
+            rgba(253, 248, 242, 0.55) 35%,
+            rgba(253, 248, 242, 0.25) 60%,
+            rgba(253, 248, 242, 0.1) 100%
+          );
+          z-index: 1;
+        }
+
+        /* Background Soft Light Halo (Soft Blurred Glow - No Hard Line) */
         .dome-bg {
           position: absolute;
-          top: -20%;
+          top: -25%;
           left: 50%;
-          width: 90vw;
-          height: 90vw;
-          max-width: 1400px;
-          max-height: 1400px;
-          background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(255, 248, 235, 0.95) 20%, rgba(255, 235, 190, 0.3) 50%, rgba(253, 248, 242, 0) 75%);
+          width: 100vw;
+          height: 100vw;
+          max-width: 1500px;
+          max-height: 1500px;
+          background: radial-gradient(circle at center, rgba(255, 255, 255, 0.65) 0%, rgba(255, 248, 235, 0.35) 30%, rgba(255, 235, 190, 0.1) 55%, transparent 70%);
           border-radius: 50%;
-          box-shadow: 0 0 160px 120px rgba(255, 255, 255, 0.9);
+          filter: blur(90px);
           z-index: 1;
           pointer-events: none;
           transform-origin: center center;
@@ -223,20 +249,22 @@ const Hero = () => {
         }
 
         .hero-title {
-          font-size: clamp(2.5rem, 5vw, 4rem);
+          font-family: var(--font-display);
+          font-size: clamp(2.5rem, 5vw, 4.2rem);
           font-weight: 800;
           line-height: 1.1;
           margin-bottom: 1rem;
-          max-width: 900px;
-          letter-spacing: -0.02em;
+          max-width: 920px;
+          letter-spacing: -0.03em;
           text-shadow: 0 4px 40px rgba(253, 248, 242, 0.9), 0 0 20px rgba(253, 248, 242, 0.8), 0 0 10px rgba(255, 255, 255, 1);
         }
 
         .dreams-text {
-          font-family: 'Playfair Display', serif;
+          font-family: var(--font-accent);
           color: #FF8A00;
           font-style: italic;
-          font-weight: 700;
+          font-weight: 500;
+          font-size: 1.05em;
         }
 
         .hero-subtitle {

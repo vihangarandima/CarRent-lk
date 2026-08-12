@@ -13,6 +13,8 @@ import {
   Phone,
   Mail,
   MapPin,
+  ExternalLink,
+  ChevronRight
 } from "lucide-react";
 
 const CompanyDashboard = () => {
@@ -88,274 +90,330 @@ const CompanyDashboard = () => {
 
   if (loading)
     return (
-      <div className="dash-loading">
-        <div className="spinner" />
+      <div className="premium-dash-loading">
+        <div className="premium-spinner" />
+        <p>Loading your workspace...</p>
       </div>
     );
 
   if (!company)
     return (
-      <div className="dash-error">
-        <Building2 size={48} color="#DDD6FE" />
-        <h2>Company Profile Not Found</h2>
-        <p>Your company profile could not be loaded.</p>
-        <Link to="/register?role=company" className="dash-btn-primary">
-          Register as Company
+      <div className="premium-dash-error">
+        <div className="error-icon-wrap">
+          <Building2 size={40} />
+        </div>
+        <h2>Profile Not Found</h2>
+        <p>We couldn't load your company profile. It may not exist yet.</p>
+        <Link to="/register?role=company" className="btn-primary-solid">
+          Register Company
         </Link>
       </div>
     );
 
   return (
-    <div className="dash-page">
-      {/* Sidebar */}
-      <div className="dash-layout">
-        <aside className="dash-sidebar">
-          <div className="sidebar-logo-wrap">
-            {company.logo ? (
-              <img
-                src={company.logo}
-                alt={company.companyName}
-                className="sidebar-logo-img"
-              />
-            ) : (
-              <div className="sidebar-logo-placeholder">
-                <Building2 size={28} color="#f97316" />
-              </div>
-            )}
-            <div>
-              <div className="sidebar-company-name">{company.companyName}</div>
-              <div className="sidebar-verified">✓ Verified</div>
+    <div className="premium-dash-wrapper">
+      <div className="premium-dash-container">
+        {/* Sidebar */}
+        <aside className="premium-sidebar">
+          <div className="sidebar-header">
+            <div className="company-logo-container">
+              {company.logo ? (
+                <img
+                  src={company.logo}
+                  alt={company.companyName}
+                  className="company-logo"
+                />
+              ) : (
+                <div className="company-logo-placeholder">
+                  <Building2 size={24} />
+                </div>
+              )}
+            </div>
+            <div className="company-info">
+              <h3 className="company-name">{company.companyName}</h3>
+              <span className="verified-badge">
+                <span className="verified-dot"></span>
+                Verified Partner
+              </span>
             </div>
           </div>
+
           <nav className="sidebar-nav">
-            <div className="sidebar-nav-item active">
-              <Building2 size={16} /> Company Profile
+            <div className="nav-section-title">MAIN MENU</div>
+            <div className="nav-item active">
+              <Building2 size={18} />
+              <span>Company Profile</span>
             </div>
-            <Link to="/list-my-car" className="sidebar-nav-item">
-              <Plus size={16} /> Add Vehicle
+            <Link to="/list-my-car" className="nav-item">
+              <Plus size={18} />
+              <span>Add Vehicle</span>
             </Link>
+            
+            <div className="nav-divider"></div>
+            <div className="nav-section-title">EXTERNAL</div>
+            
             <Link
               to={`/companies/${company._id}`}
-              className="sidebar-nav-item"
+              className="nav-item external-link"
               target="_blank"
             >
-              <Car size={16} /> Public Page ↗
+              <ExternalLink size={18} />
+              <span>View Public Page</span>
             </Link>
           </nav>
         </aside>
 
-        {/* Main content */}
-        <main className="dash-main">
-          {/* Profile Section */}
-          <section className="dash-section">
-            <div className="dash-section-header">
-              <h2>Company Profile</h2>
-              {!editMode ? (
-                <button
-                  className="dash-edit-btn"
-                  onClick={() => setEditMode(true)}
-                >
-                  <Edit3 size={15} /> Edit
-                </button>
-              ) : (
-                <div className="dash-edit-actions">
-                  <button
-                    className="dash-cancel-btn"
-                    onClick={() => {
-                      setEditMode(false);
-                      setEditData(company);
-                    }}
-                  >
-                    <X size={15} /> Cancel
-                  </button>
-                  <button
-                    className="dash-save-btn"
-                    onClick={handleSave}
-                    disabled={saving}
-                  >
-                    <Save size={15} /> {saving ? "Saving..." : "Save"}
-                  </button>
-                </div>
-              )}
+        {/* Main Content */}
+        <main className="premium-main-content">
+          <header className="dash-top-header">
+            <div>
+              <h1 className="page-title">Dashboard Overview</h1>
+              <p className="page-subtitle">Manage your fleet and company details.</p>
             </div>
+          </header>
 
-            {editMode ? (
-              <div className="profile-edit-grid">
-                {[
-                  {
-                    label: "Company Name",
-                    key: "companyName",
-                    type: "text",
-                    placeholder: "e.g. Colombo Car Rentals",
-                  },
-                  {
-                    label: "Phone",
-                    key: "phone",
-                    type: "text",
-                    placeholder: "+94 77 XXX XXXX",
-                  },
-                  {
-                    label: "Contact Email",
-                    key: "contactEmail",
-                    type: "email",
-                    placeholder: "info@yourcompany.lk",
-                  },
-                  {
-                    label: "Address",
-                    key: "address",
-                    type: "text",
-                    placeholder: "Colombo 03, Western Province",
-                  },
-                  {
-                    label: "Logo URL",
-                    key: "logo",
-                    type: "text",
-                    placeholder: "https://...",
-                  },
-                ].map(({ label, key, type, placeholder }) => (
-                  <div key={key} className="edit-field">
-                    <label>{label}</label>
-                    <input
-                      type={type}
-                      value={editData[key] || ""}
-                      onChange={(e) =>
-                        setEditData({ ...editData, [key]: e.target.value })
-                      }
-                      placeholder={placeholder}
-                    />
-                  </div>
-                ))}
-                <div className="edit-field edit-field-full">
-                  <label>Description</label>
-                  <textarea
-                    rows={4}
-                    value={editData.description || ""}
-                    onChange={(e) =>
-                      setEditData({ ...editData, description: e.target.value })
-                    }
-                    placeholder="Tell customers about your company, specialties, and service quality..."
-                  />
+          <div className="dashboard-grid">
+            {/* Profile Section */}
+            <section className="dash-card profile-card">
+              <div className="card-header">
+                <div>
+                  <h2 className="card-title">Company Information</h2>
+                  <p className="card-description">Your public contact details and description.</p>
                 </div>
-              </div>
-            ) : (
-              <div className="profile-view-grid">
-                <div className="profile-stat">
-                  <MapPin size={16} />
-                  <div>
-                    <span>Address</span>
-                    <strong>{company.address || "—"}</strong>
-                  </div>
-                </div>
-                <div className="profile-stat">
-                  <Phone size={16} />
-                  <div>
-                    <span>Phone</span>
-                    <strong>{company.phone || "—"}</strong>
-                  </div>
-                </div>
-                <div className="profile-stat">
-                  <Mail size={16} />
-                  <div>
-                    <span>Email</span>
-                    <strong>{company.contactEmail || "—"}</strong>
-                  </div>
-                </div>
-                <div className="profile-stat">
-                  <Car size={16} />
-                  <div>
-                    <span>Total Fleet</span>
-                    <strong>{vehicles.length} vehicles</strong>
-                  </div>
-                </div>
-                {company.description && (
-                  <div className="profile-desc-row">
-                    <p>{company.description}</p>
+                {!editMode ? (
+                  <button className="btn-outline-small" onClick={() => setEditMode(true)}>
+                    <Edit3 size={14} /> Edit Profile
+                  </button>
+                ) : (
+                  <div className="edit-actions">
+                    <button
+                      className="btn-text-small"
+                      onClick={() => {
+                        setEditMode(false);
+                        setEditData(company);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn-primary-small"
+                      onClick={handleSave}
+                      disabled={saving}
+                    >
+                      {saving ? "Saving..." : "Save Changes"}
+                    </button>
                   </div>
                 )}
               </div>
-            )}
-          </section>
 
-          {/* Vehicles Section */}
-          <section className="dash-section">
-            <div className="dash-section-header">
-              <h2>Your Fleet ({vehicles.length})</h2>
-              <Link to="/list-my-car" className="dash-add-btn">
-                <Plus size={15} /> Add Vehicle
-              </Link>
-            </div>
-            {vehicles.length === 0 ? (
-              <div className="fleet-empty-dash">
-                <Car size={40} color="#DDD6FE" />
-                <p>No vehicles listed yet.</p>
-                <Link to="/list-my-car" className="dash-btn-primary">
-                  List Your First Vehicle
-                </Link>
-              </div>
-            ) : (
-              <div className="fleet-table">
-                {vehicles.map((v) => (
-                  <div key={v._id} className="fleet-table-row">
-                    <div className="fleet-row-img">
-                      {v.images && v.images[0] ? (
-                        <img src={v.images[0]} alt={v.brand} />
-                      ) : (
-                        <div className="fleet-img-placeholder">
-                          <Car size={18} color="#9CA3AF" />
-                        </div>
-                      )}
+              <div className="card-body">
+                {editMode ? (
+                  <div className="edit-form">
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Company Name</label>
+                        <input
+                          type="text"
+                          value={editData.companyName || ""}
+                          onChange={(e) => setEditData({ ...editData, companyName: e.target.value })}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Phone Number</label>
+                        <input
+                          type="text"
+                          value={editData.phone || ""}
+                          onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                        />
+                      </div>
                     </div>
-                    <div className="fleet-row-info">
-                      <strong>
-                        {v.brand} {v.model} ({v.year})
-                      </strong>
-                      <span>
-                        <MapPin size={12} /> {v.location}
-                      </span>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Contact Email</label>
+                        <input
+                          type="email"
+                          value={editData.contactEmail || ""}
+                          onChange={(e) => setEditData({ ...editData, contactEmail: e.target.value })}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Address</label>
+                        <input
+                          type="text"
+                          value={editData.address || ""}
+                          onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+                        />
+                      </div>
                     </div>
-                    <div className="fleet-row-price">
-                      LKR {v.pricePerDay?.toLocaleString()}/day
+                    <div className="form-group">
+                      <label>Logo URL</label>
+                      <input
+                        type="text"
+                        value={editData.logo || ""}
+                        onChange={(e) => setEditData({ ...editData, logo: e.target.value })}
+                      />
                     </div>
-                    <div className="fleet-row-actions">
-                      <Link
-                        to={`/vehicle/${v._id}`}
-                        className="fleet-action-view"
-                      >
-                        View
-                      </Link>
-                      <button
-                        className="fleet-action-delete"
-                        onClick={() => setDeleteConfirm(v._id)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                    <div className="form-group">
+                      <label>Description</label>
+                      <textarea
+                        rows={4}
+                        value={editData.description || ""}
+                        onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                        placeholder="Describe your services..."
+                      />
                     </div>
                   </div>
-                ))}
+                ) : (
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <div className="info-icon"><MapPin size={16} /></div>
+                      <div className="info-content">
+                        <span className="info-label">Address</span>
+                        <span className="info-value">{company.address || "Not specified"}</span>
+                      </div>
+                    </div>
+                    <div className="info-item">
+                      <div className="info-icon"><Phone size={16} /></div>
+                      <div className="info-content">
+                        <span className="info-label">Phone</span>
+                        <span className="info-value">{company.phone || "Not specified"}</span>
+                      </div>
+                    </div>
+                    <div className="info-item">
+                      <div className="info-icon"><Mail size={16} /></div>
+                      <div className="info-content">
+                        <span className="info-label">Email</span>
+                        <span className="info-value">{company.contactEmail || "Not specified"}</span>
+                      </div>
+                    </div>
+                    <div className="info-item">
+                      <div className="info-icon"><Car size={16} /></div>
+                      <div className="info-content">
+                        <span className="info-label">Total Fleet</span>
+                        <span className="info-value">{vehicles.length} Active Vehicles</span>
+                      </div>
+                    </div>
+                    {company.description && (
+                      <div className="info-item full-width mt-4">
+                        <div className="info-content">
+                          <span className="info-label">About Company</span>
+                          <p className="info-description">{company.description}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </section>
+            </section>
+
+            {/* Fleet Section */}
+            <section className="dash-card fleet-card">
+              <div className="card-header">
+                <div>
+                  <h2 className="card-title">Vehicle Fleet</h2>
+                  <p className="card-description">Manage your {vehicles.length} listed vehicles.</p>
+                </div>
+                <Link to="/list-my-car" className="btn-primary-small">
+                  <Plus size={14} /> Add New
+                </Link>
+              </div>
+
+              <div className="card-body p-0">
+                {vehicles.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">
+                      <Car size={32} />
+                    </div>
+                    <h3>No vehicles yet</h3>
+                    <p>Start building your fleet by adding your first vehicle.</p>
+                    <Link to="/list-my-car" className="btn-primary-solid mt-4">
+                      Add Vehicle
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="premium-table-container">
+                    <table className="premium-table">
+                      <thead>
+                        <tr>
+                          <th>Vehicle</th>
+                          <th>Location</th>
+                          <th>Rate / Day</th>
+                          <th className="text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vehicles.map((v) => (
+                          <tr key={v._id}>
+                            <td>
+                              <div className="table-cell-vehicle">
+                                <div className="vehicle-img-wrap">
+                                  {v.images && v.images[0] ? (
+                                    <img src={v.images[0]} alt={v.brand} />
+                                  ) : (
+                                    <div className="vehicle-img-placeholder">
+                                      <Car size={16} />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="vehicle-details">
+                                  <span className="vehicle-name">{v.brand} {v.model}</span>
+                                  <span className="vehicle-year">{v.year}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className="table-cell-location">
+                                <MapPin size={12} /> {v.location}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="table-cell-price">
+                                LKR {v.pricePerDay?.toLocaleString()}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="table-cell-actions">
+                                <Link to={`/vehicle/${v._id}`} className="action-btn view-btn" title="View Listing">
+                                  <ChevronRight size={16} />
+                                </Link>
+                                <button 
+                                  className="action-btn delete-btn" 
+                                  onClick={() => setDeleteConfirm(v._id)}
+                                  title="Delete Vehicle"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
         </main>
       </div>
 
-      {/* Delete confirm modal */}
+      {/* Delete Confirmation Modal */}
       {deleteConfirm && (
-        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h3>Delete Vehicle?</h3>
-            <p>This action cannot be undone.</p>
+        <div className="premium-modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="premium-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon warning">
+              <Trash2 size={24} />
+            </div>
+            <h3 className="modal-title">Delete Vehicle</h3>
+            <p className="modal-desc">
+              Are you sure you want to remove this vehicle from your fleet? This action cannot be undone.
+            </p>
             <div className="modal-actions">
-              <button
-                className="modal-cancel"
-                onClick={() => setDeleteConfirm(null)}
-              >
+              <button className="btn-outline-solid" onClick={() => setDeleteConfirm(null)}>
                 Cancel
               </button>
-              <button
-                className="modal-confirm"
-                onClick={() => handleDelete(deleteConfirm)}
-              >
-                Delete
+              <button className="btn-danger-solid" onClick={() => handleDelete(deleteConfirm)}>
+                Yes, Delete
               </button>
             </div>
           </div>
@@ -363,135 +421,339 @@ const CompanyDashboard = () => {
       )}
 
       <style>{`
-        .dash-page { 
-          min-height: 100vh; 
-          font-family: 'Inter', sans-serif; 
-          background: linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.2) 100%), 
-                      url('/assets/images/company.jpg') center/cover fixed;
-          transition: background-color 0.3s ease;
+        /* Dashboard Layout & Background */
+        .premium-dash-wrapper {
+          min-height: 100vh;
+          background-color: #F8FAFC;
+          font-family: var(--font-body);
+          color: #0F172A;
+          padding-top: 80px; /* Account for navbar */
         }
-        .dash-loading { min-height: 60vh; display: flex; align-items: center; justify-content: center; }
-        .dash-error { min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; text-align: center; padding: 2rem; }
-        .dash-error h2 { font-size: 1.5rem; font-weight: 800; color: #1F2937; }
-        .dash-error p { color: #6B7280; }
-
-        .spinner { width:40px; height:40px; border: 3px solid #FEF3C7; border-top-color: #f97316; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .dash-layout { display: flex; min-height: calc(100vh - 80px); }
-
-        .dash-sidebar {
-          width: 260px; flex-shrink: 0;
-          background: white; border-right: 1px solid #F1F5F9;
-          padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 2rem;
-          position: sticky; top: 80px; height: calc(100vh - 80px); overflow-y: auto;
+        
+        .premium-dash-container {
+          max-width: 1300px;
+          margin: 0 auto;
+          display: flex;
+          min-height: calc(100vh - 80px);
         }
 
-        .sidebar-logo-wrap { display: flex; align-items: center; gap: 12px; }
-        .sidebar-logo-img { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; }
-        .sidebar-logo-placeholder { width: 50px; height: 50px; border-radius: 12px; background: #FEF3C7; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .sidebar-company-name { font-size: 0.95rem; font-weight: 800; color: #111827; }
-        .sidebar-verified { font-size: 0.72rem; color: #16A34A; font-weight: 700; }
-
-        .sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
-        .sidebar-nav-item {
-          display: flex; align-items: center; gap: 10px;
-          padding: 10px 14px; border-radius: 10px;
-          font-size: 0.9rem; font-weight: 600; color: #6B7280;
-          text-decoration: none; cursor: pointer; transition: all 0.2s;
+        /* Loading & Error States */
+        .premium-dash-loading, .premium-dash-error {
+          min-height: 80vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background-color: #F8FAFC;
         }
-        .sidebar-nav-item:hover, .sidebar-nav-item.active { background: #FEF3C7; color: #f97316; }
+        .premium-spinner {
+          width: 48px; height: 48px;
+          border: 3px solid #FFEDD5;
+          border-top-color: #F97316;
+          border-radius: 50%;
+          animation: premium-spin 1s linear infinite;
+          margin-bottom: 1rem;
+        }
+        @keyframes premium-spin { to { transform: rotate(360deg); } }
+        .error-icon-wrap {
+          width: 80px; height: 80px;
+          background: #FEE2E2; color: #EF4444;
+          border-radius: 20px;
+          display: flex; align-items: center; justify-content: center;
+          margin-bottom: 1.5rem;
+        }
 
-        .dash-main { flex: 1; padding: 2.5rem 2rem; max-width: 900px; }
+        /* Premium Sidebar */
+        .premium-sidebar {
+          width: 280px;
+          flex-shrink: 0;
+          background: #FFFFFF;
+          border-right: 1px solid #E2E8F0;
+          display: flex;
+          flex-direction: column;
+          padding: 2rem 0;
+          height: calc(100vh - 80px);
+          position: sticky;
+          top: 80px;
+          overflow-y: auto;
+        }
 
-        .dash-section {
-          background: white; border-radius: 1.5rem;
+        .sidebar-header {
+          padding: 0 1.5rem 2rem;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          border-bottom: 1px solid #F1F5F9;
+          margin-bottom: 1.5rem;
+        }
+
+        .company-logo-container {
+          width: 56px; height: 56px;
+          border-radius: 14px;
+          overflow: hidden;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+          flex-shrink: 0;
+          background: #FFFFFF;
+        }
+        .company-logo {
+          width: 100%; height: 100%; object-fit: cover;
+        }
+        .company-logo-placeholder {
+          width: 100%; height: 100%;
+          background: #FFF7ED; color: #F97316;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .company-info {
+          display: flex; flex-direction: column; gap: 4px; overflow: hidden;
+        }
+        .company-name {
+          font-family: var(--font-display);
+          font-size: 1rem; font-weight: 700; color: #0F172A;
+          margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .verified-badge {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 0.75rem; font-weight: 600; color: #10B981;
+          background: #ECFDF5; padding: 2px 8px; border-radius: 100px;
+          width: fit-content;
+        }
+        .verified-dot {
+          width: 6px; height: 6px; background: #10B981; border-radius: 50%;
+        }
+
+        .sidebar-nav {
+          padding: 0 1rem;
+          display: flex; flex-direction: column; gap: 4px;
+        }
+        .nav-section-title {
+          font-size: 0.7rem; font-weight: 700; color: #94A3B8;
+          letter-spacing: 0.05em; margin: 1rem 0 0.5rem 1rem;
+        }
+        .nav-item {
+          display: flex; align-items: center; gap: 12px;
+          padding: 0.75rem 1rem; border-radius: 12px;
+          font-size: 0.95rem; font-weight: 600; color: #64748B;
+          text-decoration: none; transition: all 0.2s ease;
+        }
+        .nav-item:hover {
+          background: #F8FAFC; color: #0F172A;
+        }
+        .nav-item.active {
+          background: #FFF7ED; color: #F97316;
+        }
+        .nav-divider {
+          height: 1px; background: #F1F5F9; margin: 1rem;
+        }
+        .external-link:hover {
+          color: #3B82F6; background: #EFF6FF;
+        }
+
+        /* Main Content Area */
+        .premium-main-content {
+          flex: 1;
+          padding: 2.5rem 3rem;
+          max-width: 1020px;
+        }
+        
+        .dash-top-header {
+          margin-bottom: 2rem;
+        }
+        .page-title {
+          font-family: var(--font-display);
+          font-size: 1.8rem; font-weight: 700; color: #0F172A; margin: 0 0 4px 0;
+        }
+        .page-subtitle {
+          color: #64748B; font-size: 1rem; margin: 0;
+        }
+
+        .dashboard-grid {
+          display: flex; flex-direction: column; gap: 2rem;
+        }
+
+        /* Cards */
+        .dash-card {
+          background: #FFFFFF;
+          border-radius: 20px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 10px 15px -5px rgba(0,0,0,0.02);
           border: 1px solid #F1F5F9;
-          padding: 2rem; margin-bottom: 1.5rem;
+          overflow: hidden;
+        }
+        .card-header {
+          padding: 1.5rem 2rem;
+          border-bottom: 1px solid #F1F5F9;
+          display: flex; justify-content: space-between; align-items: center;
+        }
+        .card-title {
+          font-family: var(--font-display);
+          font-size: 1.15rem; font-weight: 700; color: #0F172A; margin: 0 0 2px 0;
+        }
+        .card-description {
+          color: #64748B; font-size: 0.85rem; margin: 0;
+        }
+        .card-body {
+          padding: 2rem;
+        }
+        .card-body.p-0 {
+          padding: 0;
         }
 
-        .dash-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .dash-section-header h2 { font-size: 1.2rem; font-weight: 800; color: #1F2937; }
-
-        .dash-edit-btn {
-          display: flex; align-items: center; gap: 6px;
-          background: #FEF3C7; color: #f97316;
-          border: none; border-radius: 100px; padding: 0.5rem 1.2rem;
-          font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: background 0.2s;
+        /* Buttons */
+        .btn-primary-solid {
+          background: #F97316; color: white; border: none; padding: 0.75rem 1.5rem;
+          border-radius: 12px; font-weight: 600; font-size: 0.95rem; cursor: pointer;
+          transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
         }
-        .dash-edit-btn:hover { background: #fed7aa; }
-
-        .dash-edit-actions { display: flex; gap: 8px; }
-        .dash-cancel-btn { display: flex; align-items: center; gap: 6px; background: #F3F4F6; color: #6B7280; border: none; border-radius: 100px; padding: 0.5rem 1.2rem; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
-        .dash-save-btn { display: flex; align-items: center; gap: 6px; background: #f97316; color: white; border: none; border-radius: 100px; padding: 0.5rem 1.2rem; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
-        .dash-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .profile-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .edit-field { display: flex; flex-direction: column; gap: 6px; }
-        .edit-field-full { grid-column: 1 / -1; }
-        .edit-field label { font-size: 0.75rem; font-weight: 800; color: #9CA3AF; letter-spacing: 0.05em; }
-        .edit-field input, .edit-field textarea {
-          padding: 10px 14px; border: 1.5px solid #E5E7EB; border-radius: 10px;
-          font-size: 0.9rem; background: #F9FAFB; outline: none; transition: border-color 0.2s; font-family: inherit;
+        .btn-primary-solid:hover { background: #EA580C; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2); }
+        
+        .btn-primary-small {
+          background: #F97316; color: white; border: none; padding: 0.5rem 1rem;
+          border-radius: 10px; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+          transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
         }
-        .edit-field input:focus, .edit-field textarea:focus { border-color: #f97316; background: white; }
-        .edit-field textarea { resize: vertical; }
+        .btn-primary-small:hover { background: #EA580C; }
+        .btn-primary-small:disabled { opacity: 0.7; cursor: not-allowed; }
 
-        .profile-view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.25rem; }
-        .profile-stat { display: flex; align-items: flex-start; gap: 10px; }
-        .profile-stat svg { color: #f97316; margin-top: 2px; flex-shrink: 0; }
-        .profile-stat div { display: flex; flex-direction: column; }
-        .profile-stat span { font-size: 0.72rem; color: #9CA3AF; font-weight: 700; text-transform: uppercase; }
-        .profile-stat strong { font-size: 0.9rem; color: #1F2937; font-weight: 700; }
-
-        .profile-desc-row { grid-column: 1 / -1; background: #F9FAFB; border-radius: 10px; padding: 1rem; }
-        .profile-desc-row p { color: #374151; font-size: 0.9rem; line-height: 1.6; margin: 0; }
-
-        .dash-add-btn { display: flex; align-items: center; gap: 6px; background: #f97316; color: white; padding: 0.5rem 1.2rem; border-radius: 100px; font-weight: 700; font-size: 0.85rem; text-decoration: none; transition: background 0.2s; }
-        .dash-add-btn:hover { background: #ea580c; }
-        .dash-btn-primary { display: inline-flex; align-items: center; gap: 6px; background: #f97316; color: white; padding: 0.75rem 2rem; border-radius: 100px; font-weight: 700; text-decoration: none; transition: background 0.2s; border: none; cursor: pointer; }
-        .dash-btn-primary:hover { background: #ea580c; }
-
-        .fleet-empty-dash { text-align: center; padding: 3rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; color: #9CA3AF; }
-
-        .fleet-table { display: flex; flex-direction: column; gap: 0.75rem; }
-        .fleet-table-row {
-          display: flex; align-items: center; gap: 1rem;
-          padding: 1rem; border-radius: 12px;
-          border: 1px solid #F1F5F9; background: #FAFAFA;
-          transition: background 0.2s;
+        .btn-outline-small {
+          background: #FFFFFF; color: #0F172A; border: 1px solid #E2E8F0; padding: 0.5rem 1rem;
+          border-radius: 10px; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+          transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
         }
-        .fleet-table-row:hover { background: #fff7ed; }
+        .btn-outline-small:hover { background: #F8FAFC; border-color: #CBD5E1; }
 
-        .fleet-row-img { width: 70px; height: 52px; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
-        .fleet-row-img img { width: 100%; height: 100%; object-fit: cover; }
-        .fleet-img-placeholder { width: 70px; height: 52px; border-radius: 10px; background: #FEF3C7; display: flex; align-items: center; justify-content: center; }
+        .btn-text-small {
+          background: transparent; color: #64748B; border: none; padding: 0.5rem 1rem;
+          font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: color 0.2s;
+        }
+        .btn-text-small:hover { color: #0F172A; }
 
-        .fleet-row-info { flex: 1; display: flex; flex-direction: column; gap: 3px; }
-        .fleet-row-info strong { font-size: 0.9rem; font-weight: 800; color: #1F2937; }
-        .fleet-row-info span { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; color: #9CA3AF; }
+        .btn-outline-solid {
+          background: #FFFFFF; color: #334155; border: 1px solid #CBD5E1; padding: 0.75rem 1.5rem;
+          border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-outline-solid:hover { background: #F8FAFC; }
+        
+        .btn-danger-solid {
+          background: #EF4444; color: white; border: none; padding: 0.75rem 1.5rem;
+          border-radius: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+        }
+        .btn-danger-solid:hover { background: #DC2626; }
 
-        .fleet-row-price { font-weight: 800; color: #f97316; font-size: 0.9rem; white-space: nowrap; }
+        /* Edit Form */
+        .edit-form { display: flex; flex-direction: column; gap: 1.5rem; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .form-group label { font-size: 0.8rem; font-weight: 700; color: #475569; }
+        .form-group input, .form-group textarea {
+          padding: 0.75rem 1rem; border: 1px solid #E2E8F0; border-radius: 10px;
+          font-family: inherit; font-size: 0.95rem; color: #0F172A; transition: all 0.2s;
+          background: #F8FAFC;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+          outline: none; border-color: #F97316; background: #FFFFFF; box-shadow: 0 0 0 3px rgba(249,115,22,0.1);
+        }
+        .edit-actions { display: flex; gap: 0.5rem; }
 
-        .fleet-row-actions { display: flex; align-items: center; gap: 8px; }
-        .fleet-action-view { background: #FEF3C7; color: #92400e; padding: 5px 14px; border-radius: 100px; font-size: 0.8rem; font-weight: 700; text-decoration: none; transition: background 0.2s; }
-        .fleet-action-view:hover { background: #fed7aa; }
-        .fleet-action-delete { background: #FEF2F2; color: #DC2626; border: none; border-radius: 100px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; transition: background 0.2s; }
-        .fleet-action-delete:hover { background: #FEE2E2; }
+        /* Profile View Grid */
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; }
+        .info-item { display: flex; gap: 1rem; }
+        .info-item.full-width { grid-column: 1 / -1; }
+        .info-icon {
+          width: 40px; height: 40px; border-radius: 10px; background: #FFF7ED; color: #F97316;
+          display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .info-content { display: flex; flex-direction: column; gap: 2px; }
+        .info-label { font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; }
+        .info-value { font-size: 0.95rem; font-weight: 600; color: #0F172A; }
+        .info-description { margin: 0.5rem 0 0 0; color: #475569; line-height: 1.6; font-size: 0.95rem; }
+        .mt-4 { margin-top: 1rem; }
 
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 999; backdrop-filter: blur(4px); }
-        .modal-box { background: white; border-radius: 1.5rem; padding: 2rem; max-width: 360px; width: 90%; text-align: center; }
-        .modal-box h3 { font-size: 1.2rem; font-weight: 800; color: #111827; margin-bottom: 0.5rem; }
-        .modal-box p { color: #6B7280; font-size: 0.9rem; margin-bottom: 1.5rem; }
-        .modal-actions { display: flex; gap: 12px; justify-content: center; }
-        .modal-cancel { background: #F3F4F6; color: #374151; border: none; padding: 0.6rem 1.5rem; border-radius: 100px; font-weight: 700; cursor: pointer; }
-        .modal-confirm { background: #DC2626; color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 100px; font-weight: 700; cursor: pointer; }
-        .modal-confirm:hover { background: #B91C1C; }
+        /* Premium Table */
+        .premium-table-container {
+          width: 100%; overflow-x: auto;
+        }
+        .premium-table {
+          width: 100%; border-collapse: collapse; text-align: left;
+        }
+        .premium-table th {
+          padding: 1rem 1.5rem; background: #F8FAFC; font-size: 0.75rem; font-weight: 700;
+          color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #F1F5F9;
+        }
+        .premium-table td {
+          padding: 1.25rem 1.5rem; border-bottom: 1px solid #F1F5F9; vertical-align: middle;
+        }
+        .premium-table tr:last-child td { border-bottom: none; }
+        .premium-table tr:hover td { background: #FAFAFA; }
+        .text-right { text-align: right; }
 
-        @media (max-width: 768px) {
-          .dash-layout { flex-direction: column; }
-          .dash-sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid #F1F5F9; }
-          .profile-edit-grid { grid-template-columns: 1fr; }
+        .table-cell-vehicle { display: flex; align-items: center; gap: 1rem; }
+        .vehicle-img-wrap {
+          width: 64px; height: 48px; border-radius: 8px; overflow: hidden; background: #F1F5F9; flex-shrink: 0;
+        }
+        .vehicle-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .vehicle-img-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #94A3B8; }
+        .vehicle-details { display: flex; flex-direction: column; }
+        .vehicle-name { font-weight: 700; color: #0F172A; font-size: 0.95rem; }
+        .vehicle-year { font-size: 0.8rem; color: #64748B; }
+
+        .table-cell-location { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #475569; }
+        .table-cell-price { font-weight: 700; color: #0F172A; font-size: 0.95rem; }
+
+        .table-cell-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        .action-btn {
+          width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+          border: none; cursor: pointer; transition: all 0.2s;
+        }
+        .view-btn { background: #F1F5F9; color: #475569; }
+        .view-btn:hover { background: #E2E8F0; color: #0F172A; }
+        .delete-btn { background: transparent; color: #94A3B8; }
+        .delete-btn:hover { background: #FEE2E2; color: #EF4444; }
+
+        /* Empty State */
+        .empty-state {
+          padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; text-align: center;
+        }
+        .empty-icon {
+          width: 64px; height: 64px; border-radius: 16px; background: #F1F5F9; color: #94A3B8;
+          display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;
+        }
+        .empty-state h3 { font-size: 1.15rem; font-weight: 700; color: #0F172A; margin: 0 0 0.5rem 0; }
+        .empty-state p { color: #64748B; margin: 0; max-width: 300px; font-size: 0.95rem; }
+
+        /* Modal */
+        .premium-modal-overlay {
+          position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px);
+          display: flex; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .premium-modal {
+          background: white; border-radius: 24px; padding: 2.5rem; width: 100%; max-width: 400px;
+          text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.1); animation: modal-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modal-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-icon {
+          width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 1.25rem;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .modal-icon.warning { background: #FEE2E2; color: #EF4444; }
+        .modal-title { font-size: 1.25rem; font-weight: 700; color: #0F172A; margin: 0 0 0.5rem; }
+        .modal-desc { color: #64748B; font-size: 0.95rem; margin: 0 0 2rem; line-height: 1.5; }
+        .modal-actions { display: flex; gap: 1rem; justify-content: center; }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+          .premium-dash-container { flex-direction: column; }
+          .premium-sidebar {
+            width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid #E2E8F0;
+            padding: 1.5rem; flex-direction: row; align-items: center; justify-content: space-between;
+          }
+          .sidebar-header { border-bottom: none; margin: 0; padding: 0; }
+          .sidebar-nav { flex-direction: row; align-items: center; overflow-x: auto; padding: 0; }
+          .nav-section-title, .nav-divider { display: none; }
+          .nav-item { white-space: nowrap; }
+          .premium-main-content { padding: 2rem 1.5rem; }
+        }
+        @media (max-width: 640px) {
+          .form-row { grid-template-columns: 1fr; gap: 1rem; }
+          .info-grid { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>
