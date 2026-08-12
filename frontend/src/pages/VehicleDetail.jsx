@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { MapPin, Star, Check, CheckCircle2, Send, Navigation } from "lucide-react";
+import { MapPin, Star, Check, CheckCircle2, MessageSquare, Navigation } from "lucide-react";
 import axios from "axios";
 import { API_URL } from "../config";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { addDays, subDays } from "date-fns";
 
 const detailMapContainerStyle = {
   width: "100%",
@@ -13,8 +16,18 @@ const detailMapContainerStyle = {
 
 const VehicleDetail = () => {
   const { id } = useParams();
-  const [bidPrice, setBidPrice] = useState("");
-  const [message, setMessage] = useState("");
+  
+  // Booking State
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [startDate, endDate] = dateRange;
+  
+  // Dummy booked dates (e.g. today + 2, today + 3) to show the feature
+  const bookedDates = [
+    addDays(new Date(), 2),
+    addDays(new Date(), 3),
+    addDays(new Date(), 7),
+  ];
+
   const [sent, setSent] = useState(false);
   const [vehicle, setVehicle] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -37,10 +50,10 @@ const VehicleDetail = () => {
     fetchVehicle();
   }, [id]);
 
-  const handleSend = (e) => {
+  const handleContact = (e) => {
     e.preventDefault();
-    if (!bidPrice) {
-      alert("Please enter your offer amount");
+    if (!startDate || !endDate) {
+      alert("Please select your required booking dates on the calendar first.");
       return;
     }
     setSent(true);
@@ -122,15 +135,15 @@ const VehicleDetail = () => {
                       display: "inline-block",
                     }}
                   />
-                  {vehicle.rating}
+                  {vehicle.rating || "5.0"}
                 </span>
-                <small>{vehicle.trips} trips</small>
+                <small>{vehicle.trips || "0"} trips</small>
               </div>
             </div>
 
             <div className="about-section">
               <h3>About This Car</h3>
-              <p>{vehicle.description}</p>
+              <p>{vehicle.description || "No description provided for this vehicle."}</p>
             </div>
 
             <div className="features-section">
@@ -202,7 +215,7 @@ const VehicleDetail = () => {
             )}
           </div>
 
-          {/* Right: Bid Sidebar */}
+          {/* Right: Booking Sidebar */}
           <aside className="bid-panel">
             <div className="bid-card">
               <div className="price-row">
@@ -211,11 +224,12 @@ const VehicleDetail = () => {
                 </span>
                 <span className="per-day">/ day</span>
               </div>
+              
               <div className="owner-row">
                 <div className="owner-avatar">{vehicle.owner?.name?.[0] || "U"}</div>
                 <div>
                   <strong>{vehicle.owner?.name || "Vehicle Owner"}</strong>
-                  <p>Vehicle Owner</p>
+                  <p>Verified Partner</p>
                 </div>
               </div>
               <hr className="divider" />
@@ -223,45 +237,43 @@ const VehicleDetail = () => {
               {sent ? (
                 <div className="sent-msg">
                   <CheckCircle2 size={44} className="sent-check-icon" />
-                  <h3>Offer Sent!</h3>
-                  <p>The owner will contact you soon.</p>
+                  <h3>Request Sent!</h3>
+                  <p>The owner has received your booking inquiry and will contact you soon.</p>
                 </div>
               ) : (
-                <form onSubmit={handleSend} className="bid-form">
-                  <h3>Make an Offer</h3>
-                  <p>Negotiate the price with the owner</p>
-                  <div className="field">
-                    <label>Your Offer (LKR / day)</label>
-                    <input
-                      type="number"
-                      placeholder={`e.g. ${vehicle.pricePerDay - 1000}`}
-                      value={bidPrice}
-                      onChange={(e) => setBidPrice(e.target.value)}
+                <div className="booking-form">
+                  <h3>Check Availability</h3>
+                  <p>Select your required dates below. Gray dates are already booked.</p>
+                  
+                  <div className="calendar-wrapper">
+                    <DatePicker
+                      selected={startDate}
+                      onChange={(update) => setDateRange(update)}
+                      startDate={startDate}
+                      endDate={endDate}
+                      selectsRange
+                      inline
+                      minDate={new Date()}
+                      excludeDates={bookedDates}
                     />
                   </div>
-                  <div className="field">
-                    <label>Message (optional)</label>
-                    <textarea
-                      placeholder="Hi, I'd like to rent your car for..."
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
+
                   <button
                     className="btn-primary"
-                    type="submit"
+                    onClick={handleContact}
                     style={{
+                      width: "100%",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "8px",
+                      marginTop: "1rem"
                     }}
                   >
-                    <span>Send Offer</span>
-                    <Send size={16} />
+                    <MessageSquare size={18} />
+                    <span>Contact Owner</span>
                   </button>
-                </form>
+                </div>
               )}
             </div>
           </aside>
@@ -286,7 +298,7 @@ const VehicleDetail = () => {
         .breadcrumb a:hover { color: #0f172a; }
         .detail-grid {
           display: grid;
-          grid-template-columns: 1fr 360px;
+          grid-template-columns: 1fr 380px;
           gap: 2.5rem;
           align-items: start;
         }
@@ -380,6 +392,7 @@ const VehicleDetail = () => {
           color: var(--accent);
           margin-bottom: 0.5rem;
         }
+        
         /* Bid Panel */
         .bid-panel { position: sticky; top: 88px; }
         .bid-card {
@@ -423,27 +436,86 @@ const VehicleDetail = () => {
         }
         .owner-row strong { display: block; color: #0f172a; font-size: 0.95rem; }
         .owner-row p { color: var(--text-muted); font-size: 0.8rem; margin: 0; }
-        .bid-form h3 { margin-bottom: 0.3rem; font-size: 1.1rem; }
-        .bid-form > p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; }
-        .bid-form { display: flex; flex-direction: column; gap: 1rem; }
-        .bid-form textarea {
-          background: #f8fafc;
-          border: 1.5px solid var(--border);
-          padding: 0.85rem 1rem;
-          border-radius: 0.5rem;
-          color: var(--text);
-          font-family: inherit;
-          font-size: 0.95rem;
-          outline: none;
-          resize: vertical;
+        .divider { margin: 1.5rem 0; border: none; border-top: 1px solid var(--border); }
+        
+        /* Booking Form */
+        .booking-form h3 { margin-bottom: 0.3rem; font-size: 1.1rem; }
+        .booking-form > p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; line-height: 1.5; }
+        .booking-form { display: flex; flex-direction: column; }
+        
+        /* Custom react-datepicker styling for premium look */
+        .calendar-wrapper {
+          display: flex;
+          justify-content: center;
           width: 100%;
+        }
+        .react-datepicker {
+          border: 1px solid var(--border) !important;
+          border-radius: 12px !important;
+          font-family: inherit !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+          padding: 0.5rem !important;
+          width: 100%;
+        }
+        .react-datepicker__month-container {
+          width: 100%;
+        }
+        .react-datepicker__header {
+          background-color: transparent !important;
+          border-bottom: 1px solid var(--border) !important;
+          padding-top: 0.5rem !important;
+        }
+        .react-datepicker__current-month {
+          font-weight: 700 !important;
+          font-size: 1rem !important;
+          color: #0f172a !important;
+          margin-bottom: 0.5rem !important;
+        }
+        .react-datepicker__day-name {
+          color: var(--text-muted) !important;
+          font-weight: 600 !important;
+          width: 2rem !important;
+          line-height: 2rem !important;
+          margin: 0.2rem !important;
+        }
+        .react-datepicker__day {
+          width: 2rem !important;
+          line-height: 2rem !important;
+          margin: 0.2rem !important;
+          border-radius: 6px !important;
+          color: #0f172a !important;
+          font-weight: 500 !important;
           transition: all 0.2s;
         }
-        .bid-form textarea:focus {
-          border-color: var(--primary);
-          background: #ffffff;
-          box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+        .react-datepicker__day:hover {
+          background-color: var(--primary-soft) !important;
+          color: var(--primary) !important;
         }
+        .react-datepicker__day--selected, 
+        .react-datepicker__day--in-range, 
+        .react-datepicker__day--in-selecting-range {
+          background-color: var(--primary) !important;
+          color: white !important;
+          font-weight: 700 !important;
+        }
+        .react-datepicker__day--in-selecting-range:not(.react-datepicker__day--in-range) {
+          background-color: rgba(249, 115, 22, 0.4) !important;
+        }
+        /* Excluded / Booked Dates */
+        .react-datepicker__day--excluded {
+          background-color: #f1f5f9 !important;
+          color: #cbd5e1 !important;
+          text-decoration: line-through !important;
+          cursor: not-allowed !important;
+        }
+        .react-datepicker__day--excluded:hover {
+          background-color: #f1f5f9 !important;
+          color: #cbd5e1 !important;
+        }
+        .react-datepicker__navigation {
+          top: 0.8rem !important;
+        }
+
         .sent-msg {
           text-align: center;
           padding: 1.5rem 0;
