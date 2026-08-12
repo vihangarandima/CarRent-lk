@@ -17,7 +17,8 @@ import {
   ChevronRight,
   Activity,
   CheckCircle,
-  TrendingUp
+  TrendingUp,
+  LogOut
 } from "lucide-react";
 
 const CompanyDashboard = () => {
@@ -91,6 +92,12 @@ const CompanyDashboard = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
   if (loading)
     return (
       <div className="premium-dash-loading">
@@ -128,14 +135,14 @@ const CompanyDashboard = () => {
                 />
               ) : (
                 <div className="company-logo-placeholder">
-                  <Building2 size={24} />
+                  <Building2 size={28} />
                 </div>
               )}
             </div>
             <div className="company-info">
               <h3 className="company-name">{company.companyName}</h3>
               <span className="verified-badge">
-                <CheckCircle size={12} />
+                <CheckCircle size={10} />
                 Verified
               </span>
             </div>
@@ -144,11 +151,11 @@ const CompanyDashboard = () => {
           <nav className="sidebar-nav">
             <div className="nav-section-title">MAIN MENU</div>
             <div className="nav-item active">
-              <div className="nav-icon-box"><Building2 size={18} /></div>
+              <div className="nav-icon-box"><Building2 size={16} /></div>
               <span>Dashboard</span>
             </div>
             <Link to="/list-my-car" className="nav-item">
-              <div className="nav-icon-box"><Plus size={18} /></div>
+              <div className="nav-icon-box"><Plus size={16} /></div>
               <span>Add Vehicle</span>
             </Link>
             
@@ -160,9 +167,18 @@ const CompanyDashboard = () => {
               className="nav-item external-link"
               target="_blank"
             >
-              <div className="nav-icon-box"><ExternalLink size={18} /></div>
+              <div className="nav-icon-box"><ExternalLink size={16} /></div>
               <span>View Public Page</span>
             </Link>
+
+            <div className="nav-divider"></div>
+            <button
+              onClick={handleLogout}
+              className="nav-item logout-btn"
+            >
+              <div className="nav-icon-box"><LogOut size={16} /></div>
+              <span>Log Out</span>
+            </button>
           </nav>
         </aside>
 
@@ -181,7 +197,7 @@ const CompanyDashboard = () => {
           <div className="quick-stats-grid">
             <div className="stat-card">
               <div className="stat-icon-wrapper orange-glow">
-                <Car size={24} />
+                <Car size={20} />
               </div>
               <div className="stat-content">
                 <p className="stat-label">Active Vehicles</p>
@@ -190,20 +206,20 @@ const CompanyDashboard = () => {
             </div>
             <div className="stat-card">
               <div className="stat-icon-wrapper green-glow">
-                <Activity size={24} />
+                <Activity size={20} />
               </div>
               <div className="stat-content">
                 <p className="stat-label">Profile Status</p>
-                <h3 className="stat-value text-green">100% Active</h3>
+                <h3 className="stat-value text-green">100%</h3>
               </div>
             </div>
             <div className="stat-card">
               <div className="stat-icon-wrapper blue-glow">
-                <TrendingUp size={24} />
+                <TrendingUp size={20} />
               </div>
               <div className="stat-content">
                 <p className="stat-label">Total Views</p>
-                <h3 className="stat-value">Analytics Soon</h3>
+                <h3 className="stat-value">Soon</h3>
               </div>
             </div>
           </div>
@@ -218,7 +234,7 @@ const CompanyDashboard = () => {
                 </div>
                 {!editMode ? (
                   <button className="btn-outline-small" onClick={() => setEditMode(true)}>
-                    <Edit3 size={14} /> Edit Profile
+                    <Edit3 size={12} /> Edit
                   </button>
                 ) : (
                   <div className="edit-actions">
@@ -236,7 +252,7 @@ const CompanyDashboard = () => {
                       onClick={handleSave}
                       disabled={saving}
                     >
-                      {saving ? "Saving..." : "Save Changes"}
+                      {saving ? "Saving..." : "Save"}
                     </button>
                   </div>
                 )}
@@ -292,7 +308,7 @@ const CompanyDashboard = () => {
                     <div className="form-group">
                       <label>Description</label>
                       <textarea
-                        rows={4}
+                        rows={3}
                         value={editData.description || ""}
                         onChange={(e) => setEditData({ ...editData, description: e.target.value })}
                         placeholder="Describe your services..."
@@ -302,28 +318,28 @@ const CompanyDashboard = () => {
                 ) : (
                   <div className="info-grid fade-in">
                     <div className="info-item hover-up">
-                      <div className="info-icon"><MapPin size={18} /></div>
+                      <div className="info-icon"><MapPin size={16} /></div>
                       <div className="info-content">
                         <span className="info-label">Address</span>
                         <span className="info-value">{company.address || "Not specified"}</span>
                       </div>
                     </div>
                     <div className="info-item hover-up">
-                      <div className="info-icon"><Phone size={18} /></div>
+                      <div className="info-icon"><Phone size={16} /></div>
                       <div className="info-content">
                         <span className="info-label">Phone</span>
                         <span className="info-value">{company.phone || "Not specified"}</span>
                       </div>
                     </div>
                     <div className="info-item hover-up">
-                      <div className="info-icon"><Mail size={18} /></div>
+                      <div className="info-icon"><Mail size={16} /></div>
                       <div className="info-content">
                         <span className="info-label">Email</span>
                         <span className="info-value">{company.contactEmail || "Not specified"}</span>
                       </div>
                     </div>
                     {company.description && (
-                      <div className="info-item full-width mt-4 hover-up">
+                      <div className="info-item full-width mt-2 hover-up">
                         <div className="info-content">
                           <span className="info-label">About Company</span>
                           <p className="info-description">{company.description}</p>
@@ -340,10 +356,10 @@ const CompanyDashboard = () => {
               <div className="card-header">
                 <div>
                   <h2 className="card-title">Vehicle Fleet</h2>
-                  <p className="card-description">You have {vehicles.length} vehicles currently active.</p>
+                  <p className="card-description">You have {vehicles.length} vehicles active.</p>
                 </div>
                 <Link to="/list-my-car" className="btn-primary-small glowing-btn">
-                  <Plus size={14} /> Add Vehicle
+                  <Plus size={12} /> Add
                 </Link>
               </div>
 
@@ -351,12 +367,12 @@ const CompanyDashboard = () => {
                 {vehicles.length === 0 ? (
                   <div className="empty-state">
                     <div className="empty-icon pulse-animation">
-                      <Car size={32} />
+                      <Car size={24} />
                     </div>
                     <h3>Your fleet is empty</h3>
-                    <p>Start building your presence by adding your first vehicle to the marketplace.</p>
-                    <Link to="/list-my-car" className="btn-primary-solid glowing-btn mt-4">
-                      Add Your First Vehicle
+                    <p>Start building your presence.</p>
+                    <Link to="/list-my-car" className="btn-primary-solid glowing-btn mt-2">
+                      Add Vehicle
                     </Link>
                   </div>
                 ) : (
@@ -380,7 +396,7 @@ const CompanyDashboard = () => {
                                     <img src={v.images[0]} alt={v.brand} />
                                   ) : (
                                     <div className="vehicle-img-placeholder">
-                                      <Car size={16} />
+                                      <Car size={14} />
                                     </div>
                                   )}
                                 </div>
@@ -392,7 +408,7 @@ const CompanyDashboard = () => {
                             </td>
                             <td>
                               <span className="table-cell-location">
-                                <MapPin size={14} /> {v.location}
+                                <MapPin size={12} /> {v.location}
                               </span>
                             </td>
                             <td>
@@ -403,14 +419,14 @@ const CompanyDashboard = () => {
                             <td>
                               <div className="table-cell-actions">
                                 <Link to={`/vehicle/${v._id}`} className="action-btn view-btn" title="View Listing">
-                                  <ChevronRight size={18} />
+                                  <ChevronRight size={14} />
                                 </Link>
                                 <button 
                                   className="action-btn delete-btn" 
                                   onClick={() => setDeleteConfirm(v._id)}
                                   title="Delete Vehicle"
                                 >
-                                  <Trash2 size={18} />
+                                  <Trash2 size={14} />
                                 </button>
                               </div>
                             </td>
@@ -431,18 +447,18 @@ const CompanyDashboard = () => {
         <div className="premium-modal-overlay fade-in" onClick={() => setDeleteConfirm(null)}>
           <div className="premium-modal zoom-in" onClick={(e) => e.stopPropagation()}>
             <div className="modal-icon warning pulse-animation">
-              <Trash2 size={28} />
+              <Trash2 size={24} />
             </div>
             <h3 className="modal-title">Delete Vehicle?</h3>
             <p className="modal-desc">
-              Are you completely sure you want to remove this vehicle? It will be permanently deleted from the marketplace.
+              Permanently delete this vehicle from the marketplace?
             </p>
             <div className="modal-actions">
-              <button className="btn-outline-solid" onClick={() => setDeleteConfirm(null)}>
-                Keep Vehicle
+              <button className="btn-outline-small" onClick={() => setDeleteConfirm(null)}>
+                Cancel
               </button>
               <button className="btn-danger-solid glowing-btn-danger" onClick={() => handleDelete(deleteConfirm)}>
-                Yes, Delete it
+                Delete
               </button>
             </div>
           </div>
@@ -458,14 +474,14 @@ const CompanyDashboard = () => {
                             radial-gradient(circle at bottom left, rgba(249, 115, 22, 0.03) 0%, transparent 40%);
           font-family: var(--font-body);
           color: #0F172A;
-          padding-top: 80px; 
+          padding-top: 60px; /* smaller header gap */
         }
         
         .premium-dash-container {
-          max-width: 1400px;
+          max-width: 1200px; /* smaller max width */
           margin: 0 auto;
           display: flex;
-          min-height: calc(100vh - 80px);
+          min-height: calc(100vh - 60px);
         }
 
         /* Loading & Error States */
@@ -477,23 +493,21 @@ const CompanyDashboard = () => {
           justify-content: center;
         }
         .premium-spinner {
-          width: 56px; height: 56px;
-          border: 4px solid #FFEDD5;
+          width: 48px; height: 48px;
+          border: 3px solid #FFEDD5;
           border-top-color: #F97316;
           border-radius: 50%;
           animation: premium-spin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 0 20px rgba(249, 115, 22, 0.2);
+          margin-bottom: 1rem;
         }
         @keyframes premium-spin { to { transform: rotate(360deg); } }
         
         .error-icon-wrap {
-          width: 80px; height: 80px;
+          width: 60px; height: 60px;
           background: #FEE2E2; color: #EF4444;
-          border-radius: 24px;
+          border-radius: 16px;
           display: flex; align-items: center; justify-content: center;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 10px 25px rgba(239, 68, 68, 0.2);
+          margin-bottom: 1rem;
         }
 
         /* Text Utilities */
@@ -502,37 +516,36 @@ const CompanyDashboard = () => {
 
         /* Premium Sidebar */
         .premium-sidebar {
-          width: 290px;
+          width: 240px; /* narrower sidebar */
           flex-shrink: 0;
           background: rgba(255, 255, 255, 0.8);
           backdrop-filter: blur(12px);
           border-right: 1px solid rgba(249, 115, 22, 0.1);
           display: flex;
           flex-direction: column;
-          padding: 2.5rem 0;
-          height: calc(100vh - 80px);
+          padding: 1.5rem 0; /* reduced padding */
+          height: calc(100vh - 60px);
           position: sticky;
-          top: 80px;
+          top: 60px;
           overflow-y: auto;
         }
 
         .sidebar-header {
-          padding: 0 1.5rem 2rem;
+          padding: 0 1.25rem 1.25rem;
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: 0.75rem;
           border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-          margin-bottom: 1.5rem;
+          margin-bottom: 1rem;
         }
 
         .company-logo-container {
-          width: 60px; height: 60px;
-          border-radius: 16px;
+          width: 56px; height: 56px;
+          border-radius: 12px;
           overflow: hidden;
-          box-shadow: 0 8px 16px rgba(249, 115, 22, 0.12);
           flex-shrink: 0;
           background: #FFFFFF;
-          border: 2px solid #FFF7ED;
+          border: 1px solid #FFF7ED;
         }
         .company-logo {
           width: 100%; height: 100%; object-fit: cover;
@@ -544,61 +557,62 @@ const CompanyDashboard = () => {
           display: flex; align-items: center; justify-content: center;
         }
         .company-info {
-          display: flex; flex-direction: column; gap: 6px; overflow: hidden;
+          display: flex; flex-direction: column; gap: 2px; overflow: hidden;
         }
         .company-name {
           font-family: var(--font-display);
-          font-size: 1.1rem; font-weight: 800; color: #0F172A;
+          font-size: 0.95rem; font-weight: 800; color: #0F172A;
           margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .verified-badge {
           display: inline-flex; align-items: center; gap: 4px;
-          font-size: 0.75rem; font-weight: 700; color: #10B981;
-          background: #ECFDF5; padding: 4px 10px; border-radius: 100px;
+          font-size: 0.65rem; font-weight: 700; color: #10B981;
+          background: #ECFDF5; padding: 2px 6px; border-radius: 100px;
           width: fit-content; border: 1px solid #A7F3D0;
         }
 
         .sidebar-nav {
-          padding: 0 1.25rem;
-          display: flex; flex-direction: column; gap: 8px;
+          padding: 0 1rem;
+          display: flex; flex-direction: column; gap: 4px;
         }
         .nav-section-title {
-          font-size: 0.75rem; font-weight: 800; color: #94A3B8;
-          letter-spacing: 0.1em; margin: 1.5rem 0 0.5rem 1rem;
+          font-size: 0.65rem; font-weight: 800; color: #94A3B8;
+          letter-spacing: 0.05em; margin: 1rem 0 0.25rem 0.5rem;
         }
         .nav-item {
-          display: flex; align-items: center; gap: 14px;
-          padding: 0.85rem 1rem; border-radius: 14px;
-          font-size: 0.95rem; font-weight: 600; color: #64748B;
-          text-decoration: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative; overflow: hidden;
+          display: flex; align-items: center; gap: 10px;
+          padding: 0.6rem 0.8rem; border-radius: 10px;
+          font-size: 0.85rem; font-weight: 600; color: #64748B;
+          text-decoration: none; transition: all 0.2s ease-in-out;
+          position: relative; overflow: hidden; border: none; cursor: pointer; background: transparent; text-align: left;
         }
         .nav-icon-box {
           display: flex; align-items: center; justify-content: center;
-          width: 32px; height: 32px; border-radius: 8px;
-          background: #F1F5F9; color: #64748B; transition: all 0.3s;
+          width: 28px; height: 28px; border-radius: 8px;
+          background: #F1F5F9; color: #64748B; transition: all 0.2s;
         }
         .nav-item:hover {
-          background: #F8FAFC; color: #0F172A; transform: translateX(4px);
+          background: #F8FAFC; color: #0F172A;
         }
         .nav-item:hover .nav-icon-box {
           background: #E2E8F0; color: #0F172A;
         }
         
-        /* Active Nav Item - The Orange Touch */
         .nav-item.active {
           background: linear-gradient(90deg, #FFF7ED 0%, #FFEDD5 100%);
           color: #EA580C;
-          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.1);
           border: 1px solid rgba(249, 115, 22, 0.1);
         }
         .nav-item.active .nav-icon-box {
           background: #F97316; color: white;
-          box-shadow: 0 4px 8px rgba(249, 115, 22, 0.3);
         }
         
+        .logout-btn { color: #EF4444 !important; }
+        .logout-btn .nav-icon-box { background: #FEE2E2 !important; color: #EF4444 !important; }
+        .logout-btn:hover { background: #FEF2F2 !important; color: #DC2626 !important; }
+
         .nav-divider {
-          height: 1px; background: rgba(226, 232, 240, 0.6); margin: 1rem;
+          height: 1px; background: rgba(226, 232, 240, 0.6); margin: 0.75rem 0.5rem;
         }
         .external-link:hover {
           color: #3B82F6; background: #EFF6FF;
@@ -608,311 +622,234 @@ const CompanyDashboard = () => {
         /* Main Content Area */
         .premium-main-content {
           flex: 1;
-          padding: 3rem 4rem;
-          max-width: 1100px;
+          padding: 1.5rem 2.5rem; /* much less padding */
+          max-width: 1000px;
         }
         
         .dash-top-header {
-          margin-bottom: 2.5rem;
-          animation: slideDown 0.5s ease-out forwards;
+          margin-bottom: 1.5rem;
+          animation: slideDown 0.4s ease-out forwards;
         }
         @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-20px); }
+          from { opacity: 0; transform: translateY(-10px); }
           to { opacity: 1; transform: translateY(0); }
         }
         .page-title {
           font-family: var(--font-display);
-          font-size: 2.2rem; font-weight: 800; color: #0F172A; margin: 0 0 8px 0;
+          font-size: 1.6rem; font-weight: 800; color: #0F172A; margin: 0 0 4px 0;
           letter-spacing: -0.5px;
         }
         .page-subtitle {
-          color: #64748B; font-size: 1.1rem; margin: 0;
+          color: #64748B; font-size: 0.95rem; margin: 0;
         }
 
         /* Quick Stats Grid */
         .quick-stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 2.5rem;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 1rem;
+          margin-bottom: 1.5rem;
         }
         .stat-card {
           background: #FFFFFF;
-          border-radius: 20px;
-          padding: 1.5rem;
+          border-radius: 16px;
+          padding: 1rem 1.25rem;
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: 1rem;
           border: 1px solid rgba(226, 232, 240, 0.6);
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
-          transition: all 0.3s ease;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+          transition: all 0.2s ease;
         }
         .stat-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 24px -4px rgba(249, 115, 22, 0.08);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px -4px rgba(249, 115, 22, 0.08);
           border-color: rgba(249, 115, 22, 0.2);
         }
         .stat-icon-wrapper {
-          width: 56px; height: 56px;
-          border-radius: 16px;
+          width: 44px; height: 44px;
+          border-radius: 12px;
           display: flex; align-items: center; justify-content: center;
         }
-        .orange-glow { background: #FFF7ED; color: #F97316; box-shadow: 0 8px 16px rgba(249, 115, 22, 0.15); }
-        .green-glow { background: #ECFDF5; color: #10B981; box-shadow: 0 8px 16px rgba(16, 185, 129, 0.15); }
-        .blue-glow { background: #EFF6FF; color: #3B82F6; box-shadow: 0 8px 16px rgba(59, 130, 246, 0.15); }
+        .orange-glow { background: #FFF7ED; color: #F97316; }
+        .green-glow { background: #ECFDF5; color: #10B981; }
+        .blue-glow { background: #EFF6FF; color: #3B82F6; }
         
-        .stat-content { display: flex; flex-direction: column; gap: 4px; }
-        .stat-label { font-size: 0.85rem; font-weight: 700; color: #64748B; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; }
-        .stat-value { font-size: 1.5rem; font-weight: 800; color: #0F172A; margin: 0; font-family: var(--font-display); }
+        .stat-content { display: flex; flex-direction: column; gap: 2px; }
+        .stat-label { font-size: 0.7rem; font-weight: 700; color: #64748B; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-value { font-size: 1.15rem; font-weight: 800; color: #0F172A; margin: 0; font-family: var(--font-display); }
 
         .dashboard-grid {
-          display: flex; flex-direction: column; gap: 2.5rem;
+          display: flex; flex-direction: column; gap: 1.5rem;
         }
 
         /* Cards */
         .interactive-card {
           background: #FFFFFF;
-          border-radius: 24px;
-          box-shadow: 0 4px 6px -2px rgba(0,0,0,0.02), 0 12px 24px -4px rgba(0,0,0,0.03);
+          border-radius: 16px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
           border: 1px solid rgba(226, 232, 240, 0.8);
           overflow: hidden;
-          transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          transition: all 0.3s;
         }
         .interactive-card:hover {
-          box-shadow: 0 20px 40px -8px rgba(249, 115, 22, 0.1);
+          box-shadow: 0 10px 20px -8px rgba(249, 115, 22, 0.08);
           border-color: rgba(249, 115, 22, 0.2);
         }
 
         .card-header {
-          padding: 1.75rem 2.5rem;
+          padding: 1rem 1.5rem;
           border-bottom: 1px solid rgba(226, 232, 240, 0.6);
           display: flex; justify-content: space-between; align-items: center;
           background: rgba(255, 255, 255, 0.9);
         }
         .card-title {
           font-family: var(--font-display);
-          font-size: 1.25rem; font-weight: 800; color: #0F172A; margin: 0 0 4px 0;
+          font-size: 1.1rem; font-weight: 800; color: #0F172A; margin: 0 0 2px 0;
         }
         .card-description {
-          color: #64748B; font-size: 0.9rem; margin: 0;
+          color: #64748B; font-size: 0.8rem; margin: 0;
         }
         .card-body {
-          padding: 2.5rem;
+          padding: 1.25rem 1.5rem;
         }
         .card-body.p-0 {
           padding: 0;
         }
 
-        /* Vibrant Buttons */
+        /* Buttons (Smaller versions) */
         .glowing-btn {
           position: relative;
-          box-shadow: 0 4px 14px 0 rgba(249, 115, 22, 0.39);
+          box-shadow: 0 2px 8px 0 rgba(249, 115, 22, 0.3);
         }
         .glowing-btn:hover {
-          box-shadow: 0 6px 20px rgba(249, 115, 22, 0.23);
-          transform: translateY(-2px);
+          transform: translateY(-1px);
         }
-        
-        .glowing-btn-danger {
-          box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.39);
-        }
-        .glowing-btn-danger:hover {
-          box-shadow: 0 6px 20px rgba(239, 68, 68, 0.23);
-          transform: translateY(-2px);
-        }
+        .glowing-btn-danger { box-shadow: 0 2px 8px 0 rgba(239, 68, 68, 0.3); }
 
-        .btn-primary-solid {
-          background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
-          color: white; border: none; padding: 0.85rem 1.75rem;
-          border-radius: 14px; font-weight: 700; font-size: 1rem; cursor: pointer;
-          transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
-        }
-        
         .btn-primary-small {
           background: linear-gradient(135deg, #F97316 0%, #EA580C 100%); 
-          color: white; border: none; padding: 0.6rem 1.2rem;
-          border-radius: 12px; font-weight: 700; font-size: 0.9rem; cursor: pointer;
-          transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+          color: white; border: none; padding: 0.4rem 0.8rem;
+          border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer;
+          transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
         }
-        .btn-primary-small:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
-
         .btn-outline-small {
-          background: #FFFFFF; color: #0F172A; border: 2px solid #E2E8F0; padding: 0.6rem 1.2rem;
-          border-radius: 12px; font-weight: 700; font-size: 0.9rem; cursor: pointer;
-          transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px;
+          background: #FFFFFF; color: #0F172A; border: 1px solid #E2E8F0; padding: 0.4rem 0.8rem;
+          border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer;
+          transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
         }
         .btn-outline-small:hover { background: #F8FAFC; border-color: #F97316; color: #F97316; }
 
         .btn-text-small {
-          background: transparent; color: #64748B; border: none; padding: 0.6rem 1.2rem;
-          font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: color 0.3s;
+          background: transparent; color: #64748B; border: none; padding: 0.4rem 0.8rem;
+          font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: color 0.2s;
         }
-        .btn-text-small:hover { color: #0F172A; }
-
-        .btn-outline-solid {
-          background: #FFFFFF; color: #334155; border: 2px solid #CBD5E1; padding: 0.85rem 1.75rem;
-          border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-size: 1rem;
-        }
-        .btn-outline-solid:hover { background: #F8FAFC; border-color: #94A3B8; }
         
         .btn-danger-solid {
           background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-          color: white; border: none; padding: 0.85rem 1.75rem; font-size: 1rem;
-          border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.3s;
+          color: white; border: none; padding: 0.6rem 1.25rem; font-size: 0.85rem;
+          border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;
         }
 
-        /* Edit Form with Orange accents */
-        .edit-form { display: flex; flex-direction: column; gap: 1.75rem; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.75rem; }
-        .form-group { display: flex; flex-direction: column; gap: 0.6rem; }
-        .form-group label { font-size: 0.85rem; font-weight: 800; color: #334155; }
+        /* Edit Form smaller */
+        .edit-form { display: flex; flex-direction: column; gap: 1rem; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        .form-group label { font-size: 0.75rem; font-weight: 800; color: #334155; }
         .form-group input, .form-group textarea {
-          padding: 0.85rem 1.25rem; border: 2px solid #E2E8F0; border-radius: 12px;
-          font-family: inherit; font-size: 1rem; color: #0F172A; transition: all 0.3s;
-          background: #F8FAFC;
+          padding: 0.6rem 1rem; border: 1px solid #E2E8F0; border-radius: 8px;
+          font-family: inherit; font-size: 0.9rem; color: #0F172A; transition: all 0.2s;
         }
         .form-group input:focus, .form-group textarea:focus {
-          outline: none; border-color: #F97316; background: #FFFFFF; box-shadow: 0 0 0 4px rgba(249,115,22,0.1);
+          outline: none; border-color: #F97316; box-shadow: 0 0 0 3px rgba(249,115,22,0.1);
         }
-        .edit-actions { display: flex; gap: 0.75rem; }
 
-        /* Profile View Grid */
-        .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem; }
+        /* Profile View Grid (Compact) */
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
         .info-item { 
-          display: flex; gap: 1.25rem; align-items: flex-start; 
-          padding: 1.25rem; border-radius: 16px; transition: all 0.3s;
-          border: 1px solid transparent;
+          display: flex; gap: 0.75rem; align-items: center; 
+          padding: 0.75rem; border-radius: 12px; transition: all 0.2s;
+          border: 1px solid transparent; background: #FAFAFA;
         }
         .hover-up:hover {
-          background: #FFF7ED;
-          border-color: rgba(249, 115, 22, 0.1);
-          transform: translateY(-2px);
+          background: #FFF7ED; border-color: rgba(249, 115, 22, 0.1); transform: translateY(-1px);
         }
-        .info-item.full-width { grid-column: 1 / -1; }
+        .info-item.full-width { grid-column: 1 / -1; align-items: flex-start; }
         .info-icon {
-          width: 48px; height: 48px; border-radius: 14px; 
+          width: 36px; height: 36px; border-radius: 10px; 
           background: linear-gradient(135deg, #F97316 0%, #EA580C 100%); color: white;
           display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-          box-shadow: 0 8px 16px rgba(249, 115, 22, 0.2);
         }
-        .info-content { display: flex; flex-direction: column; gap: 4px; }
-        .info-label { font-size: 0.8rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; }
-        .info-value { font-size: 1.05rem; font-weight: 700; color: #0F172A; }
-        .info-description { margin: 0.75rem 0 0 0; color: #334155; line-height: 1.7; font-size: 1rem; }
+        .info-content { display: flex; flex-direction: column; gap: 2px; }
+        .info-label { font-size: 0.7rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; }
+        .info-value { font-size: 0.9rem; font-weight: 700; color: #0F172A; }
+        .info-description { margin: 0.25rem 0 0 0; color: #334155; line-height: 1.5; font-size: 0.85rem; }
+        .mt-2 { margin-top: 0.5rem; }
 
-        /* Interactive Premium Table */
-        .premium-table-container {
-          width: 100%; overflow-x: auto;
-        }
-        .premium-table {
-          width: 100%; border-collapse: separate; border-spacing: 0; text-align: left;
-        }
+        /* Interactive Premium Table (Compact) */
+        .premium-table-container { width: 100%; overflow-x: auto; }
+        .premium-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
         .premium-table th {
-          padding: 1.25rem 2.5rem; background: #F8FAFC; font-size: 0.8rem; font-weight: 800;
-          color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #E2E8F0;
+          padding: 0.75rem 1.25rem; background: #F8FAFC; font-size: 0.75rem; font-weight: 800;
+          color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #E2E8F0;
         }
         .interactive-row td {
-          padding: 1.5rem 2.5rem; border-bottom: 1px solid #F1F5F9; vertical-align: middle;
-          transition: all 0.3s;
+          padding: 0.85rem 1.25rem; border-bottom: 1px solid #F1F5F9; vertical-align: middle;
+          transition: all 0.2s;
         }
-        .interactive-row:hover td { 
-          background: rgba(249, 115, 22, 0.03); 
-        }
-        .interactive-row:hover .action-btn.view-btn {
-          background: #F97316; color: white;
-        }
-        .premium-table tr:last-child td { border-bottom: none; }
-        .text-right { text-align: right; }
-
-        .table-cell-vehicle { display: flex; align-items: center; gap: 1.25rem; }
+        .interactive-row:hover td { background: rgba(249, 115, 22, 0.03); }
+        .interactive-row:hover .action-btn.view-btn { background: #F97316; color: white; }
+        
+        .table-cell-vehicle { display: flex; align-items: center; gap: 1rem; }
         .vehicle-img-wrap {
-          width: 80px; height: 60px; border-radius: 12px; overflow: hidden; background: #F1F5F9; flex-shrink: 0;
-          box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+          width: 60px; height: 44px; border-radius: 8px; overflow: hidden; background: #F1F5F9; flex-shrink: 0;
         }
-        .vehicle-img-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
-        .interactive-row:hover .vehicle-img-wrap img { transform: scale(1.05); }
-        .vehicle-img-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #94A3B8; }
-        .vehicle-details { display: flex; flex-direction: column; gap: 4px; }
-        .vehicle-name { font-weight: 800; color: #0F172A; font-size: 1.05rem; }
-        .vehicle-year { font-size: 0.85rem; color: #64748B; font-weight: 600; }
+        .vehicle-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .vehicle-name { font-weight: 800; color: #0F172A; font-size: 0.9rem; display: block; }
+        .vehicle-year { font-size: 0.75rem; color: #64748B; font-weight: 600; }
 
-        .table-cell-location { display: inline-flex; align-items: center; gap: 6px; font-size: 0.95rem; color: #475569; font-weight: 500; }
-        .table-cell-price { font-weight: 800; color: #0F172A; font-size: 1.05rem; }
+        .table-cell-location { display: inline-flex; align-items: center; gap: 4px; font-size: 0.85rem; color: #475569; font-weight: 500; }
+        .table-cell-price { font-weight: 800; color: #0F172A; font-size: 0.9rem; }
 
-        .table-cell-actions { display: flex; justify-content: flex-end; gap: 12px; }
+        .table-cell-actions { display: flex; justify-content: flex-end; gap: 8px; }
         .action-btn {
-          width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-          border: none; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+          border: none; cursor: pointer; transition: all 0.2s;
         }
         .view-btn { background: #F1F5F9; color: #475569; }
-        .view-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2); }
         .delete-btn { background: transparent; color: #94A3B8; }
-        .delete-btn:hover { background: #FEE2E2; color: #EF4444; transform: scale(1.05); }
+        .delete-btn:hover { background: #FEE2E2; color: #EF4444; }
 
         /* Animations */
-        .fade-in { animation: fadeIn 0.4s ease-out; }
-        .zoom-in { animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .pulse-animation { animation: pulse 2s infinite; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        .zoom-in { animation: zoomIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        @keyframes pulse { 
-          0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
-          70% { box-shadow: 0 0 0 15px rgba(249, 115, 22, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
-        }
 
         /* Empty State */
-        .empty-state {
-          padding: 5rem 2rem; display: flex; flex-direction: column; align-items: center; text-align: center;
-        }
-        .empty-icon {
-          width: 80px; height: 80px; border-radius: 24px; 
-          background: #FFF7ED; color: #F97316;
-          display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;
-        }
-        .empty-state h3 { font-size: 1.35rem; font-weight: 800; color: #0F172A; margin: 0 0 0.5rem 0; font-family: var(--font-display); }
-        .empty-state p { color: #64748B; margin: 0; max-width: 350px; font-size: 1rem; line-height: 1.6; }
+        .empty-state { padding: 3rem 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .empty-icon { width: 64px; height: 64px; border-radius: 16px; background: #FFF7ED; color: #F97316; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
+        .empty-state h3 { font-size: 1.15rem; font-weight: 800; color: #0F172A; margin: 0 0 0.5rem 0; }
+        .empty-state p { color: #64748B; margin: 0; max-width: 300px; font-size: 0.9rem; }
 
         /* Modal */
         .premium-modal-overlay {
-          position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px);
+          position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px);
           display: flex; align-items: center; justify-content: center; z-index: 1000;
         }
         .premium-modal {
-          background: white; border-radius: 28px; padding: 3rem; width: 100%; max-width: 440px;
-          text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); 
+          background: white; border-radius: 20px; padding: 2rem; width: 100%; max-width: 360px;
+          text-align: center; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); 
         }
         .modal-icon {
-          width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 1.5rem;
+          width: 48px; height: 48px; border-radius: 50%; margin: 0 auto 1rem;
           display: flex; align-items: center; justify-content: center;
         }
         .modal-icon.warning { background: #FEE2E2; color: #EF4444; }
-        .modal-title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; color: #0F172A; margin: 0 0 0.75rem; }
-        .modal-desc { color: #475569; font-size: 1rem; margin: 0 0 2.5rem; line-height: 1.6; }
-        .modal-actions { display: flex; gap: 1rem; justify-content: center; }
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-          .premium-dash-container { flex-direction: column; }
-          .premium-sidebar {
-            width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid #E2E8F0;
-            padding: 1.5rem 2rem; flex-direction: row; align-items: center; justify-content: space-between;
-          }
-          .sidebar-header { border-bottom: none; margin: 0; padding: 0; }
-          .sidebar-nav { flex-direction: row; align-items: center; overflow-x: auto; padding: 0; }
-          .nav-section-title, .nav-divider { display: none; }
-          .nav-item { white-space: nowrap; }
-          .premium-main-content { padding: 2rem; }
-        }
-        @media (max-width: 640px) {
-          .form-row { grid-template-columns: 1fr; gap: 1.25rem; }
-          .info-grid { grid-template-columns: 1fr; }
-          .quick-stats-grid { grid-template-columns: 1fr; }
-          .premium-main-content { padding: 1.5rem; }
-          .dash-top-header { margin-bottom: 1.5rem; }
-          .page-title { font-size: 1.75rem; }
-        }
+        .modal-title { font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; color: #0F172A; margin: 0 0 0.5rem; }
+        .modal-desc { color: #475569; font-size: 0.9rem; margin: 0 0 1.5rem; line-height: 1.5; }
+        .modal-actions { display: flex; gap: 0.75rem; justify-content: center; }
       `}</style>
     </div>
   );
