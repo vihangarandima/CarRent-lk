@@ -25,12 +25,12 @@ import {
 // Image Imports
 import bikeeImg from "../assets/images/bikee.jpg";
 import threewheelerImg from "../assets/images/threewheeler.jpg";
-import miniCarImg from "../assets/images/car.jpg";
+import miniCarImg from "../assets/images/mini_car.png";
 import carImg from "../assets/images/car.jpg";
-import premiumCarImg from "../assets/images/car.jpg";
-import miniVanImg from "../assets/images/van.jpg";
+import premiumCarImg from "../assets/images/premium_car.png";
+import miniVanImg from "../assets/images/mini_van.png";
 import vanImg from "../assets/images/van.jpg";
-import companyImg from "../assets/images/company.jpg";
+import othersCarImg from "../assets/images/others_car.png";
 
 const listingMapContainerStyle = {
   width: "100%",
@@ -82,7 +82,7 @@ const VehicleListing = () => {
     { id: "premium-car", title: "Premium Car", image: premiumCarImg },
     { id: "mini-van", title: "Mini Van", image: miniVanImg },
     { id: "van", title: "Van", image: vanImg },
-    { id: "others", title: "Others", image: companyImg },
+    { id: "others", title: "Others", image: othersCarImg },
   ];
 
   // Sync state changes to URL searchParams
