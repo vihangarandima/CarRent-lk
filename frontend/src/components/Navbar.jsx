@@ -172,7 +172,7 @@ const Navbar = () => {
           width: 100%;
           z-index: 1000;
           transition: background-color 0.3s, padding 0.3s, box-shadow 0.3s;
-          font-family: 'Inter', system-ui, sans-serif;
+          font-family: var(--font-body, 'Plus Jakarta Sans', 'Poppins', system-ui, sans-serif);
         }
 
         .hero-nav.scrolled {

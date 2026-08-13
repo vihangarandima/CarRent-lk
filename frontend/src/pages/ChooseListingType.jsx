@@ -5,7 +5,7 @@ const ChooseListingType = () => {
   const navigate = useNavigate();
 
   return (
-    <div style={{ padding: "120px 20px 80px", minHeight: "100vh", fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ padding: "120px 20px 80px", minHeight: "100vh", fontFamily: "var(--font-body, 'Plus Jakarta Sans', 'Poppins', sans-serif)" }}>
       <div style={{ maxWidth: 700, margin: "0 auto", textAlign: "center" }}>
         <h1 style={{ fontSize: "2rem", fontWeight: 800, color: "#111827", marginBottom: 12 }}>
           How would you like to list?

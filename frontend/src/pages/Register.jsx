@@ -736,7 +736,7 @@ const Register = () => {
           justify-content: center;
           background: #f8fafc;
           padding: 100px 20px 40px;
-          font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+          font-family: var(--font-body, 'Plus Jakarta Sans', 'Poppins', sans-serif);
         }
 
         .auth-card {

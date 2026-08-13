@@ -198,7 +198,7 @@ const Splash = () => {
           width: 100%;
           position: relative;
           overflow-x: hidden;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          font-family: var(--font-body, 'Plus Jakarta Sans', 'Poppins', sans-serif);
         }
 
         /* Video Background */

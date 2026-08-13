@@ -117,7 +117,7 @@ const CompanyDetail = () => {
       <style>{`
         .company-detail-page { 
           min-height: 100vh; 
-          font-family: 'Inter', sans-serif; 
+          font-family: var(--font-body, 'Plus Jakarta Sans', 'Poppins', sans-serif); 
           background: #f8fafc;
           transition: background-color 0.3s ease;
         }
@@ -138,7 +138,7 @@ const CompanyDetail = () => {
         }
         .company-detail-error a { color: #f97316; font-weight: 600; text-decoration: none; }
 
-        .company-detail-nav { max-width: 1280px; margin: 0 auto; padding: 1.5rem 2rem 0; }
+        .company-detail-nav { max-width: 1280px; margin: 0 auto; padding: 120px 2rem 0; }
         .back-link {
           display: inline-flex; align-items: center; gap: 6px;
           color: #6B7280; font-weight: 600; font-size: 0.9rem;

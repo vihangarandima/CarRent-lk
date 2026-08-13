@@ -192,7 +192,7 @@ const Login = () => {
           justify-content: center;
           background: #f8fafc;
           padding: 20px;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body, 'Plus Jakarta Sans', 'Poppins', sans-serif);
           transition: background-color 0.3s ease;
         }
 

@@ -303,7 +303,7 @@ const VehicleDetail = () => {
 
       <style>{`
         .detail-wrap {
-          padding: 2rem 0 6rem;          
+          padding: 120px 0 6rem;          
           background: #f8fafc;
           transition: background-color 0.3s ease;
         }

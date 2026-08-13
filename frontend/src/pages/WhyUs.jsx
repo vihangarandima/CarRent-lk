@@ -95,7 +95,7 @@ const WhyUs = () => {
 
       <style>{`
         .why-us-page {
-          padding-top: 4rem;
+          padding-top: 120px;
           background: #f8fafc;
           transition: background-color 0.3s ease;
         }

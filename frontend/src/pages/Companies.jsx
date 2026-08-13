@@ -181,7 +181,7 @@ const Companies = () => {
       <style>{`
         .companies-page { 
           min-height: 100vh; 
-          font-family: 'Inter', sans-serif; 
+          font-family: var(--font-body, 'Plus Jakarta Sans', 'Poppins', sans-serif); 
           background: #f8fafc;
           transition: background-color 0.3s ease;
         }
@@ -189,7 +189,7 @@ const Companies = () => {
         .companies-hero {
           position: relative;
           background: url('/assets/images/company.jpg') center/cover fixed;
-          padding: 80px 2rem 60px;
+          padding: 120px 2rem 60px;
           text-align: center;
           border-bottom: 1px solid rgba(249, 115, 22, 0.2);
           overflow: hidden;

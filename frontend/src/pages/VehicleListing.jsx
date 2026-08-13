@@ -805,14 +805,11 @@ const VehicleListing = () => {
 
         /* Modern Header */
         .modern-header-section {
-          padding: 6.5rem 1rem 3rem;
+          background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+          padding: 120px 1rem 3rem;
           text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          background: linear-gradient(180deg, var(--primary-soft, #fff7ed) 0%, var(--bg, #f9fafb) 100%);
+          border-bottom: 1px solid #fed7aa;
           position: relative;
-          overflow: hidden;
         }
 
         .vehicle-type-card-section {

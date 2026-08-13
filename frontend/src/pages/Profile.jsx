@@ -529,7 +529,7 @@ const Profile = () => {
         }
         
         .profile-page {
-          padding: 2.5rem 0 6rem;
+          padding: 120px 0 6rem;
           background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
                       linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
           background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);

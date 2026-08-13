@@ -28,7 +28,7 @@ import MobileBottomNav from "./components/MobileBottomNav";
 
 function AppContent() {
   const location = useLocation();
-  const hideFooter = ["/login", "/register", "/splash", "/choose-listing-type", "/select-role"].includes(
+  const hideNavAndFooter = ["/login", "/register", "/splash", "/choose-listing-type", "/select-role", "/company-dashboard"].includes(
     location.pathname,
   );
 
@@ -80,7 +80,7 @@ function AppContent() {
         <div className="orb orb-3" />
       </div>
 
-      <Navbar />
+      {!hideNavAndFooter && <Navbar />}
 
       <style>{`
         .app-container {
@@ -164,9 +164,9 @@ function AppContent() {
         </Routes>
       </main>
 
-      {!hideFooter && <Footer />}
+      {!hideNavAndFooter && <Footer />}
       <ModeSwitcher />
-      {!hideFooter && <MobileBottomNav />}
+      {!hideNavAndFooter && <MobileBottomNav />}
     </div>
   );
 }

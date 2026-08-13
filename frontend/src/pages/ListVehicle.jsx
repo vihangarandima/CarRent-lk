@@ -564,7 +564,7 @@ const ListVehicle = () => {
         
         .lv-hero {
           background: #ffffff;
-          padding: 6rem 2rem 4rem;
+          padding: 120px 2rem 4rem;
           text-align: center;
           border-bottom: 1px solid #e2e8f0;
         }
