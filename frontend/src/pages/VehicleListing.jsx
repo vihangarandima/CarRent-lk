@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { API_URL } from "../config";
 import VehicleCard from "../components/VehicleCard";
@@ -8,7 +8,7 @@ import {
   Marker,
   InfoWindow,
 } from "@react-google-maps/api";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   MapPin,
   Car,
@@ -19,12 +19,16 @@ import {
   Star,
   Map,
   LayoutGrid,
+  Trash2,
 } from "lucide-react";
 
-// 1. Import your images using relative paths from this component's location
+// Image Imports
 import bikeeImg from "../assets/images/bikee.jpg";
 import threewheelerImg from "../assets/images/threewheeler.jpg";
+import miniCarImg from "../assets/images/car.jpg";
 import carImg from "../assets/images/car.jpg";
+import premiumCarImg from "../assets/images/car.jpg";
+import miniVanImg from "../assets/images/van.jpg";
 import vanImg from "../assets/images/van.jpg";
 import companyImg from "../assets/images/company.jpg";
 
@@ -45,53 +49,81 @@ const normalizeSearchText = (value = "") =>
     .trim();
 
 const VehicleListing = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Read initial parameters directly from URL searchParams
   const [filter, setFilter] = useState({
-    location: "",
-    brand: "",
-    minPrice: "",
-    maxPrice: "",
+    location: searchParams.get("location") || "",
+    brand: searchParams.get("brand") || "",
+    minPrice: searchParams.get("minPrice") || "",
+    maxPrice: searchParams.get("maxPrice") || "",
   });
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [vehicleType, setVehicleType] = useState("");
+  const [vehicleType, setVehicleType] = useState(
+    searchParams.get("type") || searchParams.get("vehicleType") || ""
+  );
   const [viewMode, setViewMode] = useState("grid"); // "grid" or "map"
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [filterShow, setFilterShow] = useState("nearest");
+  const [filterFuel, setFilterFuel] = useState(
+    searchParams.get("fuel") || "any"
+  );
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
   });
 
-  // 2. Map the imported variables to your image properties
   const vehicleTypeCards = [
-    {
-      id: "bicycle",
-      title: "Bicycle",
-      image: bikeeImg,
-    },
-    {
-      id: "threewheeler",
-      title: "Three-wheeler",
-      image: threewheelerImg,
-    },
-    {
-      id: "car",
-      title: "Car",
-      image: carImg,
-    },
-    {
-      id: "van",
-      title: "Van",
-      image: vanImg,
-    },
-    {
-      id: "others",
-      title: "Others",
-      image: companyImg,
-    },
+    { id: "bicycle", title: "Bicycle", image: bikeeImg },
+    { id: "threewheeler", title: "Three-wheeler", image: threewheelerImg },
+    { id: "mini-car", title: "Mini Car", image: miniCarImg },
+    { id: "car", title: "Car", image: carImg },
+    { id: "premium-car", title: "Premium Car", image: premiumCarImg },
+    { id: "mini-van", title: "Mini Van", image: miniVanImg },
+    { id: "van", title: "Van", image: vanImg },
+    { id: "others", title: "Others", image: companyImg },
   ];
 
-  const [filterShow, setFilterShow] = useState("nearest");
-  const [filterFuel, setFilterFuel] = useState("any");
+  // Sync state changes to URL searchParams
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filter.location) params.set("location", filter.location);
+    if (filter.brand) params.set("brand", filter.brand);
+    if (filter.minPrice) params.set("minPrice", filter.minPrice);
+    if (filter.maxPrice) params.set("maxPrice", filter.maxPrice);
+    if (vehicleType) params.set("type", vehicleType);
+    if (filterFuel && filterFuel !== "any") params.set("fuel", filterFuel);
+
+    const paramStr = params.toString();
+    if (paramStr !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [filter, vehicleType, filterFuel]);
+
+  // Sync back when browser back/forward buttons are pressed
+  useEffect(() => {
+    const locParam = searchParams.get("location") || "";
+    const brandParam = searchParams.get("brand") || "";
+    const minPParam = searchParams.get("minPrice") || "";
+    const maxPParam = searchParams.get("maxPrice") || "";
+    const typeParam = searchParams.get("type") || searchParams.get("vehicleType") || "";
+    const fuelParam = searchParams.get("fuel") || "any";
+
+    setFilter((prev) => {
+      if (
+        prev.location === locParam &&
+        prev.brand === brandParam &&
+        prev.minPrice === minPParam &&
+        prev.maxPrice === maxPParam
+      ) {
+        return prev;
+      }
+      return { location: locParam, brand: brandParam, minPrice: minPParam, maxPrice: maxPParam };
+    });
+    setVehicleType((prev) => (prev === typeParam ? prev : typeParam));
+    setFilterFuel((prev) => (prev === fuelParam ? prev : fuelParam));
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -106,6 +138,19 @@ const VehicleListing = () => {
     };
     fetchVehicles();
   }, []);
+
+  const handleReset = () => {
+    setFilter({
+      location: "",
+      brand: "",
+      minPrice: "",
+      maxPrice: "",
+    });
+    setFilterShow("nearest");
+    setFilterFuel("any");
+    setVehicleType("");
+    setSearchParams(new URLSearchParams(), { replace: true });
+  };
 
   const filtered = vehicles.filter((v) => {
     const searchLocation = normalizeSearchText(filter.location);
@@ -153,7 +198,7 @@ const VehicleListing = () => {
         </h1>
         <p className="modern-subtitle">
           Search verified vehicles around you. Filter by brand, price range and
-          fuel — book in a tap.
+          fuel - book in a tap.
         </p>
       </div>
 
@@ -165,16 +210,7 @@ const VehicleListing = () => {
             </h2>
             <button
               className="reset-btn"
-              onClick={() => {
-                setFilter({
-                  location: "",
-                  brand: "",
-                  minPrice: "",
-                  maxPrice: "",
-                });
-                setFilterShow("nearest");
-                setFilterFuel("any");
-              }}
+              onClick={handleReset}
             >
               Reset
             </button>
@@ -190,8 +226,10 @@ const VehicleListing = () => {
                 className="clear-type-btn"
                 type="button"
                 onClick={() => setVehicleType("")}
+                title="Clear vehicle type filter"
+                aria-label="Clear vehicle type filter"
               >
-                Clear
+                <Trash2 size={16} />
               </button>
             </div>
             <div className="vehicle-type-card-grid">
@@ -472,6 +510,9 @@ const VehicleListing = () => {
                                 LKR{" "}
                                 {selectedVehicle.pricePerDay?.toLocaleString()}
                                 /day
+                                <small style={{ display: "block", fontSize: "0.68rem", fontWeight: 700, color: "#ea580c" }}>
+                                  +LKR {selectedVehicle.pricePerKmAfter100km || 0}/km after 100km
+                                </small>
                               </span>
                               <Link
                                 to={`/vehicle/${selectedVehicle._id}`}
@@ -492,7 +533,7 @@ const VehicleListing = () => {
                 </div>
               )}
             </div>
-            {/* Side list for map view */}
+
             <div className="listing-map-sidebar">
               <div className="map-sidebar-header">
                 <h3>
@@ -526,6 +567,9 @@ const VehicleListing = () => {
                       </span>
                       <span className="map-sidebar-price">
                         LKR {v.pricePerDay?.toLocaleString()}/day
+                        <small style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, color: "#ea580c" }}>
+                          +LKR {v.pricePerKmAfter100km || 0}/km after 100km
+                        </small>
                       </span>
                     </div>
                   </button>
@@ -537,7 +581,7 @@ const VehicleListing = () => {
       </div>
 
       <style>{`
-        /* ========== MAP VIEW STYLES ========== */
+        /* Map View Styles */
         .results-header-actions {
           display: flex;
           align-items: center;
@@ -565,9 +609,7 @@ const VehicleListing = () => {
           transition: all 0.25s ease;
           font-family: inherit;
         }
-        .view-toggle-btn:hover {
-          color: #111827;
-        }
+        .view-toggle-btn:hover { color: #111827; }
         .view-toggle-btn.active-view {
           background: #f97316;
           color: white;
@@ -601,7 +643,7 @@ const VehicleListing = () => {
         /* Info Window */
         .map-info-card {
           width: 240px;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body);
         }
         .map-info-img {
           width: 100%;
@@ -645,9 +687,7 @@ const VehicleListing = () => {
           transition: 0.2s;
           box-shadow: 0 3px 8px rgba(249,115,22,0.3);
         }
-        .map-info-book:hover {
-          background: #ea580c;
-        }
+        .map-info-book:hover { background: #ea580c; }
 
         /* Map Sidebar */
         .listing-map-sidebar {
@@ -757,46 +797,22 @@ const VehicleListing = () => {
           to { opacity: 1; transform: translateY(0); }
         }
 
-        @media (max-width: 900px) {
-          .listing-map-section {
-            grid-template-columns: 1fr;
-            height: auto;
-          }
-          .listing-map-container {
-            height: 400px;
-          }
-          .listing-map-sidebar {
-            max-height: 300px;
-          }
-        }
-
         .listing-page {
           min-height: calc(100vh - 68px);
           padding-bottom: 80px;
-          background: var(--bg);
+          background: var(--bg, #f9fafb);
         }
 
         /* Modern Header */
         .modern-header-section {
-          padding: 4rem 1rem 3rem;
+          padding: 6.5rem 1rem 3rem;
           text-align: center;
           display: flex;
           flex-direction: column;
           align-items: center;
-          background: linear-gradient(180deg, var(--primary-soft) 0%, var(--bg) 100%);
+          background: linear-gradient(180deg, var(--primary-soft, #fff7ed) 0%, var(--bg, #f9fafb) 100%);
           position: relative;
           overflow: hidden;
-        }
-
-        .modern-header-section::before {
-          content: "";
-          position: absolute;
-          width: 500px;
-          height: 500px;
-          background: radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 70%);
-          top: -200px;
-          right: -100px;
-          pointer-events: none;
         }
 
         .vehicle-type-card-section {
@@ -817,7 +833,6 @@ const VehicleListing = () => {
           flex-wrap: wrap;
         }
 
-        .vehicle-type-title-row h2,
         .vehicle-type-title-row h3 {
           margin: 0;
           font-size: 1.35rem;
@@ -832,91 +847,98 @@ const VehicleListing = () => {
         }
 
         .clear-type-btn {
-          border: 1px solid #e5e7eb;
-          background: white;
-          color: #374151;
-          padding: 0.85rem 1.25rem;
+          border: 1.5px solid #fecaca;
+          background: #fef2f2;
+          color: #ef4444;
+          padding: 0.45rem 0.85rem;
           border-radius: 9999px;
           font-weight: 700;
           cursor: pointer;
-          transition: background 0.2s, border-color 0.2s;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          transition: all 0.2s ease;
         }
 
         .clear-type-btn:hover {
-          background: #f8fafc;
-          border-color: #d1d5db;
+          background: #ef4444;
+          color: #ffffff;
+          border-color: #ef4444;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
         }
 
         .vehicle-type-card-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-          gap: 1rem;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1.25rem;
         }
 
         .vehicle-type-card {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 1rem;
-          padding: 1.25rem;
-          border-radius: 24px;
+          justify-content: space-between;
+          padding: 1.25rem 1rem;
+          border-radius: 20px;
           background: #ffffff;
-          border: 1px solid #f1f5f9;
+          border: 1.5px solid #e2e8f0;
           cursor: pointer;
-          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+          transition: all 0.25s ease;
           text-align: center;
+          min-height: 180px;
         }
 
         .vehicle-type-card:hover {
           transform: translateY(-4px);
           border-color: #f97316;
-          box-shadow: 0 18px 36px rgba(249, 115, 22, 0.12);
+          box-shadow: 0 12px 24px rgba(249, 115, 22, 0.15);
         }
 
         .vehicle-type-card.active-type-card {
           border-color: #f97316;
-          box-shadow: 0 20px 36px rgba(249, 115, 22, 0.18);
+          background: #fff7ed;
+          box-shadow: 0 12px 24px rgba(249, 115, 22, 0.18);
         }
 
         .vehicle-type-card-image {
           width: 100%;
-          min-height: 120px;
+          height: 110px;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 1rem;
-          background: #f8fafc;
-          border-radius: 20px;
+          padding: 0.5rem;
+          background: transparent;
         }
 
         .vehicle-type-card-image img {
           width: 100%;
-          max-width: 120px;
-          height: auto;
-          display: block;
+          height: 100%;
+          max-width: 160px;
           object-fit: contain;
+          filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.08));
         }
 
         .vehicle-type-card span {
           color: #111827;
           font-weight: 700;
-          font-size: 0.98rem;
+          font-size: 1rem;
+          margin-top: 0.5rem;
         }
 
         .top-badge {
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
-          background: var(--primary-soft);
+          background: #fff7ed;
           border: 1px solid rgba(249, 115, 22, 0.2);
           padding: 0.4rem 1rem;
           border-radius: 100px;
           font-size: 0.82rem;
           font-weight: 700;
-          color: var(--primary-dark);
+          color: #c2410c;
           margin-bottom: 1.5rem;
-          position: relative;
-          z-index: 1;
         }
 
         .icon-orange-txt { color: #f97316; }
@@ -924,42 +946,35 @@ const VehicleListing = () => {
         .icon-gray-txt { color: #9ca3af; }
 
         .modern-title {
-          font-family: var(--font-display);
           font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 800;
-          color: var(--text);
+          color: #111827;
           line-height: 1.08;
           letter-spacing: -0.03em;
           margin: 0 0 1rem 0;
-          position: relative;
-          z-index: 1;
         }
 
         .text-orange {
-          background: var(--grad-primary);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #f97316;
         }
 
         .modern-subtitle {
           font-size: 1.1rem;
-          color: var(--text-muted);
+          color: #6b7280;
           max-width: 600px;
           line-height: 1.6;
           margin: 0;
-          position: relative;
-          z-index: 1;
         }
 
-        /* Massive 3 Step Search Block */
+        /* 3 Step Search Block */
         .search-card-block {
           background: white;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-xl);
+          border: 1px solid #e5e7eb;
+          border-radius: 1.5rem;
           padding: 2rem;
-          box-shadow: var(--shadow-card);
-          margin-bottom: 4rem;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+          margin-top: 2rem;
+          margin-bottom: 3rem;
         }
 
         .search-card-header {
@@ -974,7 +989,6 @@ const VehicleListing = () => {
           font-weight: 800;
           margin: 0;
           color: #111827;
-          letter-spacing: -0.5px;
         }
 
         .reset-btn {
@@ -994,6 +1008,7 @@ const VehicleListing = () => {
           display: flex;
           gap: 1.5rem;
           align-items: flex-end;
+          margin-top: 1.5rem;
           margin-bottom: 1.5rem;
         }
 
@@ -1005,218 +1020,185 @@ const VehicleListing = () => {
         }
 
         .step-label {
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #374151;
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-weight: 700;
-          font-size: 1rem;
-          color: #111827;
         }
 
         .step-num {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #f3f4f6;
+          color: #6b7280;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          font-size: 0.8rem;
+          font-size: 0.75rem;
+        }
+
+        .step-num.active-num {
           background: #f97316;
           color: white;
-          font-weight: 800;
         }
 
         .step-input-box {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          background: #f8fafc;
-          border: 1px solid transparent;
-          border-radius: 1.25rem;
-          padding: 1rem 1.25rem;
-          transition: 0.2s;
-        }
-        .step-input-box:focus-within {
-          border-color: #f97316;
-          background: #ffffff;
-          box-shadow: 0 4px 15px rgba(249,115,22,0.1);
+          gap: 0.6rem;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 1rem;
+          padding: 0.75rem 1rem;
         }
 
         .step-input-box input {
           border: none;
-          background: none;
-          font-size: 1rem;
-          font-family: inherit;
-          color: #111827;
-          font-weight: 500;
+          background: transparent;
           outline: none;
           width: 100%;
+          font-size: 0.95rem;
+          color: #111827;
         }
-        .step-input-box input::placeholder { color: #9ca3af; font-weight: 400; }
 
         .currency-label {
-          font-weight: 800;
-          color: #10b981;
-          font-size: 0.9rem;
-        }
-
-        .search-action {
-          flex-shrink: 0;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #9ca3af;
         }
 
         .big-search-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
           background: #f97316;
           color: white;
           border: none;
-          padding: 1rem 2rem;
-          border-radius: 1.25rem;
+          border-radius: 1rem;
+          padding: 0.85rem 1.75rem;
           font-weight: 700;
           font-size: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
           cursor: pointer;
-          transition: 0.2s;
-          box-shadow: 0 8px 20px rgba(249,115,22,0.3);
+          transition: background 0.2s;
         }
+
         .big-search-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 25px rgba(249,115,22,0.4);
+          background: #ea580c;
         }
 
         .filter-bottom-row {
           display: flex;
+          justify-content: space-between;
           align-items: center;
-          gap: 2rem;
-          padding-top: 1.5rem;
-          border-top: 1px solid rgba(0,0,0,0.05);
+          padding-top: 1.25rem;
+          border-top: 1px solid #f3f4f6;
+          gap: 1rem;
           flex-wrap: wrap;
         }
 
         .filter-group {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.5rem;
         }
 
         .filter-label {
           font-size: 0.75rem;
           font-weight: 800;
-          color: #6b7280;
-          letter-spacing: 0.5px;
-          margin-right: 0.5rem;
+          color: #9ca3af;
+          letter-spacing: 0.05em;
+          margin-right: 0.25rem;
         }
 
         .filter-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.4rem;
-          background: #ffffff;
-          border: 1px solid rgba(0,0,0,0.06);
-          padding: 0.5rem 1rem;
+          border: 1px solid #e5e7eb;
+          background: white;
+          padding: 0.4rem 0.85rem;
           border-radius: 100px;
-          font-size: 0.85rem;
+          font-size: 0.82rem;
           font-weight: 600;
           color: #4b5563;
           cursor: pointer;
-          transition: 0.2s;
-          font-family: inherit;
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
         }
 
-        .filter-pill:hover { background: #f9fafb; color: #111827; }
-
-        .active-mode {
-          background: #f97316;
+        .filter-pill.active-mode,
+        .filter-pill.active-fuel {
+          background: #111827;
           color: white;
-          border-color: #f97316;
-        }
-        .active-mode:hover { background: #ea580c; color: white; }
-
-        .active-fuel {
-          background: #fff7ed;
-          color: #f97316;
-          border-color: rgba(249,115,22,0.2);
+          border-color: #111827;
         }
 
         .match-count-pill {
-          margin-left: auto;
-          display: inline-flex;
+          display: flex;
           align-items: center;
-          gap: 0.5rem;
-          background: #fff7ed;
-          color: #111827;
-          font-weight: 700;
+          gap: 0.4rem;
           font-size: 0.85rem;
-          padding: 0.5rem 1rem;
-          border-radius: 100px;
+          font-weight: 700;
+          color: #374151;
         }
 
-        /* Results Display */
         .results-header-modern {
           display: flex;
           justify-content: space-between;
-          align-items: flex-end;
+          align-items: center;
           margin-bottom: 2rem;
         }
 
         .results-titles h2 {
-          font-size: 2rem;
+          font-size: 1.75rem;
           font-weight: 800;
-          color: #111827;
-          margin: 0 0 0.25rem 0;
-          letter-spacing: -0.5px;
-        }
-        .results-titles p {
-          color: #6b7280;
           margin: 0;
-          font-size: 1rem;
-          font-weight: 500;
+          color: #111827;
         }
 
-        .view-all-btn {
-          background: none;
-          border: none;
-          color: #f97316;
-          font-weight: 700;
-          font-size: 1rem;
-          cursor: pointer;
-          transition: 0.2s;
+        .results-titles p {
+          margin: 0.25rem 0 0;
+          color: #6b7280;
+          font-size: 0.9rem;
         }
-        .view-all-btn:hover { color: #ea580c; transform: translateX(2px); }
 
         .vehicle-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
           gap: 1.5rem;
         }
 
         .loading-state, .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 1rem;
-          padding: 8rem 0;
+          text-align: center;
+          padding: 4rem 1rem;
           color: #6b7280;
         }
-        .empty-state span { font-size: 4rem; }
-        .empty-state h3 { color: #111827; margin: 0; font-weight: 800; font-size: 1.75rem; }
-        .spinner {
-          width: 40px;
-          height: 40px;
-          border: 4px solid rgba(0, 0, 0, 0.05);
-          border-top-color: #f97316;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
 
         @media (max-width: 900px) {
-          .search-steps-row { flex-direction: column; align-items: stretch; }
-          .search-step { width: 100%; }
-          .filter-bottom-row { gap: 1rem; }
-          .hide-mobile { display: none; }
-          .match-count-pill { margin-left: 0; width: 100%; justify-content: center; }
+          .search-steps-row {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .listing-map-section {
+            grid-template-columns: 1fr;
+            height: auto;
+          }
+          .listing-map-container {
+            height: 400px;
+          }
+          .listing-map-sidebar {
+            max-height: 300px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .vehicle-type-card-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .hide-mobile {
+            display: none;
+          }
         }
       `}</style>
     </div>

@@ -6,22 +6,32 @@ import logo from "../assets/images/logo.png";
 const socialIcons = [
   {
     label: "Facebook",
+    url: "https://www.facebook.com/share/1Bb9AkvaZz/",
     path: "M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z",
   },
   {
-    label: "Twitter",
-    path: "M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z",
+    label: "TikTok",
+    url: "https://www.tiktok.com/@yamucarrentals?_r=1&_t=ZS-98SNnP8jRBp",
+    path: "M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5",
   },
   {
     label: "Instagram",
+    url: "#",
     path: "M7.8 2h8.4A5.8 5.8 0 0 1 22 7.8v8.4A5.8 5.8 0 0 1 16.2 22H7.8A5.8 5.8 0 0 1 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8A3.6 3.6 0 0 0 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6A3.6 3.6 0 0 0 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8 1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5",
   },
   {
+    label: "Twitter",
+    url: "#",
+    path: "M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z",
+  },
+  {
     label: "LinkedIn",
+    url: "#",
     path: "M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6M2 9h4v12H2z M4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4",
   },
   {
     label: "YouTube",
+    url: "#",
     path: "M22.54 6.42a2.78 2.78 0 0 0-1.95-2C18.88 4 12 4 12 4s-6.88 0-8.59.42a2.78 2.78 0 0 0-1.95 2 29 29 0 0 0-.42 5.58 29 29 0 0 0 .42 5.58 2.78 2.78 0 0 0 1.95 2C5.12 20 12 20 12 20s6.88 0 8.59-.42a2.78 2.78 0 0 0 1.95-2 29 29 0 0 0 .42-5.58 29 29 0 0 0-.42-5.58",
   },
 ];
@@ -42,7 +52,7 @@ const Footer = () => {
             <Link to="/vehicles" className="footer-cta-btn primary">
               Browse Vehicles <ArrowUpRight size={18} />
             </Link>
-            <Link to="/list-my-car" className="footer-cta-btn outline">
+            <Link to="/choose-listing-type" className="footer-cta-btn outline">
               List Your Car
             </Link>
           </div>
@@ -53,9 +63,10 @@ const Footer = () => {
         <div className="container footer-grid">
           <div className="footer-brand">
             <Link to="/" className="footer-logo">
-              <img src={logo} alt="CarRents.lk" className="footer-logo-img" />
+              <img src={logo} alt="Yamu Car Rentals" className="footer-logo-img" />
               <span>
-                CarRents<span className="dot-lk">.lk</span>
+                <span className="brand-yamu">Yamu</span>
+                <span className="brand-orange">&nbsp;Car Rentals</span>
               </span>
             </Link>
             <p className="footer-tagline">
@@ -66,7 +77,9 @@ const Footer = () => {
               {socialIcons.map((icon) => (
                 <a
                   key={icon.label}
-                  href="#"
+                  href={icon.url || "#"}
+                  target={icon.url && icon.url !== "#" ? "_blank" : undefined}
+                  rel={icon.url && icon.url !== "#" ? "noopener noreferrer" : undefined}
                   className="social-link"
                   aria-label={icon.label}
                 >
@@ -97,15 +110,15 @@ const Footer = () => {
 
           <div className="footer-col">
             <h4>Host</h4>
-            <Link to="/list-my-car">List Your Vehicle</Link>
-            <Link to="/select-role">Become a Host</Link>
+            <Link to="/choose-listing-type">List Your Vehicle</Link>
+            <Link to="/register?role=owner">Become a Host</Link>
             <Link to="/company-dashboard">Company Dashboard</Link>
             <Link to="/why-us">Host Benefits</Link>
           </div>
 
           <div className="footer-col">
             <h4>Company</h4>
-            <Link to="/why-us">Why CarRents.lk</Link>
+            <Link to="/why-us">Why Yamu Car Rentals</Link>
             <Link to="/#how-it-works">How It Works</Link>
             <Link to="/companies">Partners</Link>
             <Link to="/login">Sign In</Link>
@@ -116,8 +129,8 @@ const Footer = () => {
             <a href="tel:+94112345678">
               <Phone size={14} /> +94 11 234 5678
             </a>
-            <a href="mailto:hello@carrents.lk">
-              <Mail size={14} /> hello@carrents.lk
+            <a href="mailto:hello@yamucarrentals.com">
+              <Mail size={14} /> hello@yamucarrentals.com
             </a>
             <span>
               <MapPin size={14} /> Colombo, Sri Lanka
@@ -129,7 +142,7 @@ const Footer = () => {
       <div className="footer-bottom">
         <div className="container footer-bottom-inner">
           <p>
-            &copy; {new Date().getFullYear()} CarRents.lk. All rights reserved.
+            &copy; {new Date().getFullYear()} Yamu Car Rentals. All rights reserved.
           </p>
           <div className="footer-legal">
             <a href="#">Privacy Policy</a>

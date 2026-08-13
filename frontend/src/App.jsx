@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useLayoutEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -13,20 +13,26 @@ import ListVehicle from "./pages/ListVehicle";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import SelectRole from "./pages/SelectRole";
 import Profile from "./pages/Profile";
 import WhyUs from "./pages/WhyUs";
 import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
 import CompanyDashboard from "./pages/CompanyDashboard";
 
+import AdminDashboard from "./pages/AdminDashboard";
+
+import ChooseListingType from "./pages/ChooseListingType";
+import ModeSwitcher from "./components/ModeSwitcher";
+import MobileBottomNav from "./components/MobileBottomNav";
+
 function AppContent() {
   const location = useLocation();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const targetId = location.hash.replace("#", "");
 
     if (!targetId) {
+      window.scrollTo(0, 0);
       return;
     }
 
@@ -101,19 +107,6 @@ function AppContent() {
           display: flex;
           flex-direction: column;
           background: var(--bg);
-          transition: padding-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Add padding when sidebar is active - using body class */
-        body.has-sidebar-nav .app-container {
-          padding-left: 108px;
-        }
-
-        /* On mobile, remove padding */
-        @media (max-width: 1024px) {
-          body.has-sidebar-nav .app-container {
-            padding-left: 0;
-          }
         }
 
         .global-bg-overlay {
@@ -181,7 +174,6 @@ function AppContent() {
           <Route path="/vehicle/:id" element={<VehicleDetail />} />
           <Route path="/list-my-car" element={<ListVehicle />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/select-role" element={<SelectRole />} />
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/why-us" element={<WhyUs />} />
@@ -189,6 +181,10 @@ function AppContent() {
           <Route path="/companies" element={<Companies />} />
           <Route path="/companies/:id" element={<CompanyDetail />} />
           <Route path="/company-dashboard" element={<CompanyDashboard />} />
+          <Route path="/company-list-vehicle" element={<ListVehicle />} />
+          <Route path="/choose-listing-type" element={<ChooseListingType />} />
+          <Route path="/select-role" element={<ChooseListingType />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
       </main>
     </div>
