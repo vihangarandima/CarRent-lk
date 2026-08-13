@@ -117,7 +117,7 @@ export default function CompanyDashboard() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    navigate("/login");
+    navigate("/");
   };
 
   const totalRevenue = revenueData.reduce((s, r) => s + r.revenue, 0);

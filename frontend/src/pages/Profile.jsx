@@ -79,8 +79,22 @@ const Profile = () => {
 
   const initial = user?.name?.[0]?.toUpperCase() || "S";
   const firstName = user?.name?.split(" ")[0] || "User";
+  const isRenter = user?.role === "renter";
 
-  const stats = [
+  const stats = isRenter ? [
+    {
+      icon: <Calendar size={20} />,
+      label: "My Trips",
+      value: "5",
+      colorClass: "icon-blue",
+    },
+    {
+      icon: <Star size={20} />,
+      label: "Reviews Given",
+      value: "3",
+      colorClass: "icon-orange",
+    }
+  ] : [
     {
       icon: <Car size={20} />,
       label: "My Listings",
@@ -124,7 +138,11 @@ const Profile = () => {
     },
   ];
 
-  const tabs = [
+  const tabs = isRenter ? [
+    { id: "overview", label: "Overview", icon: <Grid size={16} /> },
+    { id: "bookings", label: "My Trips", icon: <Calendar size={16} /> },
+    { id: "settings", label: "Settings", icon: <SettingsIcon size={16} /> },
+  ] : [
     { id: "overview", label: "Overview", icon: <Grid size={16} /> },
     { id: "listings", label: "My Cars", icon: <Car size={16} /> },
     { id: "bookings", label: "Bookings", icon: <Calendar size={16} /> },
@@ -198,12 +216,18 @@ const Profile = () => {
                   <div className="overview-card welcome-card">
                     <Bell size={20} className="welcome-bell" />
                     <h2>Welcome back, {firstName}!</h2>
-                    <p>
-                      Your Toyota Aqua was viewed <strong>45 times</strong> this
-                      week — your best week yet.
-                    </p>
+                    {isRenter ? (
+                      <p>
+                        You have an upcoming trip to Nuwara Eliya next week!
+                      </p>
+                    ) : (
+                      <p>
+                        Your Toyota Aqua was viewed <strong>45 times</strong> this
+                        week — your best week yet.
+                      </p>
+                    )}
                     <button className="view-insights-btn">
-                      View insights <ChevronRight size={16} />
+                      {isRenter ? 'View trip details' : 'View insights'} <ChevronRight size={16} />
                     </button>
                   </div>
 
@@ -212,14 +236,27 @@ const Profile = () => {
                     <div className="add-icon-wrapper">
                       <Plus size={20} className="icon-purple" />
                     </div>
-                    <h3>Add New Vehicle</h3>
-                    <p>List another car and earn more every month.</p>
-                    <Link to="/list-my-car" className="cta-link">
-                      Get started <ChevronRight size={16} />
-                    </Link>
+                    {isRenter ? (
+                      <>
+                        <h3>Become a Host</h3>
+                        <p>List your car and start earning passive income.</p>
+                        <Link to="/choose-listing-type" className="cta-link">
+                          Get started <ChevronRight size={16} />
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <h3>Add New Vehicle</h3>
+                        <p>List another car and earn more every month.</p>
+                        <Link to="/list-my-car" className="cta-link">
+                          Get started <ChevronRight size={16} />
+                        </Link>
+                      </>
+                    )}
                   </div>
                 </div>
 
+                {!isRenter && (
                 <div className="masonry-row">
                   {/* Annual Earnings Block */}
                   <div className="overview-card annual-earnings-card">
@@ -254,6 +291,7 @@ const Profile = () => {
                     </Link>
                   </div>
                 </div>
+                )}
               </div>
             </div>
           )}

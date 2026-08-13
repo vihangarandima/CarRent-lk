@@ -4,7 +4,7 @@ import { API_URL } from "../config";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { CheckCircle2, ChevronRight, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon } from "lucide-react";
+import { CheckCircle2, ChevronRight, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight } from "lucide-react";
 
 // Vehicle Type Images
 import bikeeImg from "../assets/images/bikee.jpg";
@@ -24,42 +24,42 @@ const mapContainerStyle = {
 };
 
 const vehicleCategories = [
-  { 
-    id: "bicycle", title: "Bicycle", img: bikeeImg, 
+  {
+    id: "bicycle", title: "Bicycle", img: bikeeImg,
     desc: "Perfect for short commutes and exploring the city.",
     examples: "Mountain bikes, city bikes, electric bikes."
   },
-  { 
+  {
     id: "threewheeler", title: "Three-wheeler", img: threewheelerImg,
     desc: "The classic Tuk-Tuk. Ideal for quick trips and traffic.",
     examples: "Bajaj RE, Piaggio Ape."
   },
-  { 
+  {
     id: "mini-car", title: "Mini Car", img: miniCarImg,
     desc: "Compact and fuel-efficient. Great for solo travelers.",
     examples: "Suzuki Alto, Maruti 800, Hyundai Eon."
   },
-  { 
+  {
     id: "car", title: "Car", img: carImg,
     desc: "Comfortable and spacious for families or business trips.",
     examples: "Toyota Prius, Honda Civic, Nissan Sunny."
   },
-  { 
+  {
     id: "premium-car", title: "Premium Car", img: premiumCarImg,
     desc: "Luxury and performance for special occasions.",
     examples: "Mercedes Benz E-Class, BMW 5 Series, Audi A6."
   },
-  { 
+  {
     id: "mini-van", title: "Mini Van", img: miniVanImg,
     desc: "Extra space for luggage or small groups.",
     examples: "Toyota Noah, Suzuki Every, Honda Stepwgn."
   },
-  { 
+  {
     id: "van", title: "Van", img: vanImg,
     desc: "Perfect for large groups, tours, or transporting goods.",
     examples: "Toyota Hiace, Nissan Caravan."
   },
-  { 
+  {
     id: "others", title: "Others", img: othersCarImg,
     desc: "Any other unique or specialized vehicles.",
     examples: "Trucks, Motorhomes, ATVs."
@@ -117,6 +117,7 @@ const vehicleDatabase = {
 
 const ListVehicle = () => {
   const [step, setStep] = useState(1);
+  const [listerType, setListerType] = useState('personal');
   const [formData, setFormData] = useState({
     brand: "",
     model: "",
@@ -132,7 +133,7 @@ const ListVehicle = () => {
     lat: 6.9271,
     lng: 79.8612,
   });
-  
+
   // Custom inputs for "Other" selections
   const [customBrand, setCustomBrand] = useState("");
   const [customModel, setCustomModel] = useState("");
@@ -148,7 +149,7 @@ const ListVehicle = () => {
     e.preventDefault();
     setStep(step + 1);
   };
-  
+
   const prevStep = (e) => {
     e.preventDefault();
     setStep(step - 1);
@@ -159,8 +160,8 @@ const ListVehicle = () => {
   };
 
   const handleVehicleTypeSelect = (catId) => {
-    setFormData({ 
-      ...formData, 
+    setFormData({
+      ...formData,
       vehicleType: catId,
       brand: "", // Reset brand and model when category changes
       model: ""
@@ -210,7 +211,7 @@ const ListVehicle = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return alert("Please login first.");
-      
+
       if (!startDate || !endDate) return alert("Please select availability dates.");
 
       // Use custom brand/model if "Other" is selected
@@ -238,16 +239,17 @@ const ListVehicle = () => {
   };
 
   const selectedCategory = vehicleCategories.find(c => c.id === formData.vehicleType);
-  const availableBrands = formData.vehicleType && vehicleDatabase[formData.vehicleType] 
-    ? Object.keys(vehicleDatabase[formData.vehicleType]) 
+  const availableBrands = formData.vehicleType && vehicleDatabase[formData.vehicleType]
+    ? Object.keys(vehicleDatabase[formData.vehicleType])
     : [];
-  const availableModels = formData.brand && formData.vehicleType && vehicleDatabase[formData.vehicleType]?.[formData.brand] 
-    ? vehicleDatabase[formData.vehicleType][formData.brand] 
+  const availableModels = formData.brand && formData.vehicleType && vehicleDatabase[formData.vehicleType]?.[formData.brand]
+    ? vehicleDatabase[formData.vehicleType][formData.brand]
     : [];
 
   return (
-    <div className="lv-page">
-      <div className="lv-hero">
+    <>
+      <div className="lv-page">
+        <div className="lv-hero">
         <div className="lv-badge">
           <Sparkles size={14} className="text-orange" />
           <span>Next-Level Hosting</span>
@@ -259,7 +261,7 @@ const ListVehicle = () => {
       </div>
 
       <div className="lv-container">
-        
+
         {/* Left Column: Form */}
         <div className="lv-left-col">
           <div className="stepper">
@@ -277,13 +279,13 @@ const ListVehicle = () => {
               <form onSubmit={nextStep} className="form-step slide-in">
                 <h2>Vehicle Information</h2>
                 <p className="step-desc">Select the type of vehicle and provide basic details.</p>
-                
+
                 <div className="form-group mb-4">
                   <label>Vehicle Type *</label>
                   <div className="vehicle-type-grid">
                     {vehicleCategories.map(cat => (
-                      <div 
-                        key={cat.id} 
+                      <div
+                        key={cat.id}
                         className={`type-card ${formData.vehicleType === cat.id ? "selected" : ""}`}
                         onClick={() => handleVehicleTypeSelect(cat.id)}
                       >
@@ -309,7 +311,7 @@ const ListVehicle = () => {
                       <input type="text" className="mt-2" value={customBrand} onChange={(e) => setCustomBrand(e.target.value)} required placeholder="Type your brand..." />
                     )}
                   </div>
-                  
+
                   <div className="form-group">
                     <label>Model *</label>
                     {availableBrands.length > 0 && formData.brand && formData.brand !== "Other" && availableModels.length > 0 ? (
@@ -325,7 +327,7 @@ const ListVehicle = () => {
                       <input type="text" className="mt-2" value={customModel} onChange={(e) => setCustomModel(e.target.value)} required placeholder="Type your model..." />
                     )}
                   </div>
-                  
+
                   <div className="form-group">
                     <label>Year *</label>
                     <input type="number" name="year" value={formData.year} onChange={handleChange} required placeholder="2020" min="1950" max="2026" />
@@ -373,7 +375,7 @@ const ListVehicle = () => {
               <form onSubmit={nextStep} className="form-step slide-in">
                 <h2>Pricing & Availability</h2>
                 <p className="step-desc">Set your rates and when the vehicle is available.</p>
-                
+
                 <div className="form-row mb-4">
                   <div className="form-group flex-1">
                     <label>Price Per Day (LKR) *</label>
@@ -419,7 +421,7 @@ const ListVehicle = () => {
               <form onSubmit={nextStep} className="form-step slide-in">
                 <h2>Vehicle Photos</h2>
                 <p className="step-desc">Upload exactly 5 high-quality photos.</p>
-                
+
                 <div className="photo-grid">
                   {[0, 1, 2, 3, 4].map((i) => (
                     <div key={i} className="photo-upload-box">
@@ -450,7 +452,7 @@ const ListVehicle = () => {
               <form onSubmit={handleSubmit} className="form-step slide-in">
                 <h2>Pickup Location</h2>
                 <p className="step-desc">Pinpoint where the vehicle is located.</p>
-                
+
                 <div className="form-group">
                   <label>Search Address or Click on Map</label>
                   <div className="input-with-prefix">
@@ -486,7 +488,7 @@ const ListVehicle = () => {
         {/* Right Column: Dynamic Info Panel */}
         <div className="lv-right-col">
           <div className="info-panel slide-in-right">
-            
+
             {step === 1 && (
               <>
                 {selectedCategory ? (
@@ -554,6 +556,205 @@ const ListVehicle = () => {
       </div>
 
       <style>{`
+        /* Centered Lister Type Modal */
+        .lt-wrapper {
+          min-height: calc(100vh - 80px); /* Adjust for navbar */
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          background-color: #fafafa;
+          padding: 2rem;
+          font-family: var(--font-body), sans-serif;
+        }
+        
+        .lt-card-container {
+          background: #ffffff;
+          border-radius: 1.5rem;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+          padding: 3rem;
+          max-width: 650px;
+          width: 100%;
+          text-align: center;
+          position: relative;
+        }
+
+        .lt-badge-step {
+          display: inline-block;
+          color: #ea580c;
+          background: #fff7ed;
+          padding: 0.35rem 1rem;
+          border-radius: 100px;
+          font-weight: 700;
+          font-size: 0.85rem;
+          margin-bottom: 1rem;
+        }
+
+        .lt-card-container h1 {
+          font-size: 2rem;
+          font-weight: 800;
+          margin: 0 0 0.5rem;
+          color: #0f172a;
+        }
+
+        .lt-subtitle {
+          color: #64748b;
+          font-size: 1rem;
+          margin: 0 0 2.5rem;
+        }
+
+        .lt-cards {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          margin-bottom: 2.5rem;
+        }
+
+        .lt-card {
+          background: #ffffff;
+          border: 2px solid #e2e8f0;
+          border-radius: 1.25rem;
+          padding: 1.5rem;
+          text-align: left;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .lt-card:hover {
+          border-color: #cbd5e1;
+        }
+
+        .lt-card.active {
+          border-color: #10b981;
+          box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
+        }
+
+        .lt-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 1rem;
+        }
+
+        .lt-icon-wrap {
+          width: 48px;
+          height: 48px;
+          border-radius: 0.75rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .lt-icon-wrap.green {
+          background: #ecfdf5;
+          color: #10b981;
+        }
+
+        .lt-icon-wrap.blue {
+          background: #eff6ff;
+          color: #3b82f6;
+        }
+
+        .lt-status.active {
+          background: #10b981;
+          color: white;
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.25rem 0.6rem;
+          border-radius: 100px;
+          font-size: 0.7rem;
+          font-weight: 700;
+        }
+
+        .lt-status.inactive {
+          width: 20px;
+          height: 20px;
+          border: 2px solid #cbd5e1;
+          border-radius: 50%;
+        }
+
+        .lt-card h3 {
+          font-size: 1.15rem;
+          font-weight: 800;
+          margin: 0 0 0.25rem;
+          color: #0f172a;
+        }
+
+        .lt-card h4 {
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin: 0 0 0.75rem;
+        }
+
+        .lt-card p {
+          color: #64748b;
+          font-size: 0.85rem;
+          line-height: 1.4;
+          margin: 0;
+        }
+
+        .lt-actions {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 1.5rem;
+          border-top: 1px solid #f1f5f9;
+        }
+
+        .lt-btn-back {
+          background: #f1f5f9;
+          color: #475569;
+          border: none;
+          padding: 0.75rem 1.25rem;
+          border-radius: 100px;
+          font-weight: 700;
+          font-size: 0.9rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .lt-btn-back:hover {
+          background: #e2e8f0;
+          color: #0f172a;
+        }
+
+        .lt-btn-next {
+          background: #ea580c;
+          color: white;
+          border: none;
+          padding: 0.75rem 1.25rem;
+          border-radius: 100px;
+          font-weight: 700;
+          font-size: 0.9rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .lt-btn-next:hover {
+          background: #c2410c;
+        }
+
+        .lt-footer-link {
+          margin-top: 2rem;
+          font-size: 0.9rem;
+          color: #64748b;
+        }
+
+        .lt-footer-link a {
+          color: #ea580c;
+          font-weight: 700;
+          text-decoration: none;
+        }
+
         .lv-page {
           background: #f1f5f9;
           min-height: 100vh;
@@ -1004,11 +1205,18 @@ const ListVehicle = () => {
             grid-template-columns: 1fr;
           }
           .lv-right-col {
-            display: none; /* Hide on smaller screens */
+            display: none;
+          }
+          .lt-cards {
+            grid-template-columns: 1fr;
+          }
+          .lt-card-container {
+            padding: 2rem 1.5rem;
           }
         }
       `}</style>
-    </div>
+        </div>
+    </>
   );
 };
 

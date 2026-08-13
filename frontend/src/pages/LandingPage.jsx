@@ -125,6 +125,14 @@ const LandingPage = () => {
   const [featuredCars, setFeaturedCars] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const listTarget =
+    user?.role === "company"
+      ? "/company-list-vehicle"
+      : user?.role === "owner"
+      ? "/list-my-car"
+      : "/choose-listing-type";
+
   useEffect(() => {
     const fetchCars = async () => {
       try {
@@ -176,7 +184,7 @@ const LandingPage = () => {
                 <Car size={40} />
                 <h3>No vehicles yet</h3>
                 <p>Be the first to list your car!</p>
-                <Link to="/list-my-car" className="btn btn-primary">
+                <Link to={listTarget} className="btn btn-primary">
                   List Your Vehicle
                 </Link>
               </div>
