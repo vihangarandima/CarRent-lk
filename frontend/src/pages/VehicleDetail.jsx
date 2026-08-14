@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { MapPin, Star, Check, CheckCircle2, Send, Navigation } from "lucide-react";
+import { MapPin, Star, Check, CheckCircle2, MessageSquare, Navigation } from "lucide-react";
 import axios from "axios";
 import { API_URL } from "../config";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { addDays, subDays } from "date-fns";
+import ReviewSection from "../components/ReviewSection";
 
 const detailMapContainerStyle = {
   width: "100%",
@@ -13,10 +17,21 @@ const detailMapContainerStyle = {
 
 const VehicleDetail = () => {
   const { id } = useParams();
-  const [bidPrice, setBidPrice] = useState("");
-  const [message, setMessage] = useState("");
+  
+  // Booking State
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [startDate, endDate] = dateRange;
+  
+  // Dummy booked dates (e.g. today + 2, today + 3) to show the feature
+  const bookedDates = [
+    addDays(new Date(), 2),
+    addDays(new Date(), 3),
+    addDays(new Date(), 7),
+  ];
+
   const [sent, setSent] = useState(false);
   const [vehicle, setVehicle] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const { isLoaded } = useJsApiLoader({
@@ -24,23 +39,36 @@ const VehicleDetail = () => {
   });
 
   useEffect(() => {
-    const fetchVehicle = async () => {
+    const fetchVehicleData = async () => {
       try {
-        const res = await axios.get(`${API_URL}/api/vehicles/${id}`);
-        setVehicle(res.data);
+        const [vehicleRes, reviewsRes] = await Promise.all([
+          axios.get(`${API_URL}/api/vehicles/${id}`),
+          axios.get(`${API_URL}/api/vehicles/${id}/reviews`)
+        ]);
+        setVehicle(vehicleRes.data);
+        setReviews(reviewsRes.data);
       } catch (err) {
-        console.error("Error fetching vehicle:", err);
+        console.error("Error fetching vehicle data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchVehicle();
+    fetchVehicleData();
   }, [id]);
 
-  const handleSend = (e) => {
+  const handleReviewAdded = (newReview) => {
+    setReviews([newReview, ...reviews]);
+  };
+
+  const avgRating = reviews.length > 0 
+    ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
+    : "5.0";
+  const numReviews = reviews.length;
+
+  const handleContact = (e) => {
     e.preventDefault();
-    if (!bidPrice) {
-      alert("Please enter your offer amount");
+    if (!startDate || !endDate) {
+      alert("Please select your required booking dates on the calendar first.");
       return;
     }
     setSent(true);
@@ -122,15 +150,15 @@ const VehicleDetail = () => {
                       display: "inline-block",
                     }}
                   />
-                  {vehicle.rating}
+                  {avgRating}
                 </span>
-                <small>{vehicle.trips} trips</small>
+                <small>{numReviews} reviews</small>
               </div>
             </div>
 
             <div className="about-section">
               <h3>About This Car</h3>
-              <p>{vehicle.description}</p>
+              <p>{vehicle.description || "No description provided for this vehicle."}</p>
             </div>
 
             <div className="features-section">
@@ -192,17 +220,23 @@ const VehicleDetail = () => {
                       />
                     </GoogleMap>
                   ) : (
-                    <div className="detail-map-loading">
-                      <div className="spinner" />
-                      <span>Loading Map...</span>
+                    <div className="map-loading-placeholder">
+                      <Navigation size={24} color="#9ca3af" />
+                      <p>Loading Map...</p>
                     </div>
                   )}
                 </div>
               </div>
             )}
+
+            <ReviewSection 
+              vehicleId={vehicle._id} 
+              reviews={reviews} 
+              onReviewAdded={handleReviewAdded} 
+            />
           </div>
 
-          {/* Right: Bid Sidebar */}
+          {/* Right: Booking Sidebar */}
           <aside className="bid-panel">
             <div className="bid-card">
               <div className="price-row">
@@ -211,11 +245,12 @@ const VehicleDetail = () => {
                 </span>
                 <span className="per-day">/ day</span>
               </div>
+              
               <div className="owner-row">
                 <div className="owner-avatar">{vehicle.owner?.name?.[0] || "U"}</div>
                 <div>
                   <strong>{vehicle.owner?.name || "Vehicle Owner"}</strong>
-                  <p>Vehicle Owner</p>
+                  <p>Verified Partner</p>
                 </div>
               </div>
               <hr className="divider" />
@@ -223,45 +258,43 @@ const VehicleDetail = () => {
               {sent ? (
                 <div className="sent-msg">
                   <CheckCircle2 size={44} className="sent-check-icon" />
-                  <h3>Offer Sent!</h3>
-                  <p>The owner will contact you soon.</p>
+                  <h3>Request Sent!</h3>
+                  <p>The owner has received your booking inquiry and will contact you soon.</p>
                 </div>
               ) : (
-                <form onSubmit={handleSend} className="bid-form">
-                  <h3>Make an Offer</h3>
-                  <p>Negotiate the price with the owner</p>
-                  <div className="field">
-                    <label>Your Offer (LKR / day)</label>
-                    <input
-                      type="number"
-                      placeholder={`e.g. ${vehicle.pricePerDay - 1000}`}
-                      value={bidPrice}
-                      onChange={(e) => setBidPrice(e.target.value)}
+                <div className="booking-form">
+                  <h3>Check Availability</h3>
+                  <p>Select your required dates below. Gray dates are already booked.</p>
+                  
+                  <div className="calendar-wrapper">
+                    <DatePicker
+                      selected={startDate}
+                      onChange={(update) => setDateRange(update)}
+                      startDate={startDate}
+                      endDate={endDate}
+                      selectsRange
+                      inline
+                      minDate={new Date()}
+                      excludeDates={bookedDates}
                     />
                   </div>
-                  <div className="field">
-                    <label>Message (optional)</label>
-                    <textarea
-                      placeholder="Hi, I'd like to rent your car for..."
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
+
                   <button
                     className="btn-primary"
-                    type="submit"
+                    onClick={handleContact}
                     style={{
+                      width: "100%",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "8px",
+                      marginTop: "1rem"
                     }}
                   >
-                    <span>Send Offer</span>
-                    <Send size={16} />
+                    <MessageSquare size={18} />
+                    <span>Contact Owner</span>
                   </button>
-                </form>
+                </div>
               )}
             </div>
           </aside>
@@ -270,17 +303,10 @@ const VehicleDetail = () => {
 
       <style>{`
         .detail-wrap {
-          padding: 2rem 0 6rem;          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
-                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
-          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
-          background-attachment: fixed;
+          padding: 120px 0 6rem;          
+          background: #f8fafc;
           transition: background-color 0.3s ease;
         }
-        .detail-wrap:hover {
-          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
-                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
-          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
-          background-attachment: fixed;        }
         .breadcrumb {
           margin-bottom: 1.5rem;
         }
@@ -290,10 +316,10 @@ const VehicleDetail = () => {
           font-size: 0.9rem;
           transition: color 0.2s;
         }
-        .breadcrumb a:hover { color: white; }
+        .breadcrumb a:hover { color: #0f172a; }
         .detail-grid {
           display: grid;
-          grid-template-columns: 1fr 360px;
+          grid-template-columns: 1fr 380px;
           gap: 2.5rem;
           align-items: start;
         }
@@ -342,21 +368,23 @@ const VehicleDetail = () => {
           flex-direction: column;
           align-items: center;
           gap: 0.25rem;
-          background: rgba(255,255,255,0.05);
+          background: #ffffff;
           border: 1px solid var(--border);
           border-radius: 0.75rem;
           padding: 0.75rem 1rem;
           text-align: center;
           flex-shrink: 0;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
         .vehicle-rating span { font-weight: 800; font-size: 1.1rem; }
         .vehicle-rating small { color: var(--text-muted); font-size: 0.8rem; }
         .about-section, .features-section {
           margin-bottom: 2rem;
-          background: rgba(255,255,255,0.03);
+          background: #ffffff;
           border: 1px solid var(--border);
           border-radius: 1rem;
           padding: 1.5rem;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
         .about-section h3, .features-section h3 {
           margin-bottom: 0.75rem;
@@ -385,14 +413,15 @@ const VehicleDetail = () => {
           color: var(--accent);
           margin-bottom: 0.5rem;
         }
+        
         /* Bid Panel */
         .bid-panel { position: sticky; top: 88px; }
         .bid-card {
-          background: rgba(255,255,255,0.05);
+          background: #ffffff;
           border: 1px solid var(--border);
           border-radius: 1.25rem;
           padding: 1.75rem;
-          backdrop-filter: blur(20px);
+          box-shadow: 0 10px 25px rgba(0,0,0,0.05);
         }
         .price-row {
           display: flex;
@@ -403,7 +432,7 @@ const VehicleDetail = () => {
         .price {
           font-size: 2rem;
           font-weight: 900;
-          color: white;
+          color: #0f172a;
           letter-spacing: -1px;
         }
         .per-day { color: var(--text-muted); font-weight: 500; }
@@ -426,28 +455,88 @@ const VehicleDetail = () => {
           color: white;
           flex-shrink: 0;
         }
-        .owner-row strong { display: block; color: white; font-size: 0.95rem; }
+        .owner-row strong { display: block; color: #0f172a; font-size: 0.95rem; }
         .owner-row p { color: var(--text-muted); font-size: 0.8rem; margin: 0; }
-        .bid-form h3 { margin-bottom: 0.3rem; font-size: 1.1rem; }
-        .bid-form > p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; }
-        .bid-form { display: flex; flex-direction: column; gap: 1rem; }
-        .bid-form textarea {
-          background: rgba(255,255,255,0.04);
-          border: 1.5px solid var(--border);
-          padding: 0.85rem 1rem;
-          border-radius: 0.5rem;
-          color: var(--text);
-          font-family: inherit;
-          font-size: 0.95rem;
-          outline: none;
-          resize: vertical;
+        .divider { margin: 1.5rem 0; border: none; border-top: 1px solid var(--border); }
+        
+        /* Booking Form */
+        .booking-form h3 { margin-bottom: 0.3rem; font-size: 1.1rem; }
+        .booking-form > p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; line-height: 1.5; }
+        .booking-form { display: flex; flex-direction: column; }
+        
+        /* Custom react-datepicker styling for premium look */
+        .calendar-wrapper {
+          display: flex;
+          justify-content: center;
           width: 100%;
+        }
+        .react-datepicker {
+          border: 1px solid var(--border) !important;
+          border-radius: 12px !important;
+          font-family: inherit !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+          padding: 0.5rem !important;
+          width: 100%;
+        }
+        .react-datepicker__month-container {
+          width: 100%;
+        }
+        .react-datepicker__header {
+          background-color: transparent !important;
+          border-bottom: 1px solid var(--border) !important;
+          padding-top: 0.5rem !important;
+        }
+        .react-datepicker__current-month {
+          font-weight: 700 !important;
+          font-size: 1rem !important;
+          color: #0f172a !important;
+          margin-bottom: 0.5rem !important;
+        }
+        .react-datepicker__day-name {
+          color: var(--text-muted) !important;
+          font-weight: 600 !important;
+          width: 2rem !important;
+          line-height: 2rem !important;
+          margin: 0.2rem !important;
+        }
+        .react-datepicker__day {
+          width: 2rem !important;
+          line-height: 2rem !important;
+          margin: 0.2rem !important;
+          border-radius: 6px !important;
+          color: #0f172a !important;
+          font-weight: 500 !important;
           transition: all 0.2s;
         }
-        .bid-form textarea:focus {
-          border-color: var(--primary);
-          background: rgba(124,58,237,0.06);
+        .react-datepicker__day:hover {
+          background-color: var(--primary-soft) !important;
+          color: var(--primary) !important;
         }
+        .react-datepicker__day--selected, 
+        .react-datepicker__day--in-range, 
+        .react-datepicker__day--in-selecting-range {
+          background-color: var(--primary) !important;
+          color: white !important;
+          font-weight: 700 !important;
+        }
+        .react-datepicker__day--in-selecting-range:not(.react-datepicker__day--in-range) {
+          background-color: rgba(249, 115, 22, 0.4) !important;
+        }
+        /* Excluded / Booked Dates */
+        .react-datepicker__day--excluded {
+          background-color: #f1f5f9 !important;
+          color: #cbd5e1 !important;
+          text-decoration: line-through !important;
+          cursor: not-allowed !important;
+        }
+        .react-datepicker__day--excluded:hover {
+          background-color: #f1f5f9 !important;
+          color: #cbd5e1 !important;
+        }
+        .react-datepicker__navigation {
+          top: 0.8rem !important;
+        }
+
         .sent-msg {
           text-align: center;
           padding: 1.5rem 0;
@@ -463,10 +552,11 @@ const VehicleDetail = () => {
         /* Location Map Section */
         .location-map-section {
           margin-bottom: 2rem;
-          background: rgba(255,255,255,0.03);
+          background: #ffffff;
           border: 1px solid var(--border);
           border-radius: 1rem;
           padding: 1.5rem;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
           animation: fadeInMap 0.5s ease both 0.2s;
         }
         .location-map-section h3 {

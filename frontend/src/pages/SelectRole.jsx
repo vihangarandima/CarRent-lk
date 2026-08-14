@@ -122,19 +122,8 @@ const SelectRole = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
-                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
-          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
-          background-attachment: fixed;
+          background: #f8fafc;
           transition: background-color 0.3s ease;
-        }
-        .role-page:hover {
-          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
-                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
-          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
-          background-attachment: fixed;
-          padding: 40px 20px;
-          font-family: 'Inter', sans-serif;
         }
 
         .role-card-container {

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Company = require('../models/Company');
 const Vehicle = require('../models/Vehicle');
+const Review = require('../models/Review');
 const jwt = require('jsonwebtoken');
 
 // Auth middleware
@@ -29,11 +30,20 @@ router.get('/', async (req, res) => {
             .populate('user', 'name email')
             .sort({ createdAt: -1 });
 
-        // Attach vehicle count per company
+        // Attach vehicle count and rating per company
         const result = await Promise.all(
             companies.map(async (c) => {
-                const vehicleCount = await Vehicle.countDocuments({ company: c._id });
-                return { ...c.toObject(), vehicleCount };
+                const vehicles = await Vehicle.find({ company: c._id }).select('_id');
+                const vehicleIds = vehicles.map(v => v._id);
+                const vehicleCount = vehicleIds.length;
+                
+                const reviews = await Review.find({ vehicle: { $in: vehicleIds } });
+                const reviewCount = reviews.length;
+                const rating = reviewCount > 0 
+                    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount)
+                    : 0;
+
+                return { ...c.toObject(), vehicleCount, rating, reviewCount };
             })
         );
         res.json(result);
@@ -81,7 +91,14 @@ router.get('/:id', async (req, res) => {
         if (!company) return res.status(404).json({ msg: 'Company not found' });
 
         const vehicles = await Vehicle.find({ company: company._id });
-        res.json({ ...company.toObject(), vehicles });
+        const vehicleIds = vehicles.map(v => v._id);
+        const reviews = await Review.find({ vehicle: { $in: vehicleIds } });
+        const reviewCount = reviews.length;
+        const rating = reviewCount > 0 
+            ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount)
+            : 0;
+            
+        res.json({ ...company.toObject(), vehicles, rating, reviewCount });
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { signInWithPopup } from "firebase/auth";
@@ -9,6 +9,13 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/home");
+    }
+  }, [navigate]);
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -190,19 +197,10 @@ const Login = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px),
-                      linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px);
-          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
-          background-attachment: fixed;
+          background: #f8fafc;
           padding: 20px;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body, 'Plus Jakarta Sans', 'Poppins', sans-serif);
           transition: background-color 0.3s ease;
-        }
-        .auth-page:hover {
-          background: linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px),
-                      linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
-          background-size: clamp(30px, 5vw, 60px) clamp(30px, 5vw, 60px);
-          background-attachment: fixed;
         }
 
         .auth-card {

@@ -8,9 +8,10 @@ const VehicleSchema = new mongoose.Schema({
   pricePerDay: { type: Number, required: true },
   vehicleType: {
     type: String,
-    enum: ["bicycle", "threewheeler", "car", "van", "others"],
+    enum: ["bicycle", "threewheeler", "mini-car", "car", "premium-car", "mini-van", "van", "others"],
     required: true,
   },
+  pricePerKmAfter100km: { type: Number, default: 0 },
   fuelType: { type: String },
   transmission: { type: String },
   description: { type: String },

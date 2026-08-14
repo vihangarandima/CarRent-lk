@@ -1,313 +1,527 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import { motion, useScroll, useTransform } from "framer-motion";
+import {
+  MapPin,
+  Calendar,
+  Search,
+  ArrowRight,
+} from "lucide-react";
 const Hero = () => {
   const navigate = useNavigate();
+  const [location, setLocation] = useState("");
+  const [pickup, setPickup] = useState("");
+  const [dropoff, setDropoff] = useState("");
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (location) params.set("location", location);
+    navigate(`/vehicles${params.toString() ? `?${params}` : ""}`);
+  };
+
+  // Scroll animations for dome (lightray)
+  const { scrollY } = useScroll();
+  const domeScale = useTransform(scrollY, [0, 600], [1, 2.5]);
+  const domeOpacity = useTransform(scrollY, [0, 600], [1, 0.6]);
+
+  // Car drives horizontally to the right when scrolling down
+  const carDriveX = useTransform(scrollY, [0, 800], [-1000, 1500]);
 
   return (
-    <section className="hero">
-      <div className="container hero-container">
-        <div className="hero-content">
-          {/* Badge */}
+    <section className="hero-wrapper">
+      {/* Matching Luxury Background Image Layer */}
+      <div className="hero-bg-image" />
+
+      {/* Background Dome (Moon Lightray) */}
+      <motion.div
+        className="dome-bg"
+        style={{
+          scale: domeScale,
+          opacity: domeOpacity,
+          x: "-50%"
+        }}
+      />
+
+      <div className="hero-main">
+        {/* Text Overlay centered high up */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+          className="hero-content"
+        >
           <div className="hero-badge">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5L8 2z"
-                fill="#f97316"
-              />
-            </svg>
-            <span>Sri Lanka's modern car marketplace</span>
+            <span className="badge-dot"></span>
+            Sri Lanka's #1 car sharing marketplace.
           </div>
 
-          {/* Titles */}
           <h1 className="hero-title">
-            Drive anything. <br />
-            <span className="orange-text">Anywhere in Lanka.</span>
+            Find Your Perfect Car, <br />
+            Drive Your <span className="dreams-text">Dreams.</span>
           </h1>
 
-          {/* Subtitle */}
           <p className="hero-subtitle">
-            Rent verified vehicles from trusted hosts, or list your own car and
-            start earning — all in a few taps.
+            Rent verified vehicles from trusted hosts across the island — or
+            list your own car and start earning in minutes.
           </p>
 
-          {/* CTA Buttons */}
-          <div className="hero-actions">
-            <button className="btn-find" onClick={() => navigate("/vehicles")}>
-              Find a car
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
+          <div className="hero-buttons">
+            <button className="btn-primary" onClick={() => navigate("/vehicles")}>
+              Browse Cars <ArrowRight size={18} />
             </button>
-            <button
-              className="btn-list"
-              onClick={() => navigate("/list-my-car")}
-            >
-              List your vehicle
+            <button className="btn-secondary" onClick={() => navigate("/choose-listing-type")}>
+              List Your Vehicle
             </button>
           </div>
-
-          {/* Features Checklist */}
-          <div className="hero-features">
-            <div className="feature-item">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#10B981"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              <span>Verified hosts</span>
-            </div>
-            <div className="feature-item">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#10B981"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              <span>Insured trips</span>
-            </div>
-            <div className="feature-item">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#10B981"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              <span>24/7 support</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Hero Image */}
-        <div className="hero-image-container">
-          <img
-            src="http://localhost:5000/uploads/maybach.png"
-            alt="Premium Mercedes Maybach"
-            className="hero-car-img"
-          />
-        </div>
+        </motion.div>
       </div>
 
+      {/* Search Card & Car standing on it */}
+      <motion.div
+        className="search-card-wrapper"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div className="car-on-card-wrap">
+          <motion.div
+            className="car-on-card"
+            style={{ x: carDriveX }}
+          >
+            {/* Side view transparent Porsche */}
+
+            <img
+              src="/assets/images/car_1.png"
+              alt="Side View Luxury Car"
+              className="car-side-img"
+            />
+          </motion.div>
+        </div>
+
+        <div className="search-card">
+          <div className="search-field">
+            <label>Location</label>
+            <div className="input-group">
+              <MapPin size={20} className="input-icon" />
+              <input
+                type="text"
+                placeholder="Colombo, Kandy, Galle..."
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="search-field">
+            <label>Pick-up Date</label>
+            <div className="input-group">
+              <Calendar size={20} className="input-icon" />
+              <input
+                type="date"
+                value={pickup}
+                onChange={(e) => setPickup(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="search-field">
+            <label>Return Date</label>
+            <div className="input-group">
+              <Calendar size={20} className="input-icon" />
+              <input
+                type="date"
+                value={dropoff}
+                onChange={(e) => setDropoff(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <button className="btn-search" onClick={handleSearch}>
+            <Search size={20} />
+            Search Cars
+          </button>
+        </div>
+      </motion.div>
+
       <style>{`
-        .hero {
-          padding: 3rem 0;
-          background: transparent;
-          overflow: hidden;
-          min-height: calc(100vh - 80px);
-          display: flex;
-          align-items: center;
-        }
-
-        .hero-container {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 2rem;
-          width: 100%;
-        }
-
-        .hero-content {
-          flex: 1;
-          max-width: 620px;
-          z-index: 2;
-        }
-
-        .hero-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.4rem 1rem;
-          background: #FEF3C7;
-          border: 1px solid #FECF3F;
-          border-radius: 100px;
-          font-size: 0.85rem;
-          font-weight: 500;
-          color: #92400e;
-          margin-bottom: 2rem;
-        }
-
-        .hero-badge span {
-          color: #4B5563;
-        }
-
-        .hero-title {
-          font-size: 3.8rem;
-          font-weight: 800;
-          color: #1F2937;
-          line-height: 1.1;
-          letter-spacing: -1.5px;
-          margin-bottom: 1.25rem;
-        }
-
-        .orange-text {
-          color: #f97316;
-          background: linear-gradient(135deg, #f97316, #fb923c);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .hero-subtitle {
-          font-size: 1.15rem;
-          color: #6B7280;
-          line-height: 1.6;
-          margin-bottom: 2rem;
-          max-width: 500px;
-        }
-
-        .hero-actions {
-          display: flex;
-          gap: 1.25rem;
-          margin-bottom: 3.5rem;
-        }
-
-        .btn-find {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          background: linear-gradient(135deg, #f97316, #fb923c);
-          color: white;
-          padding: 0.9rem 1.8rem;
-          border-radius: 3rem;
-          font-weight: 700;
-          font-size: 1rem;
-          box-shadow: 0 10px 25px rgba(249, 115, 22, 0.4);
-          transition: transform 0.2s, box-shadow 0.2s;
-          border: none;
-          cursor: pointer;
-        }
-
-        .btn-find:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 15px 35px rgba(249, 115, 22, 0.5);
-        }
-
-        .btn-list {
-          background: white;
-          color: #1F2937;
-          padding: 0.9rem 2rem;
-          border-radius: 3rem;
-          font-weight: 700;
-          font-size: 1rem;
-          border: 1px solid #E5E7EB;
-          transition: all 0.2s;
-          cursor: pointer;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        }
-
-        .btn-list:hover {
-          background: #F9FAFB;
-          border-color: #D1D5DB;
-        }
-
-        .hero-features {
-          display: flex;
-          gap: 2rem;
-          flex-wrap: wrap;
-        }
-
-        .feature-item {
-          display: flex;
-          align-items: center;
-          gap: 0.65rem;
-          color: #6B7280;
-          font-weight: 500;
-          font-size: 1rem;
-        }
-
-        .hero-image-container {
-          flex: 1.5;
-          display: flex;
-          justify-content: flex-end;
+        .hero-wrapper {
+          background-color: #FDF8F2; /* Soft warm cream */
+          height: 100vh;
+          height: 130dvh;
+          min-height: 750px;
           position: relative;
+          overflow: hidden;
+          font-family: var(--font-body);
+          color: #111111;
+          display: flex;
+          flex-direction: column;
         }
 
-        /* The Glow Effect */
-        .hero-image-container::before {
-          content: "";
+        .hero-bg-image {
           position: absolute;
-          width: 140%;
-          height: 140%;
-          background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
+          inset: 0;
+          background-image: url('/assets/images/hero_bg_matching.png');
+          background-size: cover;
+          background-position: center bottom;
+          opacity: 1;
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        .hero-bg-image::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            180deg,
+            rgba(253, 248, 242, 0.82) 0%,
+            rgba(253, 248, 242, 0.55) 35%,
+            rgba(253, 248, 242, 0.25) 60%,
+            rgba(253, 248, 242, 0.1) 100%
+          );
           z-index: 1;
         }
 
-        .hero-car-img {
-          width: 100%;
-          max-width: none;
+        /* Background Soft Light Halo (Soft Blurred Glow - No Hard Line) */
+        .dome-bg {
+          position: absolute;
+          top: -25%;
+          left: 50%;
+          width: 100vw;
+          height: 100vw;
+          max-width: 1500px;
+          max-height: 1500px;
+          background: radial-gradient(circle at center, rgba(255, 255, 255, 0.65) 0%, rgba(255, 248, 235, 0.35) 30%, rgba(255, 235, 190, 0.1) 55%, transparent 70%);
+          border-radius: 50%;
+          filter: blur(90px);
+          z-index: 1;
+          pointer-events: none;
+          transform-origin: center center;
+        }
+
+        /* Main Content */
+        .hero-main {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
           position: relative;
-          z-index: 2;
-          transform: translate(120px, -40px);
-          filter: drop-shadow(0 20px 40px rgba(0,0,0,0.05));
-          animation: carFloat 6s ease-in-out infinite;
+          z-index: 30; /* Higher than car so text sits in front */
+          padding-top: 8rem;
+          padding-bottom: 2rem;
+          text-align: center;
+          pointer-events: none; /* Prevents container from blocking clicks to the card below */
         }
 
-        @keyframes carFloat {
-          0%, 100% { transform: translate(120px, -40px); }
-          50% { transform: translate(120px, -60px); }
+        /* Text Overlay */
+        .hero-content {
+          position: relative;
+          z-index: 30;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          pointer-events: auto; /* Re-enable clicks for text and buttons */
         }
 
-        @media (max-width: 1200px) {
-          .hero-title { font-size: 3.5rem; }
-          .hero-car-img { width: 90%; transform: translate(15px, -30px); }
-          @keyframes carFloat {
-            0%, 100% { transform: translate(15px, -30px); }
-            50% { transform: translate(15px, -45px); }
-          }
+        .hero-badge {
+          background: rgba(255, 255, 255, 0.9);
+          backdrop-filter: blur(8px);
+          color: #111111;
+          padding: 0.4rem 1rem 0.4rem 0.5rem;
+          border-radius: 999px;
+          font-weight: 600;
+          font-size: 0.85rem;
+          margin-bottom: 1.5rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+          border: 1px solid rgba(0,0,0,0.05);
         }
 
+        .badge-dot {
+          width: 8px;
+          height: 8px;
+          background: #FF8A00;
+          border-radius: 50%;
+          display: block;
+        }
+
+        .hero-title {
+          font-family: var(--font-display);
+          font-size: clamp(2.5rem, 5vw, 4.2rem);
+          font-weight: 800;
+          line-height: 1.1;
+          margin-bottom: 1rem;
+          max-width: 920px;
+          letter-spacing: -0.03em;
+          text-shadow: 0 4px 40px rgba(253, 248, 242, 0.9), 0 0 20px rgba(253, 248, 242, 0.8), 0 0 10px rgba(255, 255, 255, 1);
+        }
+
+        .dreams-text {
+          font-family: var(--font-accent);
+          color: #FF8A00;
+          font-style: italic;
+          font-weight: 500;
+          font-size: 1.05em;
+        }
+
+        .hero-subtitle {
+          font-size: 1.05rem;
+          color: #333333;
+          font-weight: 500;
+          max-width: 650px;
+          margin: 0 auto 1.5rem;
+          line-height: 1.6;
+          text-shadow: 0 4px 20px rgba(253, 248, 242, 0.9), 0 0 10px rgba(255, 255, 255, 1);
+        }
+
+        .hero-buttons {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+        }
+
+        .btn-primary {
+          background: #FF8A00;
+          color: white;
+          padding: 0.8rem 1.8rem;
+          border-radius: 999px;
+          font-weight: 600;
+          font-size: 1rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          border: none;
+          cursor: pointer;
+          box-shadow: 0 10px 25px rgba(255, 138, 0, 0.3);
+          transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+
+        .btn-primary:hover {
+          background: #FF9100;
+          transform: translateY(-2px);
+          box-shadow: 0 14px 30px rgba(255, 138, 0, 0.4);
+        }
+
+        .btn-secondary {
+          background: rgba(253, 248, 242, 0.8);
+          backdrop-filter: blur(4px);
+          color: #111111;
+          padding: 0.8rem 1.8rem;
+          border-radius: 999px;
+          font-weight: 600;
+          font-size: 1rem;
+          border: 2px solid #111111;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+          background: #111111;
+          color: white;
+        }
+
+        /* Floating Search Card & Car Wrapper */
+        .search-card-wrapper {
+          position: absolute;
+          bottom: 5rem;
+          left: 0;
+          right: 0;
+          z-index: 20;
+          padding: 0 5%;
+          display: flex;
+          justify-content: center;
+        }
+
+        /* Car standing on top of the search card */
+        .car-on-card-wrap {
+          position: absolute;
+          bottom: 100%;
+          left: 0;
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          pointer-events: none;
+          margin-bottom: -45px; /* Pull car down so tires rest beautifully on the card */
+          z-index: 21;
+        }
+
+        .car-on-card {
+          width: 850px; /* Big side view car */
+          max-width: 120vw; /* Allow it to overflow the screen slightly on mobile */
+          will-change: transform;
+        }
+
+        .car-side-img {
+          position: relative;
+          top: 270px;
+          width: 100%;
+          height: auto;
+          filter: drop-shadow(-10px 30px 15px rgba(0,0,0,0.3)); /* Fake ground shadow */
+          transform: scaleX(-1); /* Flips the left-facing car so it faces right and drives right */
+        }
+
+        .search-card {
+          background: #FFFFFF;
+          border-radius: 20px;
+          padding: 1rem 1.5rem;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          box-shadow: 0 24px 50px rgba(0,0,0,0.06);
+          width: 100%;
+          max-width: 1100px;
+          flex-wrap: wrap;
+          border: 1px solid rgba(0,0,0,0.03);
+          position: relative;
+          z-index: 20;
+        }
+
+        .search-field {
+          flex: 1;
+          min-width: 180px;
+          display: flex;
+          flex-direction: column;
+          gap: 0.3rem;
+          padding: 0.25rem 1rem;
+          border-right: 1px solid #EEEEEE;
+        }
+        
+        .search-field:nth-last-child(2) {
+          border-right: none;
+        }
+
+        .search-field label {
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: #888888;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .input-group {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          position: relative;
+        }
+
+        .input-group input {
+          border: none;
+          background: transparent;
+          outline: none;
+          width: 100%;
+          font-size: 0.95rem;
+          color: #111111;
+          font-weight: 600;
+          font-family: inherit;
+        }
+        
+        .input-group input::placeholder {
+          color: #AAAAAA;
+          font-weight: 500;
+        }
+
+        .input-group input[type="date"] {
+          color: #111111;
+          text-transform: uppercase;
+          font-size: 0.9rem;
+        }
+        
+        .input-group input[type="date"]::-webkit-calendar-picker-indicator {
+          opacity: 0;
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          cursor: pointer;
+        }
+
+        .input-icon {
+          color: #FF8A00;
+          flex-shrink: 0;
+        }
+
+        .btn-search {
+          background: #FF8A00;
+          color: white;
+          border: none;
+          border-radius: 12px;
+          padding: 1rem 2rem;
+          font-weight: 700;
+          font-size: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          cursor: pointer;
+          box-shadow: 0 10px 25px rgba(255, 138, 0, 0.3);
+          transition: transform 0.2s, background 0.2s;
+          height: 100%;
+          min-height: 56px;
+        }
+
+        .btn-search:hover {
+          background: #FF9100;
+          transform: translateY(-2px);
+        }
+
+        /* Responsive */
         @media (max-width: 1024px) {
-          .hero { padding: 4rem 0; min-height: auto; }
-          .hero-container { flex-direction: column; text-align: center; }
-          .hero-content { max-width: 100%; display: flex; flex-direction: column; align-items: center; }
-          .hero-subtitle { max-width: 80%; }
-          .hero-actions { justify-content: center; }
-          .hero-features { justify-content: center; }
-          .hero-image-container { justify-content: center; width: 100%; margin-top: 3rem; }
-          .hero-car-img { width: 100%; transform: none; }
-          @keyframes carFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
+          .hero-wrapper {
+            height: auto;
+            min-height: 100vh;
+          }
+          .hero-main {
+            padding-bottom: 12rem;
+          }
+          .search-card {
+            border-radius: 16px;
+          }
+          .car-on-card {
+            width: 700px;
           }
         }
 
-        @media (max-width: 640px) {
-          .hero-title { font-size: 2.8rem; }
-          .hero-actions { flex-direction: column; gap: 1rem; width: 100%; }
-          .btn-find, .btn-list { width: 100%; justify-content: center; }
-          .hero-features { flex-direction: column; gap: 1rem; align-items: flex-start; }
+        @media (max-width: 900px) {
+          .search-card {
+            flex-direction: column;
+            gap: 1rem;
+          }
+          .search-field {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid #EEEEEE;
+            padding: 0 0 0.75rem 0;
+          }
+          .search-field:nth-last-child(2) {
+            border-bottom: none;
+            padding-bottom: 0;
+          }
+          .btn-search {
+            width: 100%;
+            justify-content: center;
+            min-height: 50px;
+            margin-top: 0.5rem;
+          }
+          .car-on-card {
+            width: 550px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .hero-title {
+            font-size: clamp(2.2rem, 7vw, 3rem);
+          }
+          .hero-buttons {
+            flex-direction: column;
+            width: 100%;
+            max-width: 300px;
+          }
+          .btn-primary, .btn-secondary {
+            width: 100%;
+            justify-content: center;
+          }
         }
       `}</style>
     </section>
@@ -315,3 +529,4 @@ const Hero = () => {
 };
 
 export default Hero;
+

@@ -3,6 +3,7 @@ const router = express.Router();
 const Vehicle = require("../models/Vehicle");
 const Company = require("../models/Company");
 const User = require("../models/User");
+const Review = require("../models/Review");
 const jwt = require("jsonwebtoken");
 
 // Middleware to verify JWT
@@ -37,7 +38,7 @@ router.get("/", async (req, res) => {
 
     const vehicles = await Vehicle.find(query)
       .populate("owner", "name email")
-      .populate("company", "companyName logo");
+      .populate("company", "companyName logo address");
     res.json(vehicles);
   } catch (err) {
     res.status(500).send("Server Error");
@@ -67,6 +68,7 @@ router.post("/", auth, async (req, res) => {
       model,
       year,
       pricePerDay,
+      pricePerKmAfter100km,
       vehicleType,
       fuelType,
       transmission,
@@ -82,7 +84,7 @@ router.post("/", auth, async (req, res) => {
     // Validation for vehicle type
     if (
       !vehicleType ||
-      !["bicycle", "threewheeler", "car", "van", "others"].includes(vehicleType)
+      !["bicycle", "threewheeler", "mini-car", "car", "premium-car", "mini-van", "van", "others"].includes(vehicleType)
     ) {
       return res.status(400).json({ msg: "Valid vehicle type is required." });
     }
@@ -106,6 +108,7 @@ router.post("/", auth, async (req, res) => {
       model,
       year,
       pricePerDay,
+      pricePerKmAfter100km: pricePerKmAfter100km || 0,
       vehicleType,
       fuelType,
       transmission,
@@ -150,6 +153,50 @@ router.delete("/:id", auth, async (req, res) => {
       return res.status(401).json({ msg: "Not authorized" });
     await vehicle.deleteOne();
     res.json({ msg: "Vehicle removed" });
+  } catch (err) {
+    res.status(500).send("Server Error");
+  }
+});
+
+// @route   POST api/vehicles/:id/reviews
+// @desc    Add a review for a vehicle
+router.post("/:id/reviews", auth, async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+    if (!rating || !comment) {
+      return res.status(400).json({ msg: "Rating and comment are required" });
+    }
+
+    const vehicle = await Vehicle.findById(req.params.id);
+    if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
+
+    // Ensure the user hasn't already reviewed this vehicle
+    const existingReview = await Review.findOne({ vehicle: req.params.id, user: req.user.id });
+    if (existingReview) {
+      return res.status(400).json({ msg: "You have already reviewed this vehicle" });
+    }
+
+    const newReview = new Review({
+      vehicle: req.params.id,
+      user: req.user.id,
+      rating: Number(rating),
+      comment
+    });
+
+    const review = await newReview.save();
+    res.json(review);
+  } catch (err) {
+    console.error("Review Error:", err);
+    res.status(500).send("Server Error");
+  }
+});
+
+// @route   GET api/vehicles/:id/reviews
+// @desc    Get all reviews for a vehicle
+router.get("/:id/reviews", async (req, res) => {
+  try {
+    const reviews = await Review.find({ vehicle: req.params.id }).populate("user", "name").sort({ createdAt: -1 });
+    res.json(reviews);
   } catch (err) {
     res.status(500).send("Server Error");
   }
