@@ -64,6 +64,7 @@ const Navbar = () => {
     <>
       <nav className={`hero-nav ${scrolled ? "scrolled" : ""} ${location.pathname === '/' && !scrolled ? "on-dark" : ""}`}>
         <Link to="/" className="nav-logo">
+          <div className="logo-circle">Y</div>
           <span className="brand-yamu">Yamu</span>
           <span className="brand-orange">&nbsp;Car Rentals</span>
         </Link>
@@ -197,6 +198,20 @@ const Navbar = () => {
 
         .nav-logo .brand-orange {
           color: #f97316;
+        }
+
+        .logo-circle {
+          width: 32px;
+          height: 32px;
+          background-color: #f97316;
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 1rem;
+          margin-right: 8px;
         }
 
         .nav-links {
