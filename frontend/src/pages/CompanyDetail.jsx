@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
-import { Building2, MapPin, Phone, Mail, Car, ArrowLeft } from "lucide-react";
+import { Building2, MapPin, Phone, Mail, Car, ArrowLeft, Star } from "lucide-react";
 import VehicleCard from "../components/VehicleCard";
 import { API_URL } from "../config";
 
@@ -67,6 +67,13 @@ const CompanyDetail = () => {
           <div className="company-detail-info">
             <div className="company-verified-pill">✓ Verified Partner</div>
             <h1>{company.companyName}</h1>
+            {company.rating !== undefined && (
+              <div className="company-detail-rating">
+                <Star size={16} fill="#f97316" color="#f97316" />
+                <span className="rating-value">{company.rating > 0 ? company.rating.toFixed(1) : "New"}</span>
+                <span className="review-count">({company.reviewCount || 0} reviews)</span>
+              </div>
+            )}
             <div className="company-metadata">
               {company.address && (
                 <span>
@@ -179,7 +186,17 @@ const CompanyDetail = () => {
 
         .company-detail-info h1 {
           font-size: clamp(1.5rem, 4vw, 2.25rem); font-weight: 900;
-          color: #1F2937; margin-bottom: 0.5rem; letter-spacing: -0.5px;
+          color: #1F2937; margin-bottom: 0.25rem; letter-spacing: -0.5px;
+        }
+
+        .company-detail-rating {
+          display: flex; align-items: center; gap: 6px; margin-bottom: 1rem;
+        }
+        .company-detail-rating .rating-value {
+          font-weight: 700; color: #1F2937; font-size: 1.05rem;
+        }
+        .company-detail-rating .review-count {
+          color: #6B7280; font-size: 0.9rem;
         }
 
         .company-metadata {
