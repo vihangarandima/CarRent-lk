@@ -23,6 +23,13 @@ const Register = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/home");
+    }
+  }, [navigate]);
+
   // Parsing the search query parameter
   const queryParams = new URLSearchParams(location.search);
   const urlRole = queryParams.get("role");
@@ -124,13 +131,7 @@ const Register = () => {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
       const redirectParam = queryParams.get("redirect");
-      const targetPath = redirectParam || (
-        res.data.user.role === "company"
-          ? "/company-dashboard"
-          : res.data.user.role === "owner"
-          ? "/profile"
-          : "/home"
-      );
+      const targetPath = redirectParam || "/home";
       navigate(targetPath);
       window.location.reload();
     } catch (err) {
@@ -202,13 +203,7 @@ const Register = () => {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
       const redirectParam = queryParams.get("redirect");
-      const targetPath = redirectParam || (
-        res.data.user.role === "company"
-          ? "/company-dashboard"
-          : res.data.user.role === "owner"
-          ? "/profile"
-          : "/home"
-      );
+      const targetPath = redirectParam || "/home";
       navigate(targetPath);
       window.location.reload();
     } catch (err) {
