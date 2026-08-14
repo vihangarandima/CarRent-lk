@@ -4,7 +4,7 @@ import { API_URL } from "../config";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight } from "lucide-react";
+import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight, LocateFixed } from "lucide-react";
 
 // Vehicle Type Images
 import bikeeImg from "../assets/images/bikee.jpg";
@@ -150,6 +150,8 @@ const ListVehicle = () => {
   const [dateRange, setDateRange] = useState([new Date(), new Date(new Date().setFullYear(new Date().getFullYear() + 1))]);
   const [startDate, endDate] = dateRange;
 
+  const [isLocating, setIsLocating] = useState(false);
+
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
   });
@@ -213,6 +215,34 @@ const ListVehicle = () => {
 
   const onMapClick = (e) => {
     reverseGeocode(e.latLng.lat(), e.latLng.lng());
+  };
+
+  const handleLocateMe = () => {
+    setIsLocating(true);
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      setIsLocating(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        reverseGeocode(position.coords.latitude, position.coords.longitude);
+        setIsLocating(false);
+      },
+      (error) => {
+        let errorMsg = `Unable to retrieve your location. (Error: ${error.message})`;
+        if (error.code === error.PERMISSION_DENIED) {
+           errorMsg = "Location permission denied. Please click the site settings icon near the URL bar to allow location access.";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+           errorMsg = "Location information is unavailable. Please ensure your Windows Location Services are turned on in Settings -> Privacy & Security -> Location.";
+        } else if (error.code === error.TIMEOUT) {
+           errorMsg = "The request to get user location timed out. Please try again.";
+        }
+        alert(errorMsg);
+        setIsLocating(false);
+      },
+      { timeout: 15000, maximumAge: 60000 }
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -484,7 +514,28 @@ const ListVehicle = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Search Address or Click on Map</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <label>Search Address or Click on Map</label>
+                    <button
+                      type="button"
+                      onClick={handleLocateMe}
+                      disabled={isLocating}
+                      title="Use my GPS Location"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#f97316",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      <LocateFixed size={14} /> {isLocating ? "Locating..." : "Locate Me"}
+                    </button>
+                  </div>
                   <div className="input-with-prefix">
                     <span className="prefix"><MapPin size={18} /></span>
                     <input type="text" name="location" value={formData.location} onChange={handleChange} required placeholder="123 Main St, Colombo" />

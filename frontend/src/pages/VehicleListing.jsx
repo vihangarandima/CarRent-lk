@@ -7,6 +7,7 @@ import {
   useJsApiLoader,
   Marker,
   InfoWindow,
+  Circle,
 } from "@react-google-maps/api";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -20,6 +21,7 @@ import {
   Map,
   LayoutGrid,
   Trash2,
+  LocateFixed,
 } from "lucide-react";
 
 // Image Imports
@@ -48,6 +50,21 @@ const normalizeSearchText = (value = "") =>
     .replace(/\s+/g, " ")
     .trim();
 
+// Haversine formula to calculate distance between two coordinates in kilometers
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 const VehicleListing = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -69,6 +86,11 @@ const VehicleListing = () => {
   const [filterFuel, setFilterFuel] = useState(
     searchParams.get("fuel") || "any"
   );
+  
+  // GPS & Radius Search States
+  const [userLocation, setUserLocation] = useState(null);
+  const [radius, setRadius] = useState(10); // default 10km
+  const [isLocating, setIsLocating] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -149,7 +171,41 @@ const VehicleListing = () => {
     setFilterShow("nearest");
     setFilterFuel("any");
     setVehicleType("");
+    setUserLocation(null);
     setSearchParams(new URLSearchParams(), { replace: true });
+  };
+
+  const handleLocateMe = () => {
+    setIsLocating(true);
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      setIsLocating(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setFilter({ ...filter, location: "My GPS Location" });
+        setViewMode("map");
+        setIsLocating(false);
+      },
+      (error) => {
+        let errorMsg = `Unable to retrieve your location. (Error: ${error.message})`;
+        if (error.code === error.PERMISSION_DENIED) {
+           errorMsg = "Location permission denied. Please click the site settings icon near the URL bar to allow location access.";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+           errorMsg = "Location information is unavailable. Please ensure your Windows Location Services are turned on in Settings -> Privacy & Security -> Location.";
+        } else if (error.code === error.TIMEOUT) {
+           errorMsg = "The request to get user location timed out. Please try again.";
+        }
+        alert(errorMsg);
+        setIsLocating(false);
+      },
+      { timeout: 15000, maximumAge: 60000 }
+    );
   };
 
   const filtered = vehicles.filter((v) => {
@@ -158,14 +214,33 @@ const VehicleListing = () => {
     const companyLocation = normalizeSearchText(v.company?.address);
     const companyName = normalizeSearchText(v.company?.companyName);
 
+    let matchLocation = true;
+    let matchRadius = true;
+
+    if (userLocation) {
+      if (v.lat && v.lng) {
+        const distance = calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          v.lat,
+          v.lng
+        );
+        matchRadius = distance <= radius;
+      } else {
+        matchRadius = false;
+      }
+      matchLocation = matchRadius;
+    } else {
+      matchLocation =
+        !searchLocation ||
+        vehicleLocation.includes(searchLocation) ||
+        companyLocation.includes(searchLocation) ||
+        companyName.includes(searchLocation);
+    }
+
     const matchBrand =
       !filter.brand ||
       v.brand?.toLowerCase().includes(filter.brand.toLowerCase());
-    const matchLocation =
-      !searchLocation ||
-      vehicleLocation.includes(searchLocation) ||
-      companyLocation.includes(searchLocation) ||
-      companyName.includes(searchLocation);
     const matchMinPrice =
       !filter.minPrice || v.pricePerDay >= parseInt(filter.minPrice);
     const matchMaxPrice =
@@ -254,9 +329,28 @@ const VehicleListing = () => {
           </div>
 
           <div className="search-steps-row">
-            <div className="search-step">
-              <div className="step-label">
-                <span className="step-num active-num">1</span> Location
+            <div className="search-step" style={{ position: "relative" }}>
+              <div className="step-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                <span><span className="step-num active-num">1</span> Location</span>
+                <button
+                  type="button"
+                  onClick={handleLocateMe}
+                  disabled={isLocating}
+                  title="Use my GPS Location"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#f97316",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <LocateFixed size={14} /> {isLocating ? "Locating..." : "Locate Me"}
+                </button>
               </div>
               <div className="step-input-box">
                 <MapPin size={18} className="icon-orange-txt" />
@@ -264,11 +358,28 @@ const VehicleListing = () => {
                   type="text"
                   placeholder="Type a location..."
                   value={filter.location}
-                  onChange={(e) =>
-                    setFilter({ ...filter, location: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setFilter({ ...filter, location: e.target.value });
+                    if (userLocation) setUserLocation(null);
+                  }}
                 />
               </div>
+              {userLocation && (
+                <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>SEARCH RADIUS:</span>
+                  <select 
+                    value={radius} 
+                    onChange={(e) => setRadius(Number(e.target.value))}
+                    style={{ fontSize: "0.8rem", padding: "4px 8px", borderRadius: "6px", border: "1px solid #e5e7eb", flex: 1, color: "#111827", fontWeight: 600, background: "#f9fafb" }}
+                  >
+                    <option value={5}>5 km</option>
+                    <option value={10}>10 km</option>
+                    <option value={20}>20 km</option>
+                    <option value={50}>50 km</option>
+                    <option value={100}>100 km</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="search-step">
@@ -437,14 +548,16 @@ const VehicleListing = () => {
                 <GoogleMap
                   mapContainerStyle={listingMapContainerStyle}
                   center={
-                    filtered.find((v) => v.lat && v.lng)
-                      ? {
-                          lat: filtered.find((v) => v.lat && v.lng).lat,
-                          lng: filtered.find((v) => v.lat && v.lng).lng,
-                        }
-                      : sriLankaCenter
+                    userLocation || (
+                      filtered.find((v) => v.lat && v.lng)
+                        ? {
+                            lat: filtered.find((v) => v.lat && v.lng).lat,
+                            lng: filtered.find((v) => v.lat && v.lng).lng,
+                          }
+                        : sriLankaCenter
+                    )
                   }
-                  zoom={8}
+                  zoom={userLocation ? 11 : 8}
                   options={{
                     streetViewControl: false,
                     mapTypeControl: false,
@@ -478,6 +591,36 @@ const VehicleListing = () => {
                         onClick={() => setSelectedVehicle(v)}
                       />
                     ))}
+
+                  {userLocation && (
+                    <>
+                      <Marker
+                        position={userLocation}
+                        icon={{
+                          path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
+                          fillColor: "#3b82f6",
+                          fillOpacity: 1,
+                          strokeColor: "#ffffff",
+                          strokeWeight: 2,
+                          scale: 1.5,
+                          anchor: { x: 12, y: 24 },
+                        }}
+                        title="Your Location"
+                      />
+                      <Circle
+                        center={userLocation}
+                        radius={radius * 1000}
+                        options={{
+                          fillColor: "#3b82f6",
+                          fillOpacity: 0.1,
+                          strokeColor: "#3b82f6",
+                          strokeOpacity: 0.5,
+                          strokeWeight: 2,
+                          clickable: false,
+                        }}
+                      />
+                    </>
+                  )}
 
                   {selectedVehicle &&
                     selectedVehicle.lat &&
