@@ -4,7 +4,7 @@ import { API_URL } from "../config";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { CheckCircle2, ChevronRight, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight } from "lucide-react";
+import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight } from "lucide-react";
 
 // Vehicle Type Images
 import bikeeImg from "../assets/images/bikee.jpg";
@@ -64,6 +64,14 @@ const vehicleCategories = [
     desc: "Any other unique or specialized vehicles.",
     examples: "Trucks, Motorhomes, ATVs."
   },
+];
+
+const sriLankaDistricts = [
+  "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", 
+  "Gampaha", "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", 
+  "Kilinochchi", "Kurunegala", "Mannar", "Matale", "Matara", "Monaragala", 
+  "Mullaitivu", "Nuwara Eliya", "Polonnaruwa", "Puttalam", "Ratnapura", 
+  "Trincomalee", "Vavuniya"
 ];
 
 // Predefined Brands and Models for Dropdowns
@@ -127,6 +135,7 @@ const ListVehicle = () => {
     fuelType: "",
     transmission: "",
     vehicleType: "",
+    district: "",
     location: "",
     description: "",
     images: ["", "", "", "", ""],
@@ -452,6 +461,27 @@ const ListVehicle = () => {
               <form onSubmit={handleSubmit} className="form-step slide-in">
                 <h2>Pickup Location</h2>
                 <p className="step-desc">Pinpoint where the vehicle is located.</p>
+
+                <div className="form-group">
+                  <label>PICK-UP CITY</label>
+                  <div className="district-select-wrapper">
+                    <select 
+                      name="district" 
+                      value={formData.district} 
+                      onChange={handleChange} 
+                      required 
+                      className="district-select"
+                    >
+                      <option value="" disabled>Select City</option>
+                      {sriLankaDistricts.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                    <div className="district-select-icon">
+                      <ChevronDown size={18} />
+                    </div>
+                  </div>
+                </div>
 
                 <div className="form-group">
                   <label>Search Address or Click on Map</label>
@@ -796,6 +826,41 @@ const ListVehicle = () => {
         .text-orange { color: #f97316; }
         .flex-shrink-0 { flex-shrink: 0; }
         .mt-2 { margin-top: 0.5rem; }
+
+        /* District Dropdown Styles */
+        .district-select-wrapper {
+          position: relative;
+          width: 100%;
+        }
+
+        .district-select {
+          width: 100%;
+          padding: 0.85rem 1.2rem;
+          border: 1px solid #e2e8f0;
+          border-radius: 100px;
+          font-family: inherit;
+          font-size: 1rem;
+          color: #0f172a;
+          background: #f4fbfa;
+          appearance: none;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        .district-select:focus {
+          outline: none;
+          border-color: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .district-select-icon {
+          position: absolute;
+          right: 1.2rem;
+          top: 50%;
+          transform: translateY(-50%);
+          pointer-events: none;
+          color: #0f172a;
+        }
 
         .lv-container {
           max-width: 1200px;
