@@ -32,6 +32,12 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         <img src={coverImage} alt={`${vehicle.brand} ${vehicle.model}`} />
         <div className="v-card-badges">
           <span className="v-year-badge">{year}</span>
+          {vehicle.distanceFromCenter !== null &&
+            vehicle.distanceFromCenter !== undefined && (
+              <span className="v-dist-badge">
+                📍 {vehicle.distanceFromCenter.toFixed(1)} km
+              </span>
+            )}
           <button className="v-heart-btn" type="button" aria-label="Save">
             <svg
               width="16"
@@ -148,8 +154,20 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           color: var(--text);
           padding: 0.3rem 0.65rem;
           border-radius: 6px;
-          font-size: 0.72rem;
-          font-weight: 800;
+          font-size: 0.75rem;
+          font-weight: 700;
+          backdrop-filter: blur(4px);
+        }
+
+        .v-dist-badge {
+          background: rgba(37, 99, 235, 0.92);
+          color: white;
+          padding: 0.3rem 0.65rem;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          backdrop-filter: blur(4px);
+          box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
         }
 
         .v-heart-btn {

@@ -64,7 +64,7 @@ const Navbar = () => {
     <>
       <nav className={`hero-nav ${scrolled ? "scrolled" : ""} ${location.pathname === '/' && !scrolled ? "on-dark" : ""}`}>
         <Link to="/" className="nav-logo">
-          <div className="logo-circle">Y</div>
+          <img src={logo} alt="Yamu Car Rentals" className="nav-logo-img" />
           <span className="brand-yamu">Yamu</span>
           <span className="brand-orange">&nbsp;Car Rentals</span>
         </Link>
@@ -200,18 +200,17 @@ const Navbar = () => {
           color: #f97316;
         }
 
-        .logo-circle {
-          width: 32px;
-          height: 32px;
-          background-color: #f97316;
-          color: white;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 1rem;
-          margin-right: 8px;
+        .nav-logo-img {
+          width: 44px;
+          height: 44px;
+          object-fit: contain;
+          margin-right: 10px;
+          display: block;
+          transition: transform 0.2s ease;
+        }
+
+        .nav-logo:hover .nav-logo-img {
+          transform: scale(1.05);
         }
 
         .nav-links {
