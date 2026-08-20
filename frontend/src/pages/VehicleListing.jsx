@@ -454,99 +454,100 @@ const VehicleListing = () => {
     <div className="listing-page">
       <div className="modern-header-section">
         <div className="top-badge">
-          <Sparkles size={14} className="icon-orange-txt" />
+          <Sparkles size={13} className="icon-orange-txt" />
           <span>Sri Lanka's modern car marketplace</span>
         </div>
         <h1 className="modern-title">
-          Find the <span className="text-orange">nearest ride</span>
-          <br /> in seconds.
+          Find the <span className="text-orange">nearest ride</span> in seconds.
         </h1>
         <p className="modern-subtitle">
-          Search verified vehicles around you. Filter by brand, price range and
-          fuel - book in a tap.
+          Search verified vehicles around you. Filter by brand, price range and fuel — book in a tap.
         </p>
       </div>
 
       <div className="container">
         <div className="search-card-block">
           <div className="search-card-header">
-            <h2>
-              Search in <span className="text-orange">3 quick steps</span>
-            </h2>
-            <button
-              className="reset-btn"
-              onClick={handleReset}
-            >
-              Reset
-            </button>
-          </div>
-
-          <div className="vehicle-type-card-section first-filter-card">
-            <div className="vehicle-type-title-row">
-              <div>
-                <h3>Vehicle type</h3>
-                <p>Filter by type before searching for rides.</p>
-              </div>
-              <button
-                className="clear-type-btn"
-                type="button"
-                onClick={() => setVehicleType("")}
-                title="Clear vehicle type filter"
-                aria-label="Clear vehicle type filter"
-              >
-                <Trash2 size={16} />
-              </button>
+            <div className="search-card-title-wrap">
+              <h2>
+                Search in <span className="text-orange">3 quick steps</span>
+              </h2>
+              {vehicleType && (
+                <span className="selected-type-badge">
+                  Type: <strong>{vehicleTypeCards.find(c => c.id === vehicleType)?.title || vehicleType}</strong>
+                </span>
+              )}
             </div>
-            <div className="vehicle-type-card-grid">
-              {vehicleTypeCards.map((type) => (
+            <div className="search-card-header-actions">
+              {(filter.location || filter.brand || filter.minPrice || filter.maxPrice || vehicleType || filterFuel !== "any" || pinnedLocation) && (
                 <button
-                  key={type.id}
-                  type="button"
-                  className={`vehicle-type-card ${
-                    vehicleType === type.id ? "active-type-card" : ""
-                  }`}
-                  onClick={() =>
-                    setVehicleType(vehicleType === type.id ? "" : type.id)
-                  }
+                  className="reset-btn"
+                  onClick={handleReset}
+                  title="Clear all search filters"
                 >
-                  <div className="vehicle-type-card-image">
-                    <img src={type.image} alt={type.title} />
-                  </div>
-                  <span>{type.title}</span>
+                  <Trash2 size={13} /> Reset Filters
                 </button>
-              ))}
+              )}
             </div>
           </div>
 
+          {/* Compact 1-Row Vehicle Type Filter */}
+          <div className="vehicle-type-strip-section">
+            <div className="vehicle-type-mini-header">
+              <span className="mini-header-label">SELECT VEHICLE TYPE</span>
+              {vehicleType && (
+                <button
+                  className="mini-clear-btn"
+                  type="button"
+                  onClick={() => setVehicleType("")}
+                >
+                  Clear Selection
+                </button>
+              )}
+            </div>
+            <div className="vehicle-type-compact-grid">
+              {vehicleTypeCards.map((type) => {
+                const isActive = vehicleType === type.id;
+                return (
+                  <button
+                    key={type.id}
+                    type="button"
+                    className={`vehicle-type-pill-card ${isActive ? "active-type-pill" : ""}`}
+                    onClick={() => setVehicleType(isActive ? "" : type.id)}
+                  >
+                    <div className="type-card-img-wrap">
+                      <img src={type.image} alt={type.title} />
+                    </div>
+                    <span className="type-card-label">{type.title}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 3 Step Search Row */}
           <div className="search-steps-row">
-            <div className="search-step" style={{ position: "relative" }}>
-              <div className="step-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                <span><span className="step-num active-num">1</span> Location</span>
+            {/* Step 1: Location */}
+            <div className="search-step step-location">
+              <div className="step-label">
+                <span className="step-num active-num">1</span>
+                <span>Location</span>
                 <button
                   type="button"
                   onClick={handleLocateMe}
                   disabled={isLocating}
+                  className="locate-me-btn"
                   title="Use my GPS Location"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#f97316",
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
                 >
-                  <LocateFixed size={14} /> {isLocating ? "Locating..." : "Locate Me"}
+                  <LocateFixed size={13} className={isLocating ? "animate-spin" : ""} />
+                  {isLocating ? "Locating..." : "Locate Me"}
                 </button>
               </div>
               <div className="step-input-box">
-                <MapPin size={18} className="icon-orange-txt" />
+                <MapPin size={17} className="icon-orange-txt flex-shrink-0" />
                 <input
                   type="text"
-                  placeholder="Type a location or click map..."
+                  placeholder="Town, city or click map..."
                   value={filter.location}
                   onChange={(e) => {
                     setFilter({ ...filter, location: e.target.value });
@@ -558,16 +559,7 @@ const VehicleListing = () => {
                   <button
                     type="button"
                     onClick={handleClearPinnedLocation}
-                    style={{
-                      background: "#fee2e2",
-                      color: "#dc2626",
-                      border: "none",
-                      borderRadius: "6px",
-                      padding: "2px 8px",
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
+                    className="clear-pin-chip"
                     title="Clear pinned location"
                   >
                     Clear
@@ -575,12 +567,12 @@ const VehicleListing = () => {
                 )}
               </div>
               {activeCenter && (
-                <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "8px", background: "#eff6ff", padding: "6px 10px", borderRadius: "8px", border: "1px solid #bfdbfe" }}>
-                  <span style={{ fontSize: "0.72rem", color: "#1e40af", fontWeight: 700 }}>🎯 RADIUS:</span>
+                <div className="radius-compact-strip">
+                  <span className="radius-badge-label">🎯 RADIUS:</span>
                   <select 
                     value={radius} 
                     onChange={(e) => setRadius(Number(e.target.value))}
-                    style={{ fontSize: "0.8rem", padding: "4px 8px", borderRadius: "6px", border: "1px solid #93c5fd", flex: 1, color: "#1e3a8a", fontWeight: 700, background: "white" }}
+                    className="radius-select-input"
                   >
                     <option value={5}>5 km radius</option>
                     <option value={10}>10 km radius</option>
@@ -592,52 +584,58 @@ const VehicleListing = () => {
               )}
             </div>
 
-            <div className="search-step">
+            {/* Step 2: Brand */}
+            <div className="search-step step-brand">
               <div className="step-label">
-                <span className="step-num active-num">2</span> Brand
+                <span className="step-num active-num">2</span>
+                <span>Brand / Model</span>
               </div>
               <div className="step-input-box">
-                <Car size={18} className="icon-blue-txt" />
+                <Car size={17} className="icon-blue-txt flex-shrink-0" />
                 <input
                   type="text"
-                  placeholder="Any brand"
+                  placeholder="Toyota, Honda, Benz..."
                   value={filter.brand}
                   onChange={(e) =>
                     setFilter({ ...filter, brand: e.target.value })
                   }
                 />
+                {filter.brand && (
+                  <button
+                    type="button"
+                    onClick={() => setFilter({ ...filter, brand: "" })}
+                    className="clear-inline-btn"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             </div>
 
-            <div className="search-step" style={{ flex: 1.5 }}>
+            {/* Step 3: Price / day */}
+            <div className="search-step step-price">
               <div className="step-label">
-                <span className="step-num active-num">3</span> Price / day
+                <span className="step-num active-num">3</span>
+                <span>Price / day (LKR)</span>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "0.5rem",
-                  alignItems: "center",
-                  width: "100%",
-                }}
-              >
-                <div className="step-input-box" style={{ flex: 1 }}>
-                  <span className="currency-label">LKR</span>
+              <div className="price-inputs-wrapper">
+                <div className="step-input-box price-half">
+                  <span className="currency-tag">Min</span>
                   <input
                     type="number"
-                    placeholder="Min"
+                    placeholder="0"
                     value={filter.minPrice}
                     onChange={(e) =>
                       setFilter({ ...filter, minPrice: e.target.value })
                     }
                   />
                 </div>
-                <span style={{ color: "#9ca3af", fontWeight: 600 }}>to</span>
-                <div className="step-input-box" style={{ flex: 1 }}>
-                  <span className="currency-label">LKR</span>
+                <span className="price-divider">-</span>
+                <div className="step-input-box price-half">
+                  <span className="currency-tag">Max</span>
                   <input
                     type="number"
-                    placeholder="Max"
+                    placeholder="Any"
                     value={filter.maxPrice}
                     onChange={(e) =>
                       setFilter({ ...filter, maxPrice: e.target.value })
@@ -647,16 +645,26 @@ const VehicleListing = () => {
               </div>
             </div>
 
+            {/* Search Action */}
             <div className="search-action">
-              <button className="big-search-btn">
-                <Search size={20} /> Search
+              <button 
+                className="big-search-btn"
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById("vehicle-results-section");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                <Search size={18} />
+                <span>Search</span>
               </button>
             </div>
           </div>
 
+          {/* Quick Filter Bottom Bar */}
           <div className="filter-bottom-row">
             <div className="filter-group">
-              <span className="filter-label">SHOW ME</span>
+              <span className="filter-label">SORT:</span>
               <button
                 className={`filter-pill mode-pill ${
                   filterShow === "nearest" ? "active-mode" : ""
@@ -664,7 +672,7 @@ const VehicleListing = () => {
                 onClick={() => setFilterShow("nearest")}
               >
                 <Navigation
-                  size={14}
+                  size={13}
                   className={filterShow === "nearest" ? "" : "icon-gray-txt"}
                 />{" "}
                 Nearest
@@ -676,15 +684,15 @@ const VehicleListing = () => {
                 onClick={() => setFilterShow("top-rated")}
               >
                 <Star
-                  size={14}
+                  size={13}
                   className={filterShow === "top-rated" ? "" : "icon-gray-txt"}
                 />{" "}
                 Top rated
               </button>
             </div>
 
-            <div className="filter-group hide-mobile">
-              <span className="filter-label">FUEL</span>
+            <div className="filter-group fuel-group">
+              <span className="filter-label">FUEL:</span>
               {["any", "petrol", "diesel", "hybrid", "electric"].map((f) => (
                 <button
                   key={f}
@@ -693,23 +701,23 @@ const VehicleListing = () => {
                   }`}
                   onClick={() => setFilterFuel(f)}
                 >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                  {f === "any" ? "All Fuel" : f.charAt(0).toUpperCase() + f.slice(1)}
                 </button>
               ))}
             </div>
 
             <div className="match-count-pill">
-              <Sliders size={14} className="icon-orange-txt" />{" "}
-              {filtered.length} cars match
+              <Sliders size={13} className="icon-orange-txt" />{" "}
+              <strong>{filtered.length}</strong> {filtered.length === 1 ? "car found" : "cars found"}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container">
+      <div className="container" id="vehicle-results-section">
         <div className="results-header-modern">
           <div className="results-titles">
-            <h2>Nearest cars to you</h2>
+            <h2>Available Vehicles</h2>
             <p>{filtered.length} verified vehicles · live availability</p>
           </div>
           <div className="results-header-actions">
@@ -749,51 +757,55 @@ const VehicleListing = () => {
                 <button
                   type="button"
                   className="sidebar-reset-action-btn"
-                  style={{ marginTop: "1rem" }}
                   onClick={handleClearPinnedLocation}
+                  style={{ marginTop: "1rem" }}
                 >
-                  Clear Location Pin
+                  View All Available Vehicles
                 </button>
               )}
             </div>
           ) : (
-            <div className="vehicle-grid animate-up">
-              {filtered.map((v, i) => (
-                <VehicleCard key={v._id} vehicle={v} index={i} />
+            <div className="vehicle-grid">
+              {filtered.map((vehicle) => (
+                <VehicleCard
+                  key={vehicle._id}
+                  vehicle={vehicle}
+                  distance={vehicle.distanceFromCenter}
+                />
               ))}
             </div>
           )
         ) : (
           <div className="listing-map-section">
             <div className="listing-map-container">
-              {/* Interactive Banner over the map */}
+              {/* Map UI overlays */}
               {pinnedLocation ? (
-                <div className="map-pinned-banner animate-fade-in">
+                <div className="map-pinned-banner">
                   <div className="map-pinned-left">
                     <span className="pinned-pulse-dot" />
                     <div>
-                      <span className="pinned-title">🎯 20km Radius Active</span>
-                      <p className="pinned-addr" title={pinnedLocation.address}>
-                        {pinnedLocation.address}
-                      </p>
+                      <span className="pinned-title">Searching near pinned location</span>
+                      <p className="pinned-addr">{pinnedLocation.address}</p>
                     </div>
                   </div>
                   <div className="map-pinned-right">
-                    <span className="pinned-count-pill">{filtered.length} vehicle{filtered.length === 1 ? "" : "s"} found</span>
+                    <span className="pinned-count-pill">
+                      {filtered.length} within {radius}km
+                    </span>
                     <button
                       type="button"
-                      className="pinned-clear-btn"
                       onClick={handleClearPinnedLocation}
-                      title="Clear custom pin"
+                      className="pinned-clear-btn"
+                      title="Clear pinned location"
                     >
-                      ✕ Clear Pin
+                      Clear Pin
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="map-hint-banner animate-fade-in">
+                <div className="map-hint-banner">
                   <span className="map-hint-icon">📍</span>
-                  <span><strong>Interactive Map:</strong> Click anywhere across Sri Lanka to drop a pin and find cars within a 20km radius!</span>
+                  <span>Click anywhere on the map to find cars within 20km</span>
                 </div>
               )}
 
@@ -1054,41 +1066,572 @@ const VehicleListing = () => {
       </div>
 
       <style>{`
-        /* Map View Styles */
+        /* Listing Page Core */
+        .listing-page {
+          min-height: calc(100vh - 68px);
+          padding-bottom: 80px;
+          background: #fcfbf9;
+        }
+
+        /* Modern Ultra-Sleek Header */
+        .modern-header-section {
+          background: radial-gradient(circle at 50% 20%, #fff7ed 0%, #ffedd5 55%, #fef3e7 100%);
+          padding: 85px 1.5rem 1.75rem;
+          text-align: center;
+          border-bottom: 1px solid rgba(254, 215, 170, 0.45);
+          position: relative;
+        }
+
+        .top-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(249, 115, 22, 0.22);
+          padding: 0.3rem 0.85rem;
+          border-radius: 9999px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #c2410c;
+          margin-bottom: 0.75rem;
+          box-shadow: 0 2px 8px rgba(249, 115, 22, 0.08);
+        }
+
+        .modern-title {
+          font-size: clamp(1.85rem, 3.4vw, 2.75rem);
+          font-weight: 900;
+          color: #111827;
+          line-height: 1.15;
+          letter-spacing: -0.025em;
+          margin: 0 0 0.4rem 0;
+        }
+
+        .text-orange {
+          color: #f97316;
+        }
+
+        .modern-subtitle {
+          font-size: 0.95rem;
+          color: #6b7280;
+          max-width: 580px;
+          line-height: 1.45;
+          margin: 0 auto;
+        }
+
+        /* 3-Step Search Card */
+        .search-card-block {
+          background: rgba(255, 255, 255, 0.98);
+          border: 1px solid rgba(249, 115, 22, 0.16);
+          border-radius: 1.5rem;
+          padding: 1.35rem 1.6rem 1.25rem;
+          box-shadow: 0 20px 45px -10px rgba(249, 115, 22, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03);
+          margin-top: 1.25rem;
+          margin-bottom: 2rem;
+          position: relative;
+          backdrop-filter: blur(16px);
+        }
+
+        .search-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.85rem;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .search-card-title-wrap {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+
+        .search-card-header h2 {
+          font-size: 1.2rem;
+          font-weight: 800;
+          margin: 0;
+          color: #111827;
+          letter-spacing: -0.01em;
+        }
+
+        .selected-type-badge {
+          background: #ffedd5;
+          color: #c2410c;
+          border: 1px solid #fed7aa;
+          font-size: 0.74rem;
+          padding: 0.2rem 0.6rem;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .reset-btn {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #dc2626;
+          padding: 0.35rem 0.8rem;
+          border-radius: 100px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          transition: all 0.2s ease;
+        }
+        .reset-btn:hover {
+          background: #ef4444;
+          color: white;
+          border-color: #ef4444;
+          transform: translateY(-1px);
+        }
+
+        /* Compact 1-Row Vehicle Type Filter */
+        .vehicle-type-strip-section {
+          background: #faf8f5;
+          border: 1px solid #f0ebe4;
+          border-radius: 1.15rem;
+          padding: 0.75rem 0.9rem;
+          margin-bottom: 1rem;
+        }
+
+        .vehicle-type-mini-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.55rem;
+        }
+
+        .mini-header-label {
+          font-size: 0.68rem;
+          font-weight: 800;
+          letter-spacing: 0.06em;
+          color: #9ca3af;
+        }
+
+        .mini-clear-btn {
+          background: none;
+          border: none;
+          color: #ea580c;
+          font-size: 0.72rem;
+          font-weight: 700;
+          cursor: pointer;
+          padding: 0;
+        }
+        .mini-clear-btn:hover {
+          text-decoration: underline;
+        }
+
+        .vehicle-type-compact-grid {
+          display: grid;
+          grid-template-columns: repeat(8, 1fr);
+          gap: 0.65rem;
+        }
+
+        .vehicle-type-pill-card {
+          background: #ffffff;
+          border: 1.5px solid #e9ecef;
+          border-radius: 12px;
+          padding: 0.5rem 0.35rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          cursor: pointer;
+          transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+          height: 72px;
+          text-align: center;
+        }
+
+        .vehicle-type-pill-card:hover {
+          border-color: #fdba74;
+          background: #fffbf7;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.12);
+        }
+
+        .vehicle-type-pill-card.active-type-pill {
+          border-color: #f97316;
+          background: linear-gradient(145deg, #fff7ed 0%, #fed7aa 100%);
+          box-shadow: 0 4px 14px rgba(249, 115, 22, 0.25);
+          transform: translateY(-2px);
+        }
+
+        .type-card-img-wrap {
+          height: 34px;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .type-card-img-wrap img {
+          max-height: 100%;
+          max-width: 90%;
+          object-fit: contain;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));
+        }
+
+        .type-card-label {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #1f2937;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100%;
+        }
+
+        .vehicle-type-pill-card.active-type-pill .type-card-label {
+          color: #9a3412;
+          font-weight: 800;
+        }
+
+        /* 3-Step Search Row */
+        .search-steps-row {
+          display: flex;
+          gap: 0.85rem;
+          align-items: flex-end;
+          margin-bottom: 0.85rem;
+        }
+
+        .search-step {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+
+        .step-location { flex: 1.25; }
+        .step-brand { flex: 1; }
+        .step-price { flex: 1.35; }
+
+        .step-label {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #374151;
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+        }
+
+        .step-num {
+          width: 17px;
+          height: 17px;
+          border-radius: 50%;
+          background: #f97316;
+          color: white;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.68rem;
+          font-weight: 800;
+        }
+
+        .locate-me-btn {
+          margin-left: auto;
+          background: none;
+          border: none;
+          color: #ea580c;
+          font-size: 0.72rem;
+          font-weight: 700;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          padding: 0;
+          transition: color 0.15s ease;
+        }
+        .locate-me-btn:hover { color: #c2410c; }
+
+        .step-input-box {
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+          background: #ffffff;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 0.55rem 0.85rem;
+          height: 44px;
+          box-sizing: border-box;
+          transition: all 0.2s ease;
+        }
+
+        .step-input-box:focus-within {
+          border-color: #f97316;
+          box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+        }
+
+        .step-input-box input {
+          border: none;
+          background: transparent;
+          outline: none;
+          width: 100%;
+          font-size: 0.88rem;
+          font-weight: 600;
+          color: #111827;
+          font-family: inherit;
+        }
+
+        .step-input-box input::placeholder {
+          color: #9ca3af;
+          font-weight: 500;
+        }
+
+        .clear-pin-chip {
+          background: #fee2e2;
+          color: #dc2626;
+          border: none;
+          border-radius: 6px;
+          padding: 2px 7px;
+          font-size: 0.7rem;
+          font-weight: 700;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+
+        .clear-inline-btn {
+          background: none;
+          border: none;
+          color: #9ca3af;
+          font-size: 1.1rem;
+          line-height: 1;
+          cursor: pointer;
+          padding: 0 2px;
+        }
+        .clear-inline-btn:hover { color: #4b5563; }
+
+        .radius-compact-strip {
+          margin-top: 4px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: #eff6ff;
+          padding: 3px 8px;
+          border-radius: 6px;
+          border: 1px solid #bfdbfe;
+        }
+
+        .radius-badge-label {
+          font-size: 0.66rem;
+          color: #1e40af;
+          font-weight: 800;
+        }
+
+        .radius-select-input {
+          font-size: 0.74rem;
+          padding: 2px 4px;
+          border-radius: 4px;
+          border: 1px solid #93c5fd;
+          flex: 1;
+          color: #1e3a8a;
+          font-weight: 700;
+          background: white;
+          outline: none;
+        }
+
+        .price-inputs-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          width: 100%;
+        }
+
+        .price-half {
+          flex: 1;
+          padding: 0.55rem 0.65rem;
+        }
+
+        .price-divider {
+          color: #9ca3af;
+          font-weight: 700;
+          font-size: 0.85rem;
+        }
+
+        .currency-tag {
+          font-size: 0.68rem;
+          font-weight: 800;
+          color: #9ca3af;
+          text-transform: uppercase;
+        }
+
+        /* Search Button */
+        .search-action {
+          flex-shrink: 0;
+        }
+
+        .big-search-btn {
+          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          padding: 0 1.5rem;
+          height: 44px;
+          font-weight: 750;
+          font-size: 0.92rem;
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 4px 14px rgba(249, 115, 22, 0.28);
+          font-family: inherit;
+        }
+
+        .big-search-btn:hover {
+          background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 6px 18px rgba(249, 115, 22, 0.38);
+        }
+
+        /* Bottom Quick Filter Bar */
+        .filter-bottom-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 0.75rem;
+          border-top: 1px solid #f3f4f6;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+
+        .filter-group {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
+
+        .filter-label {
+          font-size: 0.68rem;
+          font-weight: 800;
+          color: #9ca3af;
+          letter-spacing: 0.05em;
+          margin-right: 0.15rem;
+        }
+
+        .filter-pill {
+          border: 1px solid #e5e7eb;
+          background: white;
+          padding: 0.28rem 0.7rem;
+          border-radius: 100px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #4b5563;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          transition: all 0.18s ease;
+          font-family: inherit;
+        }
+
+        .filter-pill:hover {
+          border-color: #cbd5e1;
+          background: #f8fafc;
+        }
+
+        .filter-pill.active-mode,
+        .filter-pill.active-fuel {
+          background: #111827;
+          color: white;
+          border-color: #111827;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .match-count-pill {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: #4b5563;
+          background: #f3f4f6;
+          padding: 0.28rem 0.75rem;
+          border-radius: 100px;
+        }
+
+        .match-count-pill strong {
+          color: #111827;
+        }
+
+        .icon-orange-txt { color: #f97316; }
+        .icon-blue-txt { color: #3b82f6; }
+        .icon-gray-txt { color: #9ca3af; }
+
+        /* Results & Grid */
+        .results-header-modern {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+
+        .results-titles h2 {
+          font-size: 1.45rem;
+          font-weight: 800;
+          margin: 0;
+          color: #111827;
+        }
+
+        .results-titles p {
+          margin: 0.2rem 0 0;
+          color: #6b7280;
+          font-size: 0.85rem;
+        }
+
         .results-header-actions {
           display: flex;
           align-items: center;
           gap: 1rem;
         }
+
         .view-toggle {
           display: flex;
           background: #f3f4f6;
           border-radius: 100px;
-          padding: 4px;
+          padding: 3px;
           gap: 2px;
         }
+
         .view-toggle-btn {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 0.5rem 1.1rem;
+          gap: 5px;
+          padding: 0.4rem 0.95rem;
           border-radius: 100px;
           border: none;
           background: transparent;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           font-weight: 600;
           color: #6b7280;
           cursor: pointer;
-          transition: all 0.25s ease;
+          transition: all 0.2s ease;
           font-family: inherit;
         }
+
         .view-toggle-btn:hover { color: #111827; }
         .view-toggle-btn.active-view {
           background: #f97316;
           color: white;
-          box-shadow: 0 4px 12px rgba(249,115,22,0.3);
+          box-shadow: 0 2px 8px rgba(249,115,22,0.25);
         }
 
+        .vehicle-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+          gap: 1.25rem;
+        }
+
+        .loading-state, .empty-state {
+          text-align: center;
+          padding: 3.5rem 1rem;
+          color: #6b7280;
+        }
+
+        /* Map Section Styles */
         .listing-map-section {
           display: grid;
           grid-template-columns: 1fr 380px;
@@ -1096,6 +1639,7 @@ const VehicleListing = () => {
           height: 670px;
           animation: fadeInUp 0.4s ease both;
         }
+
         .listing-map-container {
           border-radius: 1.5rem;
           overflow: hidden;
@@ -1103,6 +1647,7 @@ const VehicleListing = () => {
           border: 1px solid rgba(0,0,0,0.06);
           position: relative;
         }
+
         .listing-map-loading {
           display: flex;
           flex-direction: column;
@@ -1113,7 +1658,6 @@ const VehicleListing = () => {
           color: #6b7280;
         }
 
-        /* Map Banners */
         .map-pinned-banner {
           position: absolute;
           top: 14px;
@@ -1131,12 +1675,14 @@ const VehicleListing = () => {
           align-items: center;
           gap: 12px;
         }
+
         .map-pinned-left {
           display: flex;
           align-items: center;
           gap: 10px;
           min-width: 0;
         }
+
         .pinned-pulse-dot {
           width: 10px;
           height: 10px;
@@ -1146,17 +1692,20 @@ const VehicleListing = () => {
           animation: pulse 1.8s infinite;
           flex-shrink: 0;
         }
+
         @keyframes pulse {
           0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); }
           70% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
           100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
         }
+
         .pinned-title {
           font-size: 0.82rem;
           font-weight: 800;
           color: #1e40af;
           display: block;
         }
+
         .pinned-addr {
           margin: 0;
           font-size: 0.76rem;
@@ -1166,12 +1715,14 @@ const VehicleListing = () => {
           text-overflow: ellipsis;
           max-width: 320px;
         }
+
         .map-pinned-right {
           display: flex;
           align-items: center;
           gap: 8px;
           flex-shrink: 0;
         }
+
         .pinned-count-pill {
           background: #dbeafe;
           color: #1e40af;
@@ -1180,6 +1731,7 @@ const VehicleListing = () => {
           padding: 4px 10px;
           border-radius: 20px;
         }
+
         .pinned-clear-btn {
           background: #fee2e2;
           color: #dc2626;
@@ -1191,9 +1743,7 @@ const VehicleListing = () => {
           cursor: pointer;
           transition: 0.2s;
         }
-        .pinned-clear-btn:hover {
-          background: #fecaca;
-        }
+        .pinned-clear-btn:hover { background: #fecaca; }
 
         .map-hint-banner {
           position: absolute;
@@ -1213,15 +1763,14 @@ const VehicleListing = () => {
           color: #374151;
           pointer-events: none;
         }
-        .map-hint-icon {
-          font-size: 1rem;
-        }
 
-        /* Info Window */
+        .map-hint-icon { font-size: 1rem; }
+
         .map-info-card {
           width: 240px;
           font-family: var(--font-body);
         }
+
         .map-info-img {
           width: 100%;
           height: 120px;
@@ -1229,12 +1778,14 @@ const VehicleListing = () => {
           border-radius: 10px;
           margin-bottom: 8px;
         }
+
         .map-info-body h4 {
           margin: 0 0 4px;
           font-size: 1rem;
           font-weight: 800;
           color: #111827;
         }
+
         .map-info-dist-badge {
           display: inline-block;
           background: #eff6ff;
@@ -1246,6 +1797,7 @@ const VehicleListing = () => {
           margin-bottom: 6px;
           border: 1px solid #bfdbfe;
         }
+
         .map-info-location {
           display: flex;
           align-items: center;
@@ -1254,16 +1806,19 @@ const VehicleListing = () => {
           font-size: 0.8rem;
           margin: 0 0 8px;
         }
+
         .map-info-footer {
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
+
         .map-info-price {
           font-weight: 800;
           font-size: 0.9rem;
           color: #f97316;
         }
+
         .map-info-book {
           background: #f97316;
           color: white;
@@ -1288,16 +1843,19 @@ const VehicleListing = () => {
           flex-direction: column;
           box-shadow: 0 10px 30px rgba(0,0,0,0.04);
         }
+
         .map-sidebar-header {
           padding: 1.15rem 1.4rem;
           border-bottom: 1px solid rgba(0,0,0,0.05);
         }
+
         .map-sidebar-header h3 {
           margin: 0;
           font-size: 1.05rem;
           font-weight: 800;
           color: #111827;
         }
+
         .sidebar-clear-pin-btn {
           background: #fee2e2;
           color: #dc2626;
@@ -1309,14 +1867,14 @@ const VehicleListing = () => {
           cursor: pointer;
           transition: 0.2s;
         }
-        .sidebar-clear-pin-btn:hover {
-          background: #fecaca;
-        }
+        .sidebar-clear-pin-btn:hover { background: #fecaca; }
+
         .map-sidebar-header p {
           margin: 4px 0 0;
           font-size: 0.78rem;
           color: #9ca3af;
         }
+
         .map-sidebar-list {
           overflow-y: auto;
           flex: 1;
@@ -1325,6 +1883,7 @@ const VehicleListing = () => {
           flex-direction: column;
           gap: 0.5rem;
         }
+
         .map-sidebar-empty {
           display: flex;
           flex-direction: column;
@@ -1334,20 +1893,24 @@ const VehicleListing = () => {
           padding: 2.5rem 1rem;
           color: #6b7280;
         }
+
         .map-sidebar-empty .empty-icon {
           font-size: 2.2rem;
           margin-bottom: 0.75rem;
         }
+
         .map-sidebar-empty strong {
           color: #1f2937;
           font-size: 0.92rem;
           margin-bottom: 0.35rem;
         }
+
         .map-sidebar-empty p {
           font-size: 0.78rem;
           color: #9ca3af;
           margin-bottom: 1rem;
         }
+
         .sidebar-reset-action-btn {
           background: #f97316;
           color: white;
@@ -1359,9 +1922,8 @@ const VehicleListing = () => {
           cursor: pointer;
           box-shadow: 0 4px 12px rgba(249,115,22,0.25);
         }
-        .sidebar-reset-action-btn:hover {
-          background: #ea580c;
-        }
+        .sidebar-reset-action-btn:hover { background: #ea580c; }
+
         .map-sidebar-item {
           display: flex;
           align-items: center;
@@ -1375,15 +1937,18 @@ const VehicleListing = () => {
           text-align: left;
           font-family: inherit;
         }
+
         .map-sidebar-item:hover {
           border-color: rgba(249,115,22,0.15);
           background: #fff7ed;
         }
+
         .map-sidebar-item.map-sidebar-active {
           border-color: #f97316;
           background: #fff7ed;
           box-shadow: 0 4px 12px rgba(249,115,22,0.1);
         }
+
         .map-sidebar-img-wrap {
           width: 56px;
           height: 56px;
@@ -1391,11 +1956,13 @@ const VehicleListing = () => {
           overflow: hidden;
           flex-shrink: 0;
         }
+
         .map-sidebar-img-wrap img {
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
+
         .map-sidebar-placeholder {
           width: 100%;
           height: 100%;
@@ -1405,6 +1972,7 @@ const VehicleListing = () => {
           justify-content: center;
           color: #9ca3af;
         }
+
         .map-sidebar-info {
           display: flex;
           flex-direction: column;
@@ -1412,12 +1980,14 @@ const VehicleListing = () => {
           min-width: 0;
           flex: 1;
         }
+
         .sidebar-info-top {
           display: flex;
           justify-content: space-between;
           align-items: center;
           gap: 6px;
         }
+
         .sidebar-info-top strong {
           font-size: 0.9rem;
           color: #111827;
@@ -1425,6 +1995,7 @@ const VehicleListing = () => {
           overflow: hidden;
           text-overflow: ellipsis;
         }
+
         .sidebar-dist-pill {
           background: #dbeafe;
           color: #1e40af;
@@ -1434,6 +2005,7 @@ const VehicleListing = () => {
           border-radius: 4px;
           flex-shrink: 0;
         }
+
         .map-sidebar-loc {
           display: flex;
           align-items: center;
@@ -1441,6 +2013,7 @@ const VehicleListing = () => {
           font-size: 0.75rem;
           color: #9ca3af;
         }
+
         .map-sidebar-price {
           font-size: 0.82rem;
           font-weight: 800;
@@ -1452,385 +2025,25 @@ const VehicleListing = () => {
           to { opacity: 1; transform: translateY(0); }
         }
 
-        .listing-page {
-          min-height: calc(100vh - 68px);
-          padding-bottom: 80px;
-          background: var(--bg, #f9fafb);
-        }
-
-        /* Modern Header */
-        .modern-header-section {
-          background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-          padding: 120px 1rem 3rem;
-          text-align: center;
-          border-bottom: 1px solid #fed7aa;
-          position: relative;
-        }
-
-        .vehicle-type-card-section {
-          margin: 1.75rem 0 0;
-          padding: 1.5rem 1.4rem;
-          background: rgba(255, 255, 255, 0.95);
-          border: 1px solid rgba(249, 115, 22, 0.14);
-          border-radius: 26px;
-          box-shadow: 0 14px 32px rgba(249, 115, 22, 0.07);
-        }
-
-        .vehicle-type-title-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 1rem;
-          margin-bottom: 1.25rem;
-          flex-wrap: wrap;
-        }
-
-        .vehicle-type-title-row h3 {
-          margin: 0;
-          font-size: 1.35rem;
-          font-weight: 800;
-          color: #111827;
-        }
-
-        .vehicle-type-title-row p {
-          margin: 0.25rem 0 0;
-          color: #6b7280;
-          font-size: 0.95rem;
-        }
-
-        .clear-type-btn {
-          border: 1.5px solid #fecaca;
-          background: #fef2f2;
-          color: #ef4444;
-          padding: 0.45rem 0.85rem;
-          border-radius: 9999px;
-          font-weight: 700;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          transition: all 0.2s ease;
-        }
-
-        .clear-type-btn:hover {
-          background: #ef4444;
-          color: #ffffff;
-          border-color: #ef4444;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
-        }
-
-        .vehicle-type-card-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 1.25rem;
-        }
-
-        .vehicle-type-card {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: space-between;
-          padding: 1.25rem 1rem;
-          border-radius: 20px;
-          background: #ffffff;
-          border: 1.5px solid #e2e8f0;
-          cursor: pointer;
-          transition: all 0.25s ease;
-          text-align: center;
-          min-height: 180px;
-        }
-
-        .vehicle-type-card:hover {
-          transform: translateY(-4px);
-          border-color: #f97316;
-          box-shadow: 0 12px 24px rgba(249, 115, 22, 0.15);
-        }
-
-        .vehicle-type-card.active-type-card {
-          border-color: #f97316;
-          background: #fff7ed;
-          box-shadow: 0 12px 24px rgba(249, 115, 22, 0.18);
-        }
-
-        .vehicle-type-card-image {
-          width: 100%;
-          height: 110px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0.5rem;
-          background: transparent;
-        }
-
-        .vehicle-type-card-image img {
-          width: 100%;
-          height: 100%;
-          max-width: 160px;
-          object-fit: contain;
-          filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.08));
-        }
-
-        .vehicle-type-card span {
-          color: #111827;
-          font-weight: 700;
-          font-size: 1rem;
-          margin-top: 0.5rem;
-        }
-
-        .top-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          background: #fff7ed;
-          border: 1px solid rgba(249, 115, 22, 0.2);
-          padding: 0.4rem 1rem;
-          border-radius: 100px;
-          font-size: 0.82rem;
-          font-weight: 700;
-          color: #c2410c;
-          margin-bottom: 1.5rem;
-        }
-
-        .icon-orange-txt { color: #f97316; }
-        .icon-blue-txt { color: #38bdf8; }
-        .icon-gray-txt { color: #9ca3af; }
-
-        .modern-title {
-          font-size: clamp(2.5rem, 6vw, 4rem);
-          font-weight: 800;
-          color: #111827;
-          line-height: 1.08;
-          letter-spacing: -0.03em;
-          margin: 0 0 1rem 0;
-        }
-
-        .text-orange {
-          color: #f97316;
-        }
-
-        .modern-subtitle {
-          font-size: 1.1rem;
-          color: #6b7280;
-          max-width: 600px;
-          line-height: 1.6;
-          margin: 0;
-        }
-
-        /* 3 Step Search Block */
-        .search-card-block {
-          background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 1.5rem;
-          padding: 2rem;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-          margin-top: 2rem;
-          margin-bottom: 3rem;
-        }
-
-        .search-card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 1.5rem;
-        }
-
-        .search-card-header h2 {
-          font-size: 1.5rem;
-          font-weight: 800;
-          margin: 0;
-          color: #111827;
-        }
-
-        .reset-btn {
-          background: #ffffff;
-          border: 1px solid rgba(0,0,0,0.08);
-          padding: 0.4rem 1rem;
-          border-radius: 100px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: #4b5563;
-          cursor: pointer;
-          transition: 0.2s;
-        }
-        .reset-btn:hover { background: #f3f4f6; color: #111827; }
-
-        .search-steps-row {
-          display: flex;
-          gap: 1.5rem;
-          align-items: flex-end;
-          margin-top: 1.5rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .search-step {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .step-label {
-          font-size: 0.88rem;
-          font-weight: 700;
-          color: #374151;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .step-num {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #f3f4f6;
-          color: #6b7280;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.75rem;
-        }
-
-        .step-num.active-num {
-          background: #f97316;
-          color: white;
-        }
-
-        .step-input-box {
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
-          border-radius: 1rem;
-          padding: 0.75rem 1rem;
-        }
-
-        .step-input-box input {
-          border: none;
-          background: transparent;
-          outline: none;
-          width: 100%;
-          font-size: 0.95rem;
-          color: #111827;
-        }
-
-        .currency-label {
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: #9ca3af;
-        }
-
-        .big-search-btn {
-          background: #f97316;
-          color: white;
-          border: none;
-          border-radius: 1rem;
-          padding: 0.85rem 1.75rem;
-          font-weight: 700;
-          font-size: 1rem;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-
-        .big-search-btn:hover {
-          background: #ea580c;
-        }
-
-        .filter-bottom-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-top: 1.25rem;
-          border-top: 1px solid #f3f4f6;
-          gap: 1rem;
-          flex-wrap: wrap;
-        }
-
-        .filter-group {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .filter-label {
-          font-size: 0.75rem;
-          font-weight: 800;
-          color: #9ca3af;
-          letter-spacing: 0.05em;
-          margin-right: 0.25rem;
-        }
-
-        .filter-pill {
-          border: 1px solid #e5e7eb;
-          background: white;
-          padding: 0.4rem 0.85rem;
-          border-radius: 100px;
-          font-size: 0.82rem;
-          font-weight: 600;
-          color: #4b5563;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 0.35rem;
-        }
-
-        .filter-pill.active-mode,
-        .filter-pill.active-fuel {
-          background: #111827;
-          color: white;
-          border-color: #111827;
-        }
-
-        .match-count-pill {
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          font-size: 0.85rem;
-          font-weight: 700;
-          color: #374151;
-        }
-
-        .results-header-modern {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 2rem;
-        }
-
-        .results-titles h2 {
-          font-size: 1.75rem;
-          font-weight: 800;
-          margin: 0;
-          color: #111827;
-        }
-
-        .results-titles p {
-          margin: 0.25rem 0 0;
-          color: #6b7280;
-          font-size: 0.9rem;
-        }
-
-        .vehicle-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-          gap: 1.25rem;
-        }
-
-        .loading-state, .empty-state {
-          text-align: center;
-          padding: 4rem 1rem;
-          color: #6b7280;
+        /* Responsive Breakpoints */
+        @media (max-width: 1024px) {
+          .vehicle-type-compact-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
         }
 
         @media (max-width: 900px) {
+          .modern-header-section {
+            padding: 75px 1rem 1.25rem;
+          }
           .search-steps-row {
             flex-direction: column;
             align-items: stretch;
+            gap: 0.75rem;
+          }
+          .big-search-btn {
+            width: 100%;
+            justify-content: center;
           }
           .listing-map-section {
             grid-template-columns: 1fr;
@@ -1844,12 +2057,25 @@ const VehicleListing = () => {
           }
         }
 
-        @media (max-width: 768px) {
-          .vehicle-type-card-grid {
-            grid-template-columns: repeat(2, 1fr);
+        @media (max-width: 640px) {
+          .vehicle-type-compact-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.4rem;
           }
-          .hide-mobile {
-            display: none;
+          .vehicle-type-pill-card {
+            height: 64px;
+            padding: 0.35rem 0.2rem;
+          }
+          .type-card-img-wrap {
+            height: 28px;
+          }
+          .type-card-label {
+            font-size: 0.65rem;
+          }
+          .fuel-group {
+            overflow-x: auto;
+            max-width: 100%;
+            padding-bottom: 4px;
           }
         }
       `}</style>
