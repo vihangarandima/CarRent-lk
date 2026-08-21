@@ -352,27 +352,27 @@ const Login = () => {
 
         /* Button Styling */
         .btn-login {
-          background: #f97316;
+          background: linear-gradient(135deg, #ff8800 0%, #f97316 45%, #ea580c 100%);
           color: white;
           padding: 16px;
-          border-radius: 100px;
-          font-weight: 700;
+          border-radius: 12px;
+          font-weight: 750;
           font-size: 1rem;
-          border: none;
-          cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 12px;
-          margin-top: 10px;
-          transition: all 0.3s ease;
-          box-shadow: 0 10px 20px rgba(249, 115, 22, 0.2);
+          border: none;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.45);
+          width: 100%;
         }
 
         .btn-login:hover:not(:disabled) {
+          background: linear-gradient(135deg, #ff9500 0%, #ea580c 100%);
           transform: translateY(-2px);
-          box-shadow: 0 12px 24px rgba(249, 115, 22, 0.3);
-          background: #ea580c;
+          box-shadow: 0 12px 28px -4px rgba(234, 88, 12, 0.58);
         }
 
         .btn-login:disabled {

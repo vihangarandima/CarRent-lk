@@ -932,10 +932,10 @@ const Register = () => {
         }
 
         .btn-continue-step {
-          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+          background: linear-gradient(135deg, #ff8800 0%, #f97316 45%, #ea580c 100%);
           color: white;
           padding: 1rem 2.6rem;
-          border-radius: 100px;
+          border-radius: 12px;
           font-weight: 800;
           font-size: 1rem;
           border: none;
@@ -943,14 +943,15 @@ const Register = () => {
           display: inline-flex;
           align-items: center;
           gap: 10px;
-          box-shadow: 0 10px 25px rgba(249, 115, 22, 0.3);
-          transition: all 0.25s ease;
+          box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.45);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           font-family: inherit;
         }
 
         .btn-continue-step:hover {
+          background: linear-gradient(135deg, #ff9500 0%, #ea580c 100%);
           transform: translateY(-2px);
-          box-shadow: 0 14px 30px rgba(249, 115, 22, 0.4);
+          box-shadow: 0 12px 28px -4px rgba(234, 88, 12, 0.58);
         }
 
         /* STEP 3 FORM STYLING */
@@ -1020,7 +1021,7 @@ const Register = () => {
           border: 1.5px solid #E5E7EB;
           color: #374151;
           padding: 12px;
-          border-radius: 100px;
+          border-radius: 12px;
           font-weight: 700;
           font-size: 0.95rem;
           display: flex;
@@ -1057,7 +1058,7 @@ const Register = () => {
         .input-wrapper input {
           width: 100%;
           padding: 12px 18px;
-          border-radius: 14px;
+          border-radius: 12px;
           border: 1.5px solid #E2E8F0;
           background: #F8FAFC;
           font-size: 0.95rem;
@@ -1103,10 +1104,10 @@ const Register = () => {
         }
 
         .btn-register {
-          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+          background: linear-gradient(135deg, #ff8800 0%, #f97316 45%, #ea580c 100%);
           color: white;
           padding: 15px;
-          border-radius: 100px;
+          border-radius: 12px;
           font-weight: 800;
           font-size: 1rem;
           border: none;
@@ -1116,11 +1117,16 @@ const Register = () => {
           justify-content: center;
           gap: 10px;
           margin-top: 8px;
-          box-shadow: 0 10px 20px rgba(249, 115, 22, 0.25);
+          box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.45);
           font-family: inherit;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .btn-register:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(249, 115, 22, 0.35); }
+        .btn-register:hover:not(:disabled) {
+          background: linear-gradient(135deg, #ff9500 0%, #ea580c 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 28px -4px rgba(234, 88, 12, 0.58);
+        }
 
         .form-error-alert {
           background: #FEF2F2;
@@ -1159,7 +1165,24 @@ const Register = () => {
         .otp-inputs { display:flex; gap:12px; justify-content:center; margin-bottom:24px; }
         .otp-inputs input { width:48px; height:56px; border-radius:12px; border:2px solid #E2E8F0; font-size:24px; font-weight:800; text-align:center; outline:none; }
         .otp-inputs input:focus { border-color:#f97316; background:white; }
-        .btn-verify { width:100%; background:#f97316; color:white; font-weight:700; padding:14px; border-radius:100px; border:none; font-size:15px; cursor:pointer; }
+        .btn-verify {
+          width:100%;
+          background: linear-gradient(135deg, #ff8800 0%, #f97316 45%, #ea580c 100%);
+          color:white;
+          font-weight:750;
+          padding:15px;
+          border-radius:12px;
+          border:none;
+          font-size:15px;
+          cursor:pointer;
+          box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.45);
+          transition: all 0.3s ease;
+        }
+        .btn-verify:hover {
+          background: linear-gradient(135deg, #ff9500 0%, #ea580c 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 28px -4px rgba(234, 88, 12, 0.58);
+        }
         .btn-otp-cancel { background:none; border:none; color:#64748B; font-weight:700; font-size:14px; cursor:pointer; margin-top: 10px; }
 
         @media (max-width: 768px) {

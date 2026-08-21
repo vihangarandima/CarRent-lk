@@ -251,36 +251,49 @@ const Navbar = () => {
         .hero-nav.on-dark .brand-yamu {
           color: #ffffff;
         }
+        .hero-nav.on-dark .brand-orange {
+          color: #ffffff;
+          opacity: 0.95;
+        }
         .hero-nav.on-dark .nav-links a {
-          color: rgba(255, 255, 255, 0.9);
+          color: rgba(255, 255, 255, 0.95);
+          font-weight: 600;
         }
         .hero-nav.on-dark .nav-links a:hover {
-          color: #FF8A00;
+          color: #ffffff;
+          opacity: 1;
         }
         .hero-nav.on-dark .nav-signin {
           color: #ffffff;
+          font-weight: 600;
         }
         .hero-nav.on-dark .burger span {
           background: #ffffff;
         }
-
-        .nav-btn {
-          background: #FF8A00;
-          color: #fff;
-          padding: 0.7rem 1.5rem;
-          border-radius: 999px;
-          font-weight: 600;
-          font-size: 0.95rem;
-          transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
-          border: none;
-          cursor: pointer;
-          text-decoration: none;
+        .hero-nav.on-dark .nav-btn {
+          background: #ffffff;
+          color: #0284c7;
+          font-weight: 700;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
         }
-
-        .nav-btn:hover {
-          background: #FF9100;
+        .hero-nav.on-dark .nav-btn:hover {
+          background: #f8fafc;
           transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(255, 138, 0, 0.3);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+        .hero-nav.on-dark .nav-list-btn {
+          background: rgba(255, 255, 255, 0.22);
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          color: #ffffff;
+          backdrop-filter: blur(8px);
+        }
+        .hero-nav.on-dark .nav-list-btn:hover {
+          background: rgba(255, 255, 255, 0.35);
+          border-color: #ffffff;
+        }
+        .hero-nav.on-dark .nav-profile-pill {
+          background: rgba(255, 255, 255, 0.95);
+          border-color: transparent;
         }
 
         /* List Vehicle Button — compact pill to the left of profile */

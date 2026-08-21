@@ -22,6 +22,9 @@ import {
   LayoutGrid,
   Trash2,
   LocateFixed,
+  ChevronLeft,
+  ChevronRight,
+  Layers,
 } from "lucide-react";
 
 // Image Imports
@@ -63,10 +66,49 @@ const ORANGE_CAR_PIN_SVG = "data:image/svg+xml;charset=UTF-8," + encodeURICompon
     </filter>
   </defs>
   <path d="M21 2C10.5 2 2 10.5 2 21c0 14 19 29 19 29s19-15 19-29c0-10.5-8.5-19-19-19z" fill="#f97316" stroke="#ffffff" stroke-width="2.5" filter="url(#c-shadow)"/>
-  <circle cx="21" cy="19" r="7" fill="#ffffff"/>
-  <circle cx="21" cy="19" r="3.5" fill="#ea580c"/>
+  <circle cx="21" cy="19" r="8" fill="#ffffff"/>
+  <path d="M16 21c-.3 0-.5-.2-.5-.5V19l1-2.6c.2-.4.6-.6 1-.6h7c.4 0 .8.2 1 .6l1 2.6v1.5c0 .3-.2.5-.5.5h-.5c-.3 0-.5-.2-.5-.5V20H17v.5c0 .3-.2.5-.5.5H16zm1.2-3h7.6l-.6-1.6h-6.4l-.6 1.6zm-.7 2c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6zm8 0c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6z" fill="#ea580c"/>
 </svg>
 `);
+
+// SVG generator for overlapping / clustered vehicle markers showing count badge (e.g. "3", "3+", "5+")
+const getMultiVehiclePinSvg = (count) => {
+  const countStr = count > 9 ? "9+" : `${count}`;
+  return (
+    "data:image/svg+xml;charset=UTF-8," +
+    encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="58" viewBox="0 0 48 58">
+  <defs>
+    <filter id="m-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <linearGradient id="pinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff7a18"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <!-- Main Orange Pin -->
+  <path d="M24 2C13 2 4 11 4 22c0 15 20 34 20 34s20-19 20-34C44 11 35 2 24 2z" fill="url(#pinGrad)" stroke="#ffffff" stroke-width="2.5" filter="url(#m-shadow)"/>
+  
+  <!-- Center White Circle -->
+  <circle cx="24" cy="20" r="10" fill="#ffffff"/>
+  
+  <!-- Car Silhouette Icon in Center -->
+  <path d="M18.5 21.8c-.3 0-.5-.2-.5-.5v-1.2l1.2-2.8c.2-.4.6-.7 1.1-.7h7.4c.5 0 .9.3 1.1.7l1.2 2.8v1.2c0 .3-.2.5-.5.5h-.5c-.3 0-.5-.2-.5-.5v-.4h-7.6v.4c0 .3-.2.5-.5.5h-.8zm1.5-3h8l-.6-1.5h-6.8l-.6 1.5zm-.8 2c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6zm8.6 0c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6z" fill="#ea580c"/>
+
+  <!-- Top Right Count Badge (${countStr}) -->
+  <g transform="translate(23, -2)">
+    <circle cx="12" cy="12" r="11" fill="url(#badgeGrad)" stroke="#ffffff" stroke-width="2.2"/>
+    <text x="12" y="16" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle">${countStr}</text>
+  </g>
+</svg>
+`)
+  );
+};
 
 const normalizeSearchText = (value = "") =>
   value
@@ -133,6 +175,8 @@ const VehicleListing = () => {
   );
   const [viewMode, setViewMode] = useState(searchParams.get("view") || "grid"); // "grid" or "map"
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [selectedCluster, setSelectedCluster] = useState(null);
+  const [activeClusterIndex, setActiveClusterIndex] = useState(0);
   const [filterShow, setFilterShow] = useState("nearest");
   const [filterFuel, setFilterFuel] = useState(
     searchParams.get("fuel") || "any"
@@ -148,6 +192,8 @@ const VehicleListing = () => {
     initialPin ? { lat: initialPin.lat, lng: initialPin.lng } : sriLankaCenter
   );
   const [mapZoom, setMapZoom] = useState(initialPin ? 11 : 8);
+  const [currentZoom, setCurrentZoom] = useState(initialPin ? 11 : 8);
+  const mapRef = React.useRef(null);
   const [isLocating, setIsLocating] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
@@ -289,6 +335,8 @@ const VehicleListing = () => {
     setUserLocation(null);
     setPinnedLocation(null);
     setSelectedVehicle(null);
+    setSelectedCluster(null);
+    setActiveClusterIndex(0);
     setRadius(20);
     setMapCenter(sriLankaCenter);
     setMapZoom(8);
@@ -298,6 +346,8 @@ const VehicleListing = () => {
   const handleClearPinnedLocation = () => {
     setPinnedLocation(null);
     setSelectedVehicle(null);
+    setSelectedCluster(null);
+    setActiveClusterIndex(0);
     if (filter.location && (filter.location.startsWith("Pinned Location") || filter.location === "My GPS Location")) {
       setFilter((prev) => ({ ...prev, location: "" }));
     }
@@ -311,6 +361,8 @@ const VehicleListing = () => {
     const lng = e.latLng.lng();
 
     setSelectedVehicle(null);
+    setSelectedCluster(null);
+    setActiveClusterIndex(0);
 
     const initialPoint = {
       lat,
@@ -449,6 +501,75 @@ const VehicleListing = () => {
       }
       return 0;
     });
+
+  // Dynamic clustering threshold based on real map zoom level
+  const getClusterDistanceThreshold = (zoom) => {
+    if (zoom >= 16) return 0.01;  // 10 meters (street level zoom: only exact same spot/building stays grouped)
+    if (zoom >= 15) return 0.035; // 35 meters
+    if (zoom >= 14) return 0.10;  // 100 meters
+    if (zoom >= 13) return 0.20;  // 200 meters
+    if (zoom >= 12) return 0.35;  // 350 meters
+    return 0.55;                  // 550 meters for city overview (zoom <= 11)
+  };
+
+  // Group vehicles by zoom-dependent proximity to resolve overlapping pins smoothly
+  const vehicleClusters = React.useMemo(() => {
+    const validVehicles = filtered.filter((v) => v.lat && v.lng);
+    const clusters = [];
+    const threshold = getClusterDistanceThreshold(currentZoom);
+
+    validVehicles.forEach((vehicle) => {
+      const vLat = Number(vehicle.lat);
+      const vLng = Number(vehicle.lng);
+
+      // Check if there is an existing cluster within the zoom threshold
+      const existing = clusters.find((c) => {
+        const dist = calculateDistance(c.lat, c.lng, vLat, vLng);
+        return dist < threshold;
+      });
+
+      if (existing) {
+        existing.vehicles.push(vehicle);
+        // Recalculate centroid so pin sits at center of grouped cars
+        const totalLat = existing.vehicles.reduce((sum, v) => sum + Number(v.lat), 0);
+        const totalLng = existing.vehicles.reduce((sum, v) => sum + Number(v.lng), 0);
+        existing.lat = totalLat / existing.vehicles.length;
+        existing.lng = totalLng / existing.vehicles.length;
+      } else {
+        clusters.push({
+          id: `cluster-${vehicle._id}`,
+          lat: vLat,
+          lng: vLng,
+          vehicles: [vehicle],
+        });
+      }
+    });
+
+    return clusters;
+  }, [filtered, currentZoom]);
+
+  const handleMarkerClick = (cluster, e) => {
+    if (e && e.domEvent) e.domEvent.stopPropagation();
+    setSelectedCluster(cluster);
+    setActiveClusterIndex(0);
+    setSelectedVehicle(cluster.vehicles[0]);
+  };
+
+  const handleSidebarVehicleClick = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    if (vehicle.lat && vehicle.lng) {
+      const matchingCluster = vehicleClusters.find((c) =>
+        c.vehicles.some((v) => v._id === vehicle._id)
+      );
+      if (matchingCluster) {
+        const idx = matchingCluster.vehicles.findIndex((v) => v._id === vehicle._id);
+        setSelectedCluster(matchingCluster);
+        setActiveClusterIndex(idx >= 0 ? idx : 0);
+        setMapCenter({ lat: matchingCluster.lat, lng: matchingCluster.lng });
+        setMapZoom(13);
+      }
+    }
+  };
 
   return (
     <div className="listing-page">
@@ -814,6 +935,17 @@ const VehicleListing = () => {
                   mapContainerStyle={listingMapContainerStyle}
                   center={mapCenter}
                   zoom={mapZoom}
+                  onLoad={(map) => {
+                    mapRef.current = map;
+                  }}
+                  onZoomChanged={() => {
+                    if (mapRef.current) {
+                      const newZ = mapRef.current.getZoom();
+                      if (typeof newZ === "number") {
+                        setCurrentZoom(newZ);
+                      }
+                    }
+                  }}
                   options={{
                     streetViewControl: false,
                     mapTypeControl: false,
@@ -887,81 +1019,197 @@ const VehicleListing = () => {
                     </>
                   )}
 
-                  {/* Vehicle Markers */}
-                  {filtered
-                    .filter((v) => v.lat && v.lng)
-                    .map((v) => (
-                      <MarkerF
-                        key={v._id}
-                        position={{ lat: Number(v.lat), lng: Number(v.lng) }}
-                        title={`${v.brand} ${v.model}`}
-                        icon={
-                          window.google?.maps ? {
-                            url: ORANGE_CAR_PIN_SVG,
-                            scaledSize: new window.google.maps.Size(38, 48),
-                            anchor: new window.google.maps.Point(19, 46),
-                          } : undefined
-                        }
-                        onClick={(e) => {
-                          if (e && e.domEvent) e.domEvent.stopPropagation();
-                          setSelectedVehicle(v);
-                        }}
-                      />
-                    ))}
+                  {/* Vehicle Cluster Markers */}
+                  {vehicleClusters.map((cluster) => {
+                    const isMulti = cluster.vehicles.length > 1;
+                    const count = cluster.vehicles.length;
+                    const isSelected = selectedCluster?.id === cluster.id;
 
-                  {/* Selected Vehicle InfoWindow */}
-                  {selectedVehicle &&
-                    selectedVehicle.lat &&
-                    selectedVehicle.lng && (
-                      <InfoWindowF
-                        position={{
-                          lat: selectedVehicle.lat,
-                          lng: selectedVehicle.lng,
-                        }}
-                        onCloseClick={() => setSelectedVehicle(null)}
-                      >
-                        <div className="map-info-card">
-                          {selectedVehicle.images &&
-                            selectedVehicle.images[0] && (
-                              <img
-                                src={selectedVehicle.images[0]}
-                                alt={`${selectedVehicle.brand} ${selectedVehicle.model}`}
-                                className="map-info-img"
-                              />
-                            )}
-                          <div className="map-info-body">
-                            <h4>
-                              {selectedVehicle.brand} {selectedVehicle.model}
-                            </h4>
-                            {selectedVehicle.distanceFromCenter !== null &&
-                              selectedVehicle.distanceFromCenter !== undefined && (
-                                <div className="map-info-dist-badge">
-                                  📍 {selectedVehicle.distanceFromCenter.toFixed(1)} km from pin
+                    return (
+                      <MarkerF
+                        key={cluster.id}
+                        position={{ lat: cluster.lat, lng: cluster.lng }}
+                        title={
+                          isMulti
+                            ? `${count} Vehicles Available Here: ${cluster.vehicles
+                                .map((v) => `${v.brand} ${v.model}`)
+                                .join(", ")}`
+                            : `${cluster.vehicles[0].brand} ${cluster.vehicles[0].model}`
+                        }
+                        zIndex={isSelected ? 500 : isMulti ? 200 + count : 100}
+                        icon={
+                          window.google?.maps
+                            ? isMulti
+                              ? {
+                                  url: getMultiVehiclePinSvg(count),
+                                  scaledSize: new window.google.maps.Size(46, 56),
+                                  anchor: new window.google.maps.Point(23, 54),
+                                }
+                              : {
+                                  url: ORANGE_CAR_PIN_SVG,
+                                  scaledSize: new window.google.maps.Size(38, 48),
+                                  anchor: new window.google.maps.Point(19, 46),
+                                }
+                            : undefined
+                        }
+                        onClick={(e) => handleMarkerClick(cluster, e)}
+                      />
+                    );
+                  })}
+
+                  {/* Selected Cluster InfoWindow */}
+                  {selectedCluster &&
+                    selectedCluster.lat &&
+                    selectedCluster.lng && (() => {
+                      const curV =
+                        selectedCluster.vehicles[activeClusterIndex] ||
+                        selectedCluster.vehicles[0];
+                      if (!curV) return null;
+                      const hasMultiple = selectedCluster.vehicles.length > 1;
+
+                      return (
+                        <InfoWindowF
+                          position={{
+                            lat: selectedCluster.lat,
+                            lng: selectedCluster.lng,
+                          }}
+                          onCloseClick={() => {
+                            setSelectedCluster(null);
+                            setSelectedVehicle(null);
+                          }}
+                        >
+                          <div className="map-info-card">
+                            {/* Multi-vehicle navigation bar */}
+                            {hasMultiple && (
+                              <div className="map-cluster-nav-header">
+                                <div className="map-cluster-pill">
+                                  <Layers size={13} />
+                                  <span>
+                                    <strong>{selectedCluster.vehicles.length} Vehicles</strong> at this spot
+                                  </span>
                                 </div>
-                              )}
-                            <p className="map-info-location">
-                              <MapPin size={12} /> {selectedVehicle.location}
-                            </p>
-                            <div className="map-info-footer">
-                              <span className="map-info-price">
-                                LKR{" "}
-                                {selectedVehicle.pricePerDay?.toLocaleString()}
-                                /day
-                                <small style={{ display: "block", fontSize: "0.68rem", fontWeight: 700, color: "#ea580c" }}>
-                                  +LKR {selectedVehicle.pricePerKmAfter100km || 0}/km after 100km
-                                </small>
-                              </span>
-                              <Link
-                                to={`/vehicle/${selectedVehicle._id}`}
-                                className="map-info-book"
-                              >
-                                Book →
-                              </Link>
+                                <div className="map-cluster-arrows">
+                                  <button
+                                    type="button"
+                                    className="map-cluster-arrow-btn"
+                                    title="Previous vehicle"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const nextIdx =
+                                        (activeClusterIndex -
+                                          1 +
+                                          selectedCluster.vehicles.length) %
+                                        selectedCluster.vehicles.length;
+                                      setActiveClusterIndex(nextIdx);
+                                      setSelectedVehicle(
+                                        selectedCluster.vehicles[nextIdx]
+                                      );
+                                    }}
+                                  >
+                                    <ChevronLeft size={13} />
+                                  </button>
+                                  <span className="map-cluster-counter">
+                                    {activeClusterIndex + 1}/
+                                    {selectedCluster.vehicles.length}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="map-cluster-arrow-btn"
+                                    title="Next vehicle"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const nextIdx =
+                                        (activeClusterIndex + 1) %
+                                        selectedCluster.vehicles.length;
+                                      setActiveClusterIndex(nextIdx);
+                                      setSelectedVehicle(
+                                        selectedCluster.vehicles[nextIdx]
+                                      );
+                                    }}
+                                  >
+                                    <ChevronRight size={13} />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Quick vehicle switcher tabs */}
+                            {hasMultiple && (
+                              <div className="map-cluster-tabs">
+                                {selectedCluster.vehicles.map((veh, idx) => (
+                                  <button
+                                    key={veh._id}
+                                    type="button"
+                                    className={`map-cluster-tab-btn ${
+                                      idx === activeClusterIndex ? "active" : ""
+                                    }`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveClusterIndex(idx);
+                                      setSelectedVehicle(veh);
+                                    }}
+                                  >
+                                    {veh.brand} {veh.model}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Active vehicle preview */}
+                            {curV.images && curV.images[0] && (
+                              <div className="map-info-img-wrap">
+                                <img
+                                  src={curV.images[0]}
+                                  alt={`${curV.brand} ${curV.model}`}
+                                  className="map-info-img"
+                                />
+                                {hasMultiple && (
+                                  <span className="map-info-img-badge">
+                                    {activeClusterIndex + 1} of {selectedCluster.vehicles.length}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="map-info-body">
+                              <h4>
+                                {curV.brand} {curV.model}
+                              </h4>
+                              {curV.distanceFromCenter !== null &&
+                                curV.distanceFromCenter !== undefined && (
+                                  <div className="map-info-dist-badge">
+                                    📍 {curV.distanceFromCenter.toFixed(1)} km from pin
+                                  </div>
+                                )}
+                              <p className="map-info-location">
+                                <MapPin size={12} /> {curV.location}
+                              </p>
+                              <div className="map-info-footer">
+                                <span className="map-info-price">
+                                  LKR {curV.pricePerDay?.toLocaleString()}/day
+                                  <small
+                                    style={{
+                                      display: "block",
+                                      fontSize: "0.68rem",
+                                      fontWeight: 700,
+                                      color: "#ea580c",
+                                    }}
+                                  >
+                                    +LKR {curV.pricePerKmAfter100km || 0}/km after 100km
+                                  </small>
+                                </span>
+                                <Link
+                                  to={`/vehicle/${curV._id}`}
+                                  className="map-info-book"
+                                >
+                                  Book →
+                                </Link>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </InfoWindowF>
-                    )}
+                        </InfoWindowF>
+                      );
+                    })()}
                 </GoogleMap>
               ) : (
                 <div className="listing-map-loading">
@@ -1014,50 +1262,66 @@ const VehicleListing = () => {
                     )}
                   </div>
                 ) : (
-                  filtered.map((v) => (
-                    <button
-                      key={v._id}
-                      className={`map-sidebar-item ${selectedVehicle?._id === v._id ? "map-sidebar-active" : ""}`}
-                      onClick={() => {
-                        setSelectedVehicle(v);
-                        if (v.lat && v.lng) {
-                          setMapCenter({ lat: v.lat, lng: v.lng });
-                          setMapZoom(13);
-                        }
-                      }}
-                    >
-                      <div className="map-sidebar-img-wrap">
-                        {v.images && v.images[0] ? (
-                          <img src={v.images[0]} alt={v.brand} />
-                        ) : (
-                          <div className="map-sidebar-placeholder">
-                            <Car size={20} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="map-sidebar-info">
-                        <div className="sidebar-info-top">
-                          <strong>
-                            {v.brand} {v.model}
-                          </strong>
-                          {v.distanceFromCenter !== null && v.distanceFromCenter !== undefined && (
-                            <span className="sidebar-dist-pill">
-                              {v.distanceFromCenter.toFixed(1)} km
-                            </span>
+                  filtered.map((v) => {
+                    const isSelected = selectedVehicle?._id === v._id;
+                    const isInSelectedCluster =
+                      selectedCluster &&
+                      selectedCluster.vehicles.length > 1 &&
+                      selectedCluster.vehicles.some((cv) => cv._id === v._id);
+
+                    return (
+                      <button
+                        key={v._id}
+                        className={`map-sidebar-item ${
+                          isSelected ? "map-sidebar-active" : ""
+                        } ${
+                          isInSelectedCluster && !isSelected
+                            ? "map-sidebar-in-cluster"
+                            : ""
+                        }`}
+                        onClick={() => handleSidebarVehicleClick(v)}
+                      >
+                        <div className="map-sidebar-img-wrap">
+                          {v.images && v.images[0] ? (
+                            <img src={v.images[0]} alt={v.brand} />
+                          ) : (
+                            <div className="map-sidebar-placeholder">
+                              <Car size={20} />
+                            </div>
                           )}
                         </div>
-                        <span className="map-sidebar-loc">
-                          <MapPin size={11} /> {v.location}
-                        </span>
-                        <span className="map-sidebar-price">
-                          LKR {v.pricePerDay?.toLocaleString()}/day
-                          <small style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, color: "#ea580c" }}>
-                            +LKR {v.pricePerKmAfter100km || 0}/km after 100km
-                          </small>
-                        </span>
-                      </div>
-                    </button>
-                  ))
+                        <div className="map-sidebar-info">
+                          <div className="sidebar-info-top">
+                            <strong>
+                              {v.brand} {v.model}
+                            </strong>
+                            {v.distanceFromCenter !== null &&
+                              v.distanceFromCenter !== undefined && (
+                                <span className="sidebar-dist-pill">
+                                  {v.distanceFromCenter.toFixed(1)} km
+                                </span>
+                              )}
+                          </div>
+                          <span className="map-sidebar-loc">
+                            <MapPin size={11} /> {v.location}
+                          </span>
+                          <span className="map-sidebar-price">
+                            LKR {v.pricePerDay?.toLocaleString()}/day
+                            <small
+                              style={{
+                                display: "block",
+                                fontSize: "0.7rem",
+                                fontWeight: 700,
+                                color: "#ea580c",
+                              }}
+                            >
+                              +LKR {v.pricePerKmAfter100km || 0}/km after 100km
+                            </small>
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -1464,11 +1728,11 @@ const VehicleListing = () => {
         }
 
         .big-search-btn {
-          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+          background: linear-gradient(135deg, #ff8800 0%, #f97316 45%, #ea580c 100%);
           color: white;
           border: none;
           border-radius: 12px;
-          padding: 0 1.5rem;
+          padding: 0 1.65rem;
           height: 44px;
           font-weight: 750;
           font-size: 0.92rem;
@@ -1476,15 +1740,15 @@ const VehicleListing = () => {
           align-items: center;
           gap: 0.45rem;
           cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-          box-shadow: 0 4px 14px rgba(249, 115, 22, 0.28);
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 6px 20px -2px rgba(249, 115, 22, 0.45);
           font-family: inherit;
         }
 
         .big-search-btn:hover {
-          background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 6px 18px rgba(249, 115, 22, 0.38);
+          background: linear-gradient(135deg, #ff9500 0%, #ea580c 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 10px 24px -2px rgba(234, 88, 12, 0.55);
         }
 
         /* Bottom Quick Filter Bar */
@@ -1535,10 +1799,10 @@ const VehicleListing = () => {
 
         .filter-pill.active-mode,
         .filter-pill.active-fuel {
-          background: #111827;
+          background: linear-gradient(135deg, #ff8800 0%, #ea580c 100%);
           color: white;
-          border-color: #111827;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+          border-color: transparent;
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
         }
 
         .match-count-pill {
@@ -1767,8 +2031,127 @@ const VehicleListing = () => {
         .map-hint-icon { font-size: 1rem; }
 
         .map-info-card {
-          width: 240px;
+          width: 250px;
           font-family: var(--font-body);
+        }
+
+        .map-cluster-nav-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 5px 8px;
+          margin-bottom: 8px;
+          gap: 6px;
+        }
+
+        .map-cluster-pill {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 0.72rem;
+          color: #1e293b;
+        }
+
+        .map-cluster-pill strong {
+          color: #ea580c;
+        }
+
+        .map-cluster-arrows {
+          display: flex;
+          align-items: center;
+          gap: 3px;
+        }
+
+        .map-cluster-arrow-btn {
+          width: 22px;
+          height: 22px;
+          border-radius: 4px;
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: #334155;
+          padding: 0;
+          transition: all 0.15s ease;
+        }
+
+        .map-cluster-arrow-btn:hover {
+          background: #ea580c;
+          border-color: #ea580c;
+          color: #ffffff;
+        }
+
+        .map-cluster-counter {
+          font-size: 0.72rem;
+          font-weight: 800;
+          color: #475569;
+          min-width: 26px;
+          text-align: center;
+        }
+
+        .map-cluster-tabs {
+          display: flex;
+          gap: 4px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          margin-bottom: 8px;
+          scrollbar-width: thin;
+        }
+
+        .map-cluster-tab-btn {
+          font-size: 0.68rem;
+          font-weight: 600;
+          padding: 3px 7px;
+          border-radius: 6px;
+          border: 1px solid #e2e8f0;
+          background: #f1f5f9;
+          color: #475569;
+          white-space: nowrap;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .map-cluster-tab-btn:hover {
+          background: #e2e8f0;
+          color: #0f172a;
+        }
+
+        .map-cluster-tab-btn.active {
+          background: #ea580c;
+          border-color: #ea580c;
+          color: #ffffff;
+          font-weight: 700;
+        }
+
+        .map-info-img-wrap {
+          position: relative;
+          width: 100%;
+          border-radius: 10px;
+          overflow: hidden;
+          margin-bottom: 8px;
+        }
+
+        .map-info-img-wrap .map-info-img {
+          margin-bottom: 0;
+          display: block;
+        }
+
+        .map-info-img-badge {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          background: rgba(15, 23, 42, 0.85);
+          backdrop-filter: blur(4px);
+          color: #ffffff;
+          font-size: 0.65rem;
+          font-weight: 800;
+          padding: 2px 6px;
+          border-radius: 4px;
         }
 
         .map-info-img {
@@ -1781,7 +2164,7 @@ const VehicleListing = () => {
 
         .map-info-body h4 {
           margin: 0 0 4px;
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 800;
           color: #111827;
         }
@@ -1803,7 +2186,7 @@ const VehicleListing = () => {
           align-items: center;
           gap: 4px;
           color: #6b7280;
-          font-size: 0.8rem;
+          font-size: 0.78rem;
           margin: 0 0 8px;
         }
 
@@ -1815,7 +2198,7 @@ const VehicleListing = () => {
 
         .map-info-price {
           font-weight: 800;
-          font-size: 0.9rem;
+          font-size: 0.88rem;
           color: #f97316;
         }
 
@@ -1947,6 +2330,11 @@ const VehicleListing = () => {
           border-color: #f97316;
           background: #fff7ed;
           box-shadow: 0 4px 12px rgba(249,115,22,0.1);
+        }
+
+        .map-sidebar-item.map-sidebar-in-cluster {
+          border-left: 3px solid #fdba74;
+          background: rgba(255, 247, 237, 0.6);
         }
 
         .map-sidebar-img-wrap {

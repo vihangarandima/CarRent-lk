@@ -5,7 +5,7 @@
   --primary-dark: #ea580c;
   --primary-light: #fb923c;
   --primary-soft: #fff7ed;
-  --primary-glow: rgba(249, 115, 22, 0.35);
+  --primary-glow: rgba(249, 115, 22, 0.4);
   --secondary: #0f172a;
   --accent: #10b981;
   --danger: #ef4444;
@@ -19,16 +19,17 @@
   --text-hint: #94a3b8;
   --border: #e8e4df;
   --border-strong: rgba(249, 115, 22, 0.35);
-  --grad-primary: linear-gradient(135deg, #f97316 0%, #fb923c 50%, #fdba74 100%);
-  --grad-hero: linear-gradient(135deg, #fff7ed 0%, #faf9f7 40%, #ffffff 100%);
+  --grad-primary: linear-gradient(135deg, #ff8800 0%, #f97316 45%, #ea580c 100%);
+  --grad-primary-hover: linear-gradient(135deg, #ff9500 0%, #ea580c 100%);
+  --grad-hero: radial-gradient(circle at 50% 34%, #ff8800 0%, #f97316 26%, #ea580c 58%, #c2410c 88%, #9a3412 100%);
   --grad-dark: linear-gradient(135deg, #1c1917 0%, #292524 50%, #1c1917 100%);
   --grad-orange-dark: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #fb923c 100%);
   --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
   --shadow-card: 0 8px 30px rgba(15, 23, 42, 0.06);
-  --shadow-card-hover: 0 20px 50px rgba(249, 115, 22, 0.12);
-  --shadow-glow: 0 0 40px rgba(249, 115, 22, 0.2);
+  --shadow-card-hover: 0 20px 45px -8px rgba(249, 115, 22, 0.18);
+  --shadow-glow: 0 8px 28px -4px rgba(249, 115, 22, 0.45);
   --radius: 1rem;
-  --radius-sm: 0.625rem;
+  --radius-sm: 0.75rem;
   --radius-lg: 1.5rem;
   --radius-xl: 2rem;
   --radius-pill: 100px;
@@ -163,14 +164,16 @@ img {
   font-size: 1rem;
   border: none;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px var(--primary-glow);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-glow);
+  text-decoration: none;
 }
 
 .btn-primary:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(249, 115, 22, 0.45);
-  filter: brightness(1.05);
+  background: var(--grad-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -4px rgba(234, 88, 12, 0.55);
+  color: white;
 }
 
 .btn-outline {

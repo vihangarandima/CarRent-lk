@@ -536,17 +536,26 @@ const LandingPage = () => {
         .view-all-link {
           display: inline-flex;
           align-items: center;
-          gap: 0.4rem;
-          color: var(--primary);
+          gap: 0.5rem;
+          color: #ea580c;
+          background: #fff7ed;
+          border: 1.5px solid rgba(249, 115, 22, 0.25);
+          padding: 0.55rem 1.25rem;
+          border-radius: 999px;
           font-weight: 700;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           white-space: nowrap;
-          transition: gap 0.25s ease, opacity 0.25s ease;
+          transition: all 0.25s ease;
+          text-decoration: none;
         }
 
         .view-all-link:hover {
-          gap: 0.65rem;
-          opacity: 0.95;
+          background: linear-gradient(135deg, #ff8800 0%, #ea580c 100%);
+          color: #ffffff;
+          border-color: transparent;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(249, 115, 22, 0.35);
+          gap: 0.75rem;
         }
 
         .vehicle-grid {
@@ -621,19 +630,22 @@ const LandingPage = () => {
         .category-cta {
           display: inline-flex;
           align-items: center;
-          gap: 0.4rem;
-          color: var(--primary-light);
+          gap: 0.5rem;
+          color: #ffffff;
           font-weight: 700;
-          padding: 0.75rem 1.5rem;
-          border: 2px solid rgba(249, 115, 22, 0.4);
+          padding: 0.85rem 1.75rem;
+          background: linear-gradient(135deg, #ff8800 0%, #f97316 45%, #ea580c 100%);
+          border: none;
           border-radius: var(--radius-pill);
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.45);
         }
 
         .category-cta:hover {
-          background: var(--primary);
-          color: white;
-          border-color: var(--primary);
+          background: linear-gradient(135deg, #ff9500 0%, #ea580c 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 28px -4px rgba(234, 88, 12, 0.55);
+          color: #ffffff;
         }
 
         .category-grid {
@@ -653,7 +665,7 @@ const LandingPage = () => {
 
         .category-card a:hover {
           transform: translateY(-4px);
-          box-shadow: var(--shadow-card-hover);
+          box-shadow: 0 16px 36px -8px rgba(249, 115, 22, 0.25);
         }
 
         .category-img-wrap {
@@ -677,8 +689,8 @@ const LandingPage = () => {
           inset: 0;
           background: linear-gradient(
             to top,
-            rgba(0, 0, 0, 0.72) 0%,
-            rgba(0, 0, 0, 0.24) 55%,
+            rgba(15, 23, 42, 0.85) 0%,
+            rgba(15, 23, 42, 0.3) 55%,
             transparent 100%
           );
         }
@@ -698,7 +710,7 @@ const LandingPage = () => {
 
         /* Steps - New Two-Column Timeline Layout */
         .steps-section {
-          background: #f8f9fb;
+          background: #fdfbf7;
         }
 
         .hiw-layout {
@@ -723,10 +735,10 @@ const LandingPage = () => {
           max-width: 480px;
           height: 600px;
           margin: 0 auto;
-          border-radius: 24px;
+          border-radius: 28px;
           overflow: hidden;
-          background: linear-gradient(145deg, #7dd3fc 0%, #3b82f6 100%);
-          box-shadow: 0 24px 60px rgba(59, 130, 246, 0.25);
+          background: radial-gradient(circle at 50% 30%, #ff8800 0%, #f97316 35%, #ea580c 75%, #c2410c 100%);
+          box-shadow: 0 24px 60px rgba(249, 115, 22, 0.32);
           padding-top: 3rem;
         }
 
@@ -738,15 +750,16 @@ const LandingPage = () => {
 
         .hiw-hero-badge {
           display: inline-block;
-          background: rgba(255,255,255,0.2);
+          background: rgba(255, 255, 255, 0.25);
           color: white;
-          padding: 0.3rem 1rem;
+          padding: 0.35rem 1.1rem;
           border-radius: 99px;
-          font-size: 0.65rem;
-          font-weight: 700;
-          letter-spacing: 1px;
+          font-size: 0.7rem;
+          font-weight: 800;
+          letter-spacing: 1.2px;
           margin-bottom: 1.5rem;
-          backdrop-filter: blur(4px);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.4);
         }
 
         .hiw-hero-title {
@@ -760,7 +773,7 @@ const LandingPage = () => {
         }
 
         .hiw-hero-subtitle {
-          color: rgba(255,255,255,0.9);
+          color: rgba(255, 255, 255, 0.95);
           font-size: 0.95rem;
           line-height: 1.5;
           margin: 0;
@@ -872,10 +885,10 @@ const LandingPage = () => {
           right: 1.5rem;
           display: flex;
           justify-content: space-between;
-          background: rgba(255,255,255,0.15);
+          background: rgba(255,255,255,0.2);
           backdrop-filter: blur(16px);
           -webkit-backdrop-filter: blur(16px);
-          border: 1px solid rgba(255,255,255,0.3);
+          border: 1px solid rgba(255,255,255,0.35);
           border-radius: 16px;
           padding: 1.25rem 0.5rem;
           z-index: 3;
@@ -886,7 +899,7 @@ const LandingPage = () => {
           flex-direction: column;
           align-items: center;
           flex: 1;
-          border-right: 1px solid rgba(255,255,255,0.2);
+          border-right: 1px solid rgba(255,255,255,0.25);
         }
         
         .hiw-stat:last-child {
@@ -902,8 +915,8 @@ const LandingPage = () => {
         
         .hiw-stat-label {
           font-size: 0.65rem;
-          font-weight: 600;
-          color: rgba(255,255,255,0.8);
+          font-weight: 700;
+          color: rgba(255,255,255,0.9);
           text-transform: uppercase;
           letter-spacing: 1px;
           margin-top: 0.3rem;
@@ -929,49 +942,41 @@ const LandingPage = () => {
         }
 
         .hiw-step-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 14px;
+          width: 52px;
+          height: 52px;
+          border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
           transition: transform 0.3s ease, box-shadow 0.3s ease;
+          background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+          color: #ea580c;
+          border: 1.5px solid rgba(249, 115, 22, 0.25);
+          box-shadow: 0 4px 14px rgba(249, 115, 22, 0.12);
         }
 
         .hiw-step:hover .hiw-step-icon {
-          transform: scale(1.08);
+          transform: scale(1.1);
+          background: linear-gradient(135deg, #ff8800 0%, #ea580c 100%);
+          color: #ffffff;
+          box-shadow: 0 8px 22px rgba(249, 115, 22, 0.4);
         }
 
-        .hiw-icon-0 {
-          background: #fff3e6;
-          color: #f97316;
-          border: 1.5px solid rgba(249,115,22,0.2);
-        }
-
-        .hiw-icon-1 {
-          background: #e8f5e9;
-          color: #16a34a;
-          border: 1.5px solid rgba(22,163,74,0.2);
-        }
-
-        .hiw-icon-2 {
-          background: #eff6ff;
-          color: #2563eb;
-          border: 1.5px solid rgba(37,99,235,0.2);
-        }
-
+        .hiw-icon-0,
+        .hiw-icon-1,
+        .hiw-icon-2,
         .hiw-icon-3 {
-          background: #fdf4ff;
-          color: #9333ea;
-          border: 1.5px solid rgba(147,51,234,0.2);
+          background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+          color: #ea580c;
+          border: 1.5px solid rgba(249, 115, 22, 0.25);
         }
 
         .hiw-connector {
           width: 2px;
           flex-grow: 1;
           min-height: 36px;
-          background: linear-gradient(to bottom, #e5e7eb 0%, transparent 100%);
+          background: linear-gradient(to bottom, rgba(249, 115, 22, 0.3) 0%, transparent 100%);
           margin: 6px 0;
         }
 
@@ -980,15 +985,15 @@ const LandingPage = () => {
         }
 
         .hiw-step-title {
-          font-size: 1.05rem;
+          font-size: 1.1rem;
           font-weight: 800;
-          color: #111;
+          color: #0f172a;
           margin-bottom: 0.35rem;
           line-height: 1.3;
         }
 
         .hiw-step-desc {
-          font-size: 0.88rem;
+          font-size: 0.9rem;
           color: var(--text-muted);
           line-height: 1.65;
           margin: 0;
@@ -1271,18 +1276,22 @@ const LandingPage = () => {
           display: inline-flex;
           align-items: center;
           gap: 0.55rem;
-          padding: 0.75rem 1.35rem;
-          background: var(--primary);
+          padding: 0.85rem 1.6rem;
+          background: linear-gradient(135deg, #ff8800 0%, #f97316 45%, #ea580c 100%);
           color: white;
-          border-radius: var(--radius-pill);
+          border-radius: 12px;
           font-weight: 700;
-          font-size: 0.92rem;
-          transition: all 0.25s ease;
+          font-size: 0.95rem;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 6px 20px -2px rgba(249, 115, 22, 0.4);
+          text-decoration: none;
         }
 
         .deal-btn:hover {
-          background: var(--primary-dark);
+          background: linear-gradient(135deg, #ff9500 0%, #ea580c 100%);
           transform: translateY(-2px);
+          box-shadow: 0 10px 24px -2px rgba(234, 88, 12, 0.55);
+          color: white;
         }
 
         .deal-card img {
