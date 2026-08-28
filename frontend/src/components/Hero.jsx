@@ -112,9 +112,6 @@ const Hero = () => {
               alt="Yamu Sri Lanka Vehicle Fleet"
               className="fleet-cutout-img"
             />
-            {/* Realistic Ground Shadows under vehicle tires */}
-            <div className="fleet-ground-shadow-contact" />
-            <div className="fleet-ground-shadow-diffuse" />
           </motion.div>
         </div>
 
@@ -350,8 +347,8 @@ const Hero = () => {
           justify-content: center;
           width: 100%;
           max-width: 1200px;
-          margin-top: auto;
-          margin-bottom: 1rem;
+          margin: auto 0;
+          padding-top: 1.5rem;
           text-align: center;
         }
 
@@ -367,19 +364,19 @@ const Hero = () => {
           overflow: visible;
         }
 
-        /* YAMU text — centered in stage container, towers above cars with rich dimensional shadow */
+        /* YAMU text — bold, wide, using project main display font (Poppins) with rich dimensional text shadow */
         .watermark-yamu-text {
           position: absolute;
           left: 0;
           right: 0;
-          bottom: 45%;
-          font-family: 'Bebas Neue', 'Oswald', 'Anton', sans-serif;
-          font-size: clamp(10rem, 16vw, 16rem);
-          font-weight: 400;
-          letter-spacing: 0.02em;
+          bottom: 46%;
+          font-family: var(--font-display, 'Poppins', 'Plus Jakarta Sans', sans-serif);
+          font-size: clamp(6.5rem, 14vw, 13rem);
+          font-weight: 900;
+          letter-spacing: -0.01em;
           text-transform: uppercase;
           color: #ffffff;
-          line-height: 0.82;
+          line-height: 0.85;
           margin: 0;
           padding: 0;
           user-select: none;
@@ -400,53 +397,18 @@ const Hero = () => {
           align-items: flex-end;
         }
 
-        /* Clean cutout image with no unnecessary all-around halo shadow */
+        /* Clean cutout image with no shadow */
         .fleet-cutout-img {
           width: 100%;
           height: auto;
           max-height: 400px;
           object-fit: contain;
           filter: none;
+          box-shadow: none;
           user-select: none;
           pointer-events: none;
           position: relative;
           z-index: 2;
-        }
-
-        /* Tight dark contact shadow directly where the tires meet the road */
-        .fleet-ground-shadow-contact {
-          position: absolute;
-          bottom: 2px;
-          left: 6%;
-          right: 6%;
-          height: 14px;
-          background: radial-gradient(
-            ellipse at center,
-            rgba(0, 0, 0, 0.72) 0%,
-            rgba(0, 0, 0, 0.35) 50%,
-            transparent 75%
-          );
-          filter: blur(4px);
-          z-index: 1;
-          pointer-events: none;
-        }
-
-        /* Softer ambient ground shadow spreading underneath the entire chassis */
-        .fleet-ground-shadow-diffuse {
-          position: absolute;
-          bottom: -10px;
-          left: 2%;
-          right: 2%;
-          height: 32px;
-          background: radial-gradient(
-            ellipse at center,
-            rgba(0, 0, 0, 0.45) 0%,
-            rgba(0, 0, 0, 0.18) 55%,
-            transparent 80%
-          );
-          filter: blur(12px);
-          z-index: 1;
-          pointer-events: none;
         }
 
         /* Taglines Below Vehicles */
@@ -682,8 +644,9 @@ const Hero = () => {
             min-height: auto;
           }
           .watermark-yamu-text {
-            font-size: 4.8rem;
-            letter-spacing: 0.08em;
+            font-size: clamp(3.5rem, 16vw, 5.5rem);
+            letter-spacing: 0.02em;
+            bottom: 42%;
           }
           .fleet-cutout-img {
             max-height: 220px;
