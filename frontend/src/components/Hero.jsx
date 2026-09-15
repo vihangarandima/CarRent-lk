@@ -1,47 +1,49 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, MapPin } from "lucide-react";
 import fleetCutoutImg from "../assets/images/yamu_fleet_cutout.png";
 
-const POPULAR_BRANDS = [
-  "All Brands",
-  "Toyota",
-  "Honda",
-  "Nissan",
-  "Suzuki",
-  "Mercedes-Benz",
-  "BMW",
-  "Mitsubishi",
-  "Hyundai",
-  "Kia",
-  "Mazda",
+const VEHICLE_TYPES = [
+  { id: "", label: "All Vehicle Types" },
+  { id: "car", label: "Car" },
+  { id: "premium-car", label: "Premium Car" },
+  { id: "mini-car", label: "Mini Car" },
+  { id: "van", label: "Van" },
+  { id: "mini-van", label: "Mini Van" },
+  { id: "threewheeler", label: "Three-wheeler" },
+  { id: "bicycle", label: "Bicycle" },
+  { id: "others", label: "Others" },
 ];
 
-const POPULAR_MODELS = {
-  Toyota: ["All Models", "Prius", "Axio", "Premio", "Corolla", "CHR", "HiAce KDH", "Land Cruiser", "Vitz", "Raize"],
-  Honda: ["All Models", "Civic", "Vezel", "Fit", "Grace", "CR-V"],
-  Nissan: ["All Models", "X-Trail", "Leaf", "Sunny", "Caravan", "March"],
-  Suzuki: ["All Models", "Alto", "Wagon R", "Spacia", "Swift", "Hustler", "Every"],
-  "Mercedes-Benz": ["All Models", "C-Class", "E-Class", "S-Class", "GLA", "CLA"],
-  BMW: ["All Models", "3 Series", "5 Series", "7 Series", "X1", "X3", "X5"],
-};
+const POPULAR_LOCATIONS = [
+  "Colombo",
+  "Kandy",
+  "Galle",
+  "Negombo",
+  "Gampaha",
+  "Matara",
+  "Jaffna",
+  "Nuwara Eliya",
+  "Ella",
+  "Bentota",
+  "Kurunegala",
+  "Anuradhapura",
+];
 
 const Hero = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("rent"); // "rent" | "buy"
-  const [brand, setBrand] = useState("");
-  const [model, setModel] = useState("");
+  const [vehicleType, setVehicleType] = useState("");
+  const [location, setLocation] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [activeSlide, setActiveSlide] = useState(0);
 
-  const availableModels = brand && POPULAR_MODELS[brand] ? POPULAR_MODELS[brand] : ["All Models"];
-
   const handleSearch = () => {
     const params = new URLSearchParams();
-    if (brand && brand !== "All Brands") params.set("brand", brand);
-    if (model && model !== "All Models") params.set("model", model);
+    if (vehicleType) params.set("type", vehicleType);
+    if (location && location.trim()) params.set("location", location.trim());
     if (minPrice) params.set("minPrice", minPrice);
     if (maxPrice) params.set("maxPrice", maxPrice);
     navigate(`/vehicles${params.toString() ? `?${params.toString()}` : ""}`);
@@ -163,41 +165,39 @@ const Hero = () => {
         <div className="hero-search-bar" onKeyDown={handleKeyDown}>
           <span className="search-lead-label">I'm Looking for</span>
 
-          {/* Brand Select */}
+          {/* Vehicle Type Select */}
           <div className="search-field-pill">
             <select
-              value={brand}
-              onChange={(e) => {
-                setBrand(e.target.value);
-                setModel("");
-              }}
+              value={vehicleType}
+              onChange={(e) => setVehicleType(e.target.value)}
               className="search-select"
             >
-              <option value="">Select Brand</option>
-              {POPULAR_BRANDS.map((b) => (
-                <option key={b} value={b === "All Brands" ? "" : b}>
-                  {b}
+              <option value="">Vehicle Type</option>
+              {VEHICLE_TYPES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
                 </option>
               ))}
             </select>
             <ChevronDown size={14} className="select-chevron" />
           </div>
 
-          {/* Model Select */}
-          <div className="search-field-pill">
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className="search-select"
-            >
-              <option value="">Select Model</option>
-              {availableModels.map((m) => (
-                <option key={m} value={m === "All Models" ? "" : m}>
-                  {m}
-                </option>
+          {/* Location Input */}
+          <div className="search-field-pill search-location-pill">
+            <MapPin size={15} className="location-field-icon" />
+            <input
+              type="text"
+              list="popular-locations-list"
+              placeholder="Find location (e.g. Colombo)"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="location-input"
+            />
+            <datalist id="popular-locations-list">
+              {POPULAR_LOCATIONS.map((loc) => (
+                <option key={loc} value={loc} />
               ))}
-            </select>
-            <ChevronDown size={14} className="select-chevron" />
+            </datalist>
           </div>
 
           {/* Price Range Row (From & To) */}
@@ -573,6 +573,27 @@ const Hero = () => {
           right: 12px;
           color: #ea580c;
           pointer-events: none;
+        }
+
+        .location-field-icon {
+          color: #ea580c;
+          margin-right: 8px;
+          flex-shrink: 0;
+        }
+
+        .location-input {
+          width: 100%;
+          border: none;
+          background: transparent;
+          outline: none;
+          font-size: 0.88rem;
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        .location-input::placeholder {
+          color: #94a3b8;
+          font-weight: 500;
         }
 
         /* Price Range Row */

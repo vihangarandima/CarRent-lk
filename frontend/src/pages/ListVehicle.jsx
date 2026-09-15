@@ -717,7 +717,7 @@ const ListVehicle = () => {
             {step === 3 && (
               <form onSubmit={nextStep} className="form-step slide-in">
                 <h2>Vehicle Photos</h2>
-                <p className="step-desc">Upload exactly 5 high-quality photos.</p>
+                <p className="step-desc">Upload 1 to 5 high-quality photos of your vehicle (at least 1 is required).</p>
 
                 <div className="photo-grid">
                   {[0, 1, 2, 3, 4].map((i) => (
@@ -737,7 +737,7 @@ const ListVehicle = () => {
 
                 <div className="form-actions space-between">
                   <button type="button" className="btn-back" onClick={prevStep}>Back</button>
-                  <button type="submit" className="btn-next" disabled={formData.images.some(img => !img)}>
+                  <button type="submit" className="btn-next" disabled={!formData.images.some(img => typeof img === "string" && img.trim() !== "")}>
                     Continue <ChevronRight size={18} />
                   </button>
                 </div>
