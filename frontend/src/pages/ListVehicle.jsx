@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { API_URL } from "../config";
-import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, MarkerF, CircleF } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight, LocateFixed } from "lucide-react";
+import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight, LocateFixed, Search, Navigation } from "lucide-react";
 
 // Vehicle Type Images
 import bikeeImg from "../assets/images/bikee.jpg";
@@ -74,6 +75,34 @@ const sriLankaDistricts = [
   "Trincomalee", "Vavuniya"
 ];
 
+const districtCenters = {
+  Ampara: { lat: 7.2912, lng: 81.6724 },
+  Anuradhapura: { lat: 8.3114, lng: 80.4037 },
+  Badulla: { lat: 6.9934, lng: 81.055 },
+  Batticaloa: { lat: 7.731, lng: 81.6747 },
+  Colombo: { lat: 6.9271, lng: 79.8612 },
+  Galle: { lat: 6.0535, lng: 80.221 },
+  Gampaha: { lat: 7.0894, lng: 79.9925 },
+  Hambantota: { lat: 6.1429, lng: 81.1212 },
+  Jaffna: { lat: 9.6615, lng: 80.0255 },
+  Kalutara: { lat: 6.5854, lng: 79.9607 },
+  Kandy: { lat: 7.2906, lng: 80.6337 },
+  Kegalle: { lat: 7.2513, lng: 80.3464 },
+  Kilinochchi: { lat: 9.3803, lng: 80.377 },
+  Kurunegala: { lat: 7.4863, lng: 80.3623 },
+  Mannar: { lat: 8.981, lng: 79.9044 },
+  Matale: { lat: 7.4675, lng: 80.6234 },
+  Matara: { lat: 5.9549, lng: 80.555 },
+  Monaragala: { lat: 6.8728, lng: 81.3507 },
+  Mullaitivu: { lat: 9.2671, lng: 80.8142 },
+  "Nuwara Eliya": { lat: 6.9497, lng: 80.7891 },
+  Polonnaruwa: { lat: 7.9403, lng: 81.0188 },
+  Puttalam: { lat: 8.0362, lng: 79.8283 },
+  Ratnapura: { lat: 6.6828, lng: 80.4034 },
+  Trincomalee: { lat: 8.5874, lng: 81.2152 },
+  Vavuniya: { lat: 8.7514, lng: 80.4971 },
+};
+
 // Predefined Brands and Models for Dropdowns
 const vehicleDatabase = {
   bicycle: {
@@ -123,6 +152,35 @@ const vehicleDatabase = {
   },
 };
 
+// Clean, high-contrast SVG icons without filter elements (prevents canvas rendering failures)
+const USER_LOC_SVG = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+  <circle cx="18" cy="18" r="16" fill="#3b82f6" fill-opacity="0.35" stroke="#2563eb" stroke-width="2"/>
+  <circle cx="18" cy="18" r="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <circle cx="18" cy="18" r="4.5" fill="#2563eb"/>
+</svg>
+`);
+
+const PIN_SVG = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="60" viewBox="0 0 48 60">
+  <path d="M24 2C12.5 2 3 11.5 3 23c0 16 21 35 21 35s21-19 21-35C45 11.5 35.5 2 24 2z" fill="#ea580c" stroke="#ffffff" stroke-width="3"/>
+  <circle cx="24" cy="22" r="8.5" fill="#ffffff"/>
+  <circle cx="24" cy="22" r="4.5" fill="#ea580c"/>
+</svg>
+`);
+
+const detectDistrict = (address) => {
+  if (!address) return null;
+  const lowerAddr = address.toLowerCase();
+  for (const district of sriLankaDistricts) {
+    if (lowerAddr.includes(district.toLowerCase())) {
+      return district;
+    }
+  }
+  return null;
+};
+
+
 const ListVehicle = () => {
   const [step, setStep] = useState(1);
   const [listerType, setListerType] = useState('personal');
@@ -143,6 +201,9 @@ const ListVehicle = () => {
     lng: 79.8612,
   });
 
+  const [mapCenter, setMapCenter] = useState({ lat: 6.9271, lng: 79.8612 });
+  const [mapZoom, setMapZoom] = useState(13);
+
   // Custom inputs for "Other" selections
   const [customBrand, setCustomBrand] = useState("");
   const [customModel, setCustomModel] = useState("");
@@ -151,10 +212,68 @@ const ListVehicle = () => {
   const [startDate, endDate] = dateRange;
 
   const [isLocating, setIsLocating] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash !== '#map' && isMapFullscreen) {
+        setIsMapFullscreen(false);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [isMapFullscreen]);
+
+  useEffect(() => {
+    if (isMapFullscreen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMapFullscreen]);
+
+  const expandMap = () => {
+    if (!isMapFullscreen) {
+      setIsMapFullscreen(true);
+      window.location.hash = 'map';
+    }
+  };
+
+  const closeMap = () => {
+    if (isMapFullscreen) {
+      window.history.back();
+    }
+  };
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
   });
+
+  // Auto-detect host location on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const userPos = { lat, lng };
+          setCurrentLocation(userPos);
+          setMapCenter(userPos);
+          setMapZoom(14);
+          reverseGeocode(lat, lng);
+        },
+        (err) => {
+          console.warn("Auto-geolocation error:", err.message);
+        },
+        { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true }
+      );
+    }
+  }, []);
 
   const nextStep = (e) => {
     e.preventDefault();
@@ -168,6 +287,25 @@ const ListVehicle = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleDistrictChange = (e) => {
+    const selectedDistrict = e.target.value;
+    const coords = districtCenters[selectedDistrict];
+    if (coords) {
+      setMapCenter(coords);
+      setMapZoom(13);
+      setFormData((prev) => ({
+        ...prev,
+        district: selectedDistrict,
+        lat: coords.lat,
+        lng: coords.lng,
+        location: prev.location || `${selectedDistrict}, Sri Lanka`,
+      }));
+      reverseGeocode(coords.lat, coords.lng);
+    } else {
+      setFormData((prev) => ({ ...prev, district: selectedDistrict }));
+    }
   };
 
   const handleVehicleTypeSelect = (catId) => {
@@ -197,51 +335,171 @@ const ListVehicle = () => {
     }
   };
 
-  const reverseGeocode = async (lat, lng) => {
+  const fetchNominatimReverse = async (lat, lng) => {
     try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
-      );
-      const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        setFormData({ ...formData, location: data.results[0].formatted_address, lat, lng });
-      } else {
-        setFormData({ ...formData, lat, lng });
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const data = await res.json();
+      if (data && data.display_name) {
+        const parts = data.display_name.split(',');
+        const shortAddr = parts.slice(0, 4).join(',').trim();
+        const detectedDistrict = detectDistrict(data.display_name);
+        setFormData((prev) => ({
+          ...prev,
+          lat,
+          lng,
+          location: shortAddr,
+          ...(detectedDistrict && { district: detectedDistrict }),
+        }));
       }
-    } catch (err) {
-      setFormData({ ...formData, lat, lng });
+    } catch (e) {
+      console.warn("Nominatim reverse geocode error:", e);
     }
   };
 
+  const reverseGeocode = async (lat, lng) => {
+    const fallbackText = `Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+    setFormData((prev) => ({
+      ...prev,
+      lat,
+      lng,
+      location: prev.location && !prev.location.startsWith("Location (") ? prev.location : fallbackText,
+    }));
+
+    if (window.google?.maps?.Geocoder) {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        if (status === "OK" && results && results[0]) {
+          const address = results[0].formatted_address;
+          const detectedDistrict = detectDistrict(address);
+          setFormData((prev) => ({
+            ...prev,
+            lat,
+            lng,
+            location: address,
+            ...(detectedDistrict && { district: detectedDistrict }),
+          }));
+        } else {
+          fetchNominatimReverse(lat, lng);
+        }
+      });
+    } else {
+      fetchNominatimReverse(lat, lng);
+    }
+  };
+
+  const onMarkerDragEnd = (e) => {
+    if (!e || !e.latLng) return;
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+    setFormData((prev) => ({ ...prev, lat, lng }));
+    reverseGeocode(lat, lng);
+  };
+
   const onMapClick = (e) => {
-    reverseGeocode(e.latLng.lat(), e.latLng.lng());
+    if (!isMapFullscreen) {
+      expandMap();
+    }
+    if (!e || !e.latLng) return;
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+    setFormData((prev) => ({ ...prev, lat, lng }));
+    setMapCenter({ lat, lng });
+    reverseGeocode(lat, lng);
+  };
+
+  const fetchNominatimSearch = async (query) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        setMapCenter({ lat, lng });
+        setMapZoom(15);
+        const parts = data[0].display_name.split(',');
+        const shortAddr = parts.slice(0, 4).join(',').trim();
+        const detectedDistrict = detectDistrict(data[0].display_name);
+        setFormData((prev) => ({
+          ...prev,
+          lat,
+          lng,
+          location: shortAddr,
+          ...(detectedDistrict && { district: detectedDistrict }),
+        }));
+      }
+    } catch (e) {
+      console.warn("Nominatim search error:", e);
+    }
+  };
+
+  const handleSearchAddress = async (queryToSearch) => {
+    const query = queryToSearch || formData.location;
+    if (!query || query.trim().length < 2) return;
+    setIsSearching(true);
+    const fullQuery = query.toLowerCase().includes("sri lanka") ? query : `${query}, Sri Lanka`;
+
+    if (window.google?.maps?.Geocoder) {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ address: fullQuery }, (results, status) => {
+        setIsSearching(false);
+        if (status === "OK" && results && results[0]) {
+          const loc = results[0].geometry.location;
+          const lat = loc.lat();
+          const lng = loc.lng();
+          const address = results[0].formatted_address;
+          const detectedDistrict = detectDistrict(address);
+          setMapCenter({ lat, lng });
+          setMapZoom(15);
+          setFormData((prev) => ({
+            ...prev,
+            lat,
+            lng,
+            location: address,
+            ...(detectedDistrict && { district: detectedDistrict }),
+          }));
+        } else {
+          fetchNominatimSearch(fullQuery);
+        }
+      });
+    } else {
+      await fetchNominatimSearch(fullQuery);
+      setIsSearching(false);
+    }
   };
 
   const handleLocateMe = () => {
+    // If we already detected the user's location, reuse it immediately
+    if (currentLocation) {
+      setMapCenter(currentLocation);
+      setMapZoom(15);
+      setFormData((prev) => ({ ...prev, lat: currentLocation.lat, lng: currentLocation.lng }));
+      reverseGeocode(currentLocation.lat, currentLocation.lng);
+      return;
+    }
+
     setIsLocating(true);
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      console.warn("Geolocation is not supported by your browser");
       setIsLocating(false);
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        reverseGeocode(position.coords.latitude, position.coords.longitude);
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const userPos = { lat, lng };
+        setCurrentLocation(userPos);
+        setMapCenter(userPos);
+        setMapZoom(15);
+        setFormData((prev) => ({ ...prev, lat, lng }));
+        reverseGeocode(lat, lng);
         setIsLocating(false);
       },
       (error) => {
-        let errorMsg = `Unable to retrieve your location. (Error: ${error.message})`;
-        if (error.code === error.PERMISSION_DENIED) {
-           errorMsg = "Location permission denied. Please click the site settings icon near the URL bar to allow location access.";
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-           errorMsg = "Location information is unavailable. Please ensure your Windows Location Services are turned on in Settings -> Privacy & Security -> Location.";
-        } else if (error.code === error.TIMEOUT) {
-           errorMsg = "The request to get user location timed out. Please try again.";
-        }
-        alert(errorMsg);
+        console.warn("Geolocation notice:", error.message);
         setIsLocating(false);
       },
-      { timeout: 15000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   };
 
@@ -287,7 +545,7 @@ const ListVehicle = () => {
 
   return (
     <>
-      <div className="lv-page">
+      <div className="lv-page" style={{ display: isMapFullscreen ? "none" : "block" }}>
         <div className="lv-hero">
         <div className="lv-badge">
           <Sparkles size={14} className="text-orange" />
@@ -459,7 +717,7 @@ const ListVehicle = () => {
             {step === 3 && (
               <form onSubmit={nextStep} className="form-step slide-in">
                 <h2>Vehicle Photos</h2>
-                <p className="step-desc">Upload exactly 5 high-quality photos.</p>
+                <p className="step-desc">Upload 1 to 5 high-quality photos of your vehicle (at least 1 is required).</p>
 
                 <div className="photo-grid">
                   {[0, 1, 2, 3, 4].map((i) => (
@@ -479,7 +737,7 @@ const ListVehicle = () => {
 
                 <div className="form-actions space-between">
                   <button type="button" className="btn-back" onClick={prevStep}>Back</button>
-                  <button type="submit" className="btn-next" disabled={formData.images.some(img => !img)}>
+                  <button type="submit" className="btn-next" disabled={!formData.images.some(img => typeof img === "string" && img.trim() !== "")}>
                     Continue <ChevronRight size={18} />
                   </button>
                 </div>
@@ -493,16 +751,16 @@ const ListVehicle = () => {
                 <p className="step-desc">Pinpoint where the vehicle is located.</p>
 
                 <div className="form-group">
-                  <label>PICK-UP CITY</label>
+                  <label>PICK-UP CITY / DISTRICT</label>
                   <div className="district-select-wrapper">
                     <select 
                       name="district" 
                       value={formData.district} 
-                      onChange={handleChange} 
+                      onChange={handleDistrictChange} 
                       required 
                       className="district-select"
                     >
-                      <option value="" disabled>Select City</option>
+                      <option value="" disabled>Select City / District</option>
                       {sriLankaDistricts.map((d) => (
                         <option key={d} value={d}>{d}</option>
                       ))}
@@ -514,8 +772,8 @@ const ListVehicle = () => {
                 </div>
 
                 <div className="form-group">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <label>Search Address or Click on Map</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label style={{ margin: 0 }}>Search Address or Click on Map</label>
                     <button
                       type="button"
                       onClick={handleLocateMe}
@@ -525,7 +783,7 @@ const ListVehicle = () => {
                         background: "none",
                         border: "none",
                         color: "#f97316",
-                        fontSize: "0.75rem",
+                        fontSize: "0.78rem",
                         fontWeight: 700,
                         cursor: "pointer",
                         display: "flex",
@@ -536,21 +794,176 @@ const ListVehicle = () => {
                       <LocateFixed size={14} /> {isLocating ? "Locating..." : "Locate Me"}
                     </button>
                   </div>
-                  <div className="input-with-prefix">
-                    <span className="prefix"><MapPin size={18} /></span>
-                    <input type="text" name="location" value={formData.location} onChange={handleChange} required placeholder="123 Main St, Colombo" />
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <div className="input-with-prefix" style={{ flex: 1, margin: 0 }}>
+                      <span className="prefix"><MapPin size={18} /></span>
+                      <input 
+                        type="text" 
+                        name="location" 
+                        value={formData.location} 
+                        onChange={handleChange} 
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleSearchAddress(formData.location);
+                          }
+                        }}
+                        required 
+                        placeholder="Type address/city & press Enter or Search..." 
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSearchAddress(formData.location)}
+                      disabled={isSearching}
+                      style={{
+                        padding: "0 16px",
+                        backgroundColor: "#f97316",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "0.6rem",
+                        fontWeight: 600,
+                        fontSize: "0.82rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        flexShrink: 0
+                      }}
+                    >
+                      <Search size={15} /> {isSearching ? "..." : "Search"}
+                    </button>
                   </div>
                 </div>
 
-                <div className="map-wrapper">
+                <div className="map-wrapper" style={{ position: "relative", height: "350px", overflow: "hidden", borderRadius: "10px" }}>
+                  {formData.location && (
+                    <div style={{
+                      position: "absolute",
+                      top: "10px",
+                      left: "10px",
+                      right: "10px",
+                      zIndex: 10,
+                      background: "rgba(255, 255, 255, 0.96)",
+                      backdropFilter: "blur(8px)",
+                      border: "1px solid rgba(249, 115, 22, 0.3)",
+                      borderRadius: "10px",
+                      padding: "8px 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "8px",
+                      boxShadow: "0 4px 14px rgba(0,0,0,0.1)",
+                      fontSize: "0.78rem",
+                      color: "#1f2937",
+                      fontWeight: 600
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
+                        <MapPin size={16} style={{ color: "#ea580c", flexShrink: 0 }} />
+                        <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <strong>Pickup Spot:</strong> {formData.location}
+                        </span>
+                      </div>
+                      {currentLocation && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMapCenter(currentLocation);
+                            setMapZoom(15);
+                            setFormData((prev) => ({ ...prev, lat: currentLocation.lat, lng: currentLocation.lng }));
+                            reverseGeocode(currentLocation.lat, currentLocation.lng);
+                          }}
+                          style={{
+                            background: "rgba(249, 115, 22, 0.12)",
+                            color: "#ea580c",
+                            border: "1px solid rgba(249, 115, 22, 0.4)",
+                            borderRadius: "6px",
+                            padding: "4px 10px",
+                            fontSize: "0.72rem",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                            fontWeight: 700,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}
+                          title="Move vehicle pickup pin to your current GPS position"
+                        >
+                          <LocateFixed size={12} /> Snap to My Location
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {isLoaded ? (
                     <GoogleMap
                       mapContainerStyle={mapContainerStyle}
-                      center={{ lat: formData.lat, lng: formData.lng }}
-                      zoom={12}
+                      center={mapCenter}
+                      zoom={mapZoom}
                       onClick={onMapClick}
+                      options={{
+                        clickableIcons: false,
+                        streetViewControl: false,
+                        mapTypeControl: false,
+                        fullscreenControl: true,
+                        zoomControl: true,
+                      }}
                     >
-                      <Marker position={{ lat: formData.lat, lng: formData.lng }} />
+                      {/* User's Current GPS Location Marker & Halo (Blue) */}
+                      {currentLocation && (
+                        <>
+                          <MarkerF 
+                            position={currentLocation}
+                            title="Your Current GPS Location"
+                            zIndex={50}
+                            icon={
+                              window.google?.maps ? {
+                                path: window.google.maps.SymbolPath.CIRCLE,
+                                scale: 9,
+                                fillColor: "#2563eb",
+                                fillOpacity: 1,
+                                strokeColor: "#ffffff",
+                                strokeWeight: 3,
+                              } : undefined
+                            }
+                          />
+                          <CircleF
+                            center={currentLocation}
+                            radius={200}
+                            options={{
+                              fillColor: "#3b82f6",
+                              fillOpacity: 0.18,
+                              strokeColor: "#2563eb",
+                              strokeOpacity: 0.7,
+                              strokeWeight: 1.5,
+                              clickable: false,
+                            }}
+                          />
+                        </>
+                      )}
+
+                      {/* Pickup Location Marker (Orange Pin, Fully Draggable) */}
+                      <MarkerF 
+                        position={{
+                          lat: Number(formData.lat) || 6.9271,
+                          lng: Number(formData.lng) || 79.8612
+                        }} 
+                        draggable={true}
+                        onDragEnd={onMarkerDragEnd}
+                        title="Vehicle Pickup Location (Drag to adjust)"
+                        zIndex={100}
+                        icon={
+                          window.google?.maps ? {
+                            path: "M 12,2 C 8.13,2 5,5.13 5,9 C 5,14.25 12,22 12,22 C 12,22 19,14.25 19,9 C 19,5.13 15.87,2 12,2 Z",
+                            fillColor: "#ea580c",
+                            fillOpacity: 1,
+                            strokeColor: "#ffffff",
+                            strokeWeight: 2,
+                            scale: 2.2,
+                            anchor: new window.google.maps.Point(12, 22),
+                          } : undefined
+                        }
+                      />
                     </GoogleMap>
                   ) : (
                     <div className="loading-map">Loading map...</div>
@@ -589,7 +1002,7 @@ const ListVehicle = () => {
                   <div className="category-info empty">
                     <div className="empty-icon"><Info size={48} /></div>
                     <h3>Select a Category</h3>
-                    <p>Choose a vehicle type on the left to see more details and examples here.</p>
+                    <p>Choose a vehicle type from the left to view specific tips and recommendations.</p>
                   </div>
                 )}
               </>
@@ -597,12 +1010,12 @@ const ListVehicle = () => {
 
             {step === 2 && (
               <div className="category-info">
-                <div className="empty-icon orange"><Calendar size={48} /></div>
-                <h3>Pricing Tips</h3>
-                <p className="cat-desc">Competitive pricing attracts more renters. Consider checking similar vehicles in your area.</p>
+                <div className="empty-icon orange"><Coins size={48} /></div>
+                <h3>Pricing & Availability</h3>
+                <p className="cat-desc">Set competitive rates to attract more renters in your district.</p>
                 <div className="cat-examples">
                   <Info size={16} className="text-orange flex-shrink-0" />
-                  <span>The "After 100km" rate covers you for long-distance trips.</span>
+                  <span>Extra KM charges apply automatically if a renter exceeds standard daily limits.</span>
                 </div>
               </div>
             )}
@@ -622,11 +1035,21 @@ const ListVehicle = () => {
             {step === 4 && (
               <div className="category-info">
                 <div className="empty-icon orange"><MapIcon size={48} /></div>
-                <h3>Location Precision</h3>
-                <p className="cat-desc">Accurate pickup locations make the handover process smooth for both parties.</p>
-                <div className="cat-examples">
-                  <Info size={16} className="text-orange flex-shrink-0" />
-                  <span>Click directly on the map to drop a pin for maximum accuracy.</span>
+                <h3>Precise Pickup Spot</h3>
+                <p className="cat-desc">Accurate pickup locations make handover fast and seamless for both parties.</p>
+                <div className="cat-examples" style={{ flexDirection: "column", gap: "8px", alignItems: "flex-start" }}>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#3b82f6", display: "inline-block", flexShrink: 0 }}></span>
+                    <span><strong>Blue Dot:</strong> Your current GPS location</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#ea580c", display: "inline-block", flexShrink: 0 }}></span>
+                    <span><strong>Orange Pin:</strong> Vehicle location (Drag to reposition)</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "4px" }}>
+                    <Info size={16} className="text-orange flex-shrink-0" />
+                    <span>Click anywhere on the map to relocate the pin immediately.</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -1332,6 +1755,165 @@ const ListVehicle = () => {
         }
       `}</style>
         </div>
+
+      {isMapFullscreen && createPortal(
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100vw",
+          height: "100vh",
+          zIndex: 2147483647,
+          backgroundColor: "#ffffff",
+          overflow: "hidden"
+        }}>
+          {/* Google Maps Style Floating Search Bar */}
+          <div style={{
+            position: "absolute",
+            top: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "calc(100% - 32px)",
+            maxWidth: "520px",
+            zIndex: 10,
+            display: "flex",
+            alignItems: "center",
+            backgroundColor: "#ffffff",
+            borderRadius: "32px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
+            padding: "6px 12px",
+            border: "1px solid rgba(0,0,0,0.08)"
+          }}>
+            <button 
+              type="button" 
+              onClick={closeMap}
+              title="Back to Form"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "8px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#374151",
+                borderRadius: "50%"
+              }}
+            >
+              <ArrowLeft size={22} />
+            </button>
+            
+            <input
+              type="text"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSearchAddress(formData.location);
+                }
+              }}
+              placeholder="Search location..."
+              style={{
+                flex: 1,
+                border: "none",
+                outline: "none",
+                fontSize: "1rem",
+                padding: "8px 12px",
+                color: "#111827",
+                backgroundColor: "transparent"
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={() => handleSearchAddress(formData.location)}
+              disabled={isSearching}
+              title="Search"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "8px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ea580c"
+              }}
+            >
+              <Search size={22} />
+            </button>
+
+            {currentLocation && (
+              <>
+                <div style={{ width: "1px", height: "24px", backgroundColor: "#e5e7eb", margin: "0 4px" }}></div>
+                <button
+                  type="button"
+                  onClick={() => { setMapCenter(currentLocation); setMapZoom(15); setFormData(prev => ({...prev, lat: currentLocation.lat, lng: currentLocation.lng})); reverseGeocode(currentLocation.lat, currentLocation.lng); }}
+                  title="Snap to my location"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#2563eb"
+                  }}
+                >
+                  <LocateFixed size={20} />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Full-screen Map */}
+          {isLoaded ? (
+            <GoogleMap
+              mapContainerStyle={{ width: "100vw", height: "100vh" }}
+              center={mapCenter}
+              zoom={mapZoom}
+              onClick={onMapClick}
+              options={{
+                clickableIcons: false,
+                streetViewControl: false,
+                mapTypeControl: false,
+                fullscreenControl: false,
+                zoomControl: true,
+              }}
+            >
+              {currentLocation && (
+                <>
+                  <MarkerF
+                    position={currentLocation}
+                    zIndex={50}
+                    icon={window.google?.maps ? { path: window.google.maps.SymbolPath.CIRCLE, scale: 9, fillColor: "#2563eb", fillOpacity: 1, strokeColor: "#ffffff", strokeWeight: 3 } : undefined}
+                  />
+                  <CircleF
+                    center={currentLocation}
+                    radius={200}
+                    options={{ fillColor: "#3b82f6", fillOpacity: 0.18, strokeColor: "#2563eb", strokeOpacity: 0.7, strokeWeight: 1.5, clickable: false }}
+                  />
+                </>
+              )}
+              <MarkerF
+                position={{ lat: Number(formData.lat) || 6.9271, lng: Number(formData.lng) || 79.8612 }}
+                draggable={true}
+                onDragEnd={onMarkerDragEnd}
+                zIndex={100}
+                icon={window.google?.maps ? { path: "M 12,2 C 8.13,2 5,5.13 5,9 C 5,14.25 12,22 12,22 C 12,22 19,14.25 19,9 C 19,5.13 15.87,2 12,2 Z", fillColor: "#ea580c", fillOpacity: 1, strokeColor: "#ffffff", strokeWeight: 2, scale: 2.2, anchor: new window.google.maps.Point(12, 22) } : undefined}
+              />
+            </GoogleMap>
+          ) : (
+            <div style={{ padding: "20px", display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>Loading map...</div>
+          )}
+        </div>,
+        document.body
+      )}
     </>
   );
 };

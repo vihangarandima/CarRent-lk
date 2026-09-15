@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Company = require('../models/Company');
+const User = require('../models/User');
 const Vehicle = require('../models/Vehicle');
 const Review = require('../models/Review');
 const jwt = require('jsonwebtoken');
@@ -57,10 +58,31 @@ router.get('/', async (req, res) => {
 // @desc    Get logged-in company's profile (company auth required)
 router.get('/me', auth, async (req, res) => {
     try {
-        const company = await Company.findOne({ user: req.user.id }).populate('user', 'name email');
-        if (!company) return res.status(404).json({ msg: 'Company profile not found' });
+        let company = await Company.findOne({ user: req.user.id }).populate('user', 'name email');
+        if (!company) {
+            const user = await User.findById(req.user.id);
+            if (!user) return res.status(404).json({ msg: 'User not found' });
+
+            company = new Company({
+                user: user._id,
+                companyName: user.name ? `${user.name} Rentals` : 'My Rental Company',
+                contactEmail: user.email || '',
+                phone: '',
+                address: 'Colombo, Sri Lanka',
+                isVerified: true
+            });
+            await company.save();
+
+            if (user.role !== 'company') {
+                user.role = 'company';
+                await user.save();
+            }
+
+            company = await Company.findById(company._id).populate('user', 'name email');
+        }
         res.json(company);
     } catch (err) {
+        console.error('Error in GET /api/companies/me:', err);
         res.status(500).send('Server Error');
     }
 });
@@ -70,15 +92,26 @@ router.get('/me', auth, async (req, res) => {
 router.put('/me', auth, async (req, res) => {
     try {
         const { companyName, logo, description, phone, address, contactEmail } = req.body;
-        const company = await Company.findOneAndUpdate(
+        let company = await Company.findOneAndUpdate(
             { user: req.user.id },
-            { companyName, logo, description, phone, address, contactEmail },
-            { new: true }
-        );
-        if (!company) return res.status(404).json({ msg: 'Company not found' });
+            { 
+                companyName, 
+                logo, 
+                description, 
+                phone, 
+                address, 
+                contactEmail,
+                user: req.user.id,
+                isVerified: true
+            },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        ).populate('user', 'name email');
+
+        await User.findByIdAndUpdate(req.user.id, { role: 'company' });
+
         res.json(company);
     } catch (err) {
-        console.error(err);
+        console.error('Error in PUT /api/companies/me:', err);
         res.status(500).send('Server Error');
     }
 });

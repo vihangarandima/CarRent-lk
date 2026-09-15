@@ -157,8 +157,8 @@ const Footer = () => {
         }
 
         .footer-cta-banner {
-          background: var(--grad-orange-dark);
-          padding: 4rem 0;
+          background: radial-gradient(circle at 50% 30%, #ff8800 0%, #f97316 35%, #ea580c 75%, #c2410c 100%);
+          padding: 4.5rem 0;
           position: relative;
           overflow: hidden;
         }
@@ -182,13 +182,15 @@ const Footer = () => {
 
         .footer-cta-text h2 {
           font-family: var(--font-display);
-          font-size: clamp(1.75rem, 3vw, 2.25rem);
+          font-size: clamp(1.85rem, 3.5vw, 2.5rem);
+          font-weight: 900;
           color: white;
           margin-bottom: 0.5rem;
+          letter-spacing: -0.02em;
         }
 
         .footer-cta-text p {
-          color: rgba(255, 255, 255, 0.85);
+          color: rgba(255, 255, 255, 0.95);
           font-size: 1.05rem;
           max-width: 480px;
         }
@@ -203,34 +205,38 @@ const Footer = () => {
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.9rem 1.75rem;
-          border-radius: var(--radius-pill);
-          font-weight: 700;
+          padding: 0.9rem 1.85rem;
+          border-radius: 12px;
+          font-weight: 750;
           font-size: 0.95rem;
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           white-space: nowrap;
+          text-decoration: none;
         }
 
         .footer-cta-btn.primary {
           background: white;
-          color: var(--primary-dark);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+          color: #ea580c;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
         }
 
         .footer-cta-btn.primary:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+          background: #f8fafc;
         }
 
         .footer-cta-btn.outline {
-          background: transparent;
+          background: rgba(255, 255, 255, 0.15);
           color: white;
-          border: 2px solid rgba(255, 255, 255, 0.5);
+          border: 1.5px solid rgba(255, 255, 255, 0.4);
+          backdrop-filter: blur(8px);
         }
 
         .footer-cta-btn.outline:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.25);
           border-color: white;
+          transform: translateY(-2px);
         }
 
         .footer-main {

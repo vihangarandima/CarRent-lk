@@ -245,22 +245,25 @@ const ChooseListingType = () => {
         }
 
         .lt-btn-next {
-          background: #ea580c;
+          background: linear-gradient(135deg, #ff8800 0%, #f97316 45%, #ea580c 100%);
           color: white;
           border: none;
-          padding: 0.75rem 1.25rem;
-          border-radius: 100px;
-          font-weight: 700;
-          font-size: 0.9rem;
+          padding: 0.85rem 1.75rem;
+          border-radius: 12px;
+          font-weight: 750;
+          font-size: 0.95rem;
           display: flex;
           align-items: center;
           gap: 0.5rem;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.45);
         }
 
         .lt-btn-next:hover {
-          background: #c2410c;
+          background: linear-gradient(135deg, #ff9500 0%, #ea580c 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 28px -4px rgba(234, 88, 12, 0.58);
         }
 
         .lt-footer-link {

@@ -60,8 +60,12 @@ export default function CompanyDashboard() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  const [newCompanyName, setNewCompanyName] = useState(user?.name ? `${user.name} Rentals` : "");
+  const [newPhone, setNewPhone] = useState("");
+  const [newAddress, setNewAddress] = useState("Colombo, Sri Lanka");
+
   useEffect(() => {
-    if (!token || !user || user.role !== "company") {
+    if (!token || !user) {
       navigate("/login");
       return;
     }
@@ -75,17 +79,51 @@ export default function CompanyDashboard() {
             headers: { "x-auth-token": token },
           }),
         ]);
-        setCompany(companyRes.data);
-        setEditData(companyRes.data);
-        setVehicles(vehiclesRes.data);
+        if (companyRes.data) {
+          setCompany(companyRes.data);
+          setEditData(companyRes.data);
+          // Sync updated role in local storage
+          if (user && user.role !== "company") {
+            const updatedUser = { ...user, role: "company" };
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
+        }
+        setVehicles(vehiclesRes.data || []);
       } catch (err) {
-        console.error(err);
+        console.error("Dashboard fetch error:", err);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
   }, []);
+
+  const handleQuickCreate = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await axios.put(
+        `${API_URL}/api/companies/me`,
+        {
+          companyName: newCompanyName || `${user?.name || "My"} Rentals`,
+          phone: newPhone,
+          address: newAddress,
+          contactEmail: user?.email || "",
+        },
+        { headers: { "x-auth-token": token } }
+      );
+      setCompany(res.data);
+      setEditData(res.data);
+      if (user && user.role !== "company") {
+        const updatedUser = { ...user, role: "company" };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+      }
+    } catch (err) {
+      alert("Failed to initialize company profile. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -132,16 +170,66 @@ export default function CompanyDashboard() {
       </div>
     );
 
-  /* ── No company found ── */
+  /* ── No company found / Quick Setup Fallback ── */
   if (!company)
     return (
-      <div className="cd-loading">
-        <div className="cd-error-icon"><Building2 size={40} /></div>
-        <h2>Profile Not Found</h2>
-        <p>We couldn't load your company profile.</p>
-        <Link to="/register?role=company" className="cd-add-vehicle-btn" style={{ marginTop: 16 }}>
-          Register Company
-        </Link>
+      <div className="cd-loading" style={{ padding: "40px 20px" }}>
+        <div className="cd-error-icon" style={{ background: "#FFEDD5", color: "#F97316" }}>
+          <Building2 size={36} />
+        </div>
+        <h2 style={{ fontSize: "1.75rem", fontWeight: 800, margin: "0 0 8px 0" }}>Setup Your Company Profile</h2>
+        <p style={{ color: "#64748B", maxWidth: 440, textAlign: "center", marginBottom: 24, fontSize: "0.95rem" }}>
+          Provide your company details below to initialize your fleet manager dashboard.
+        </p>
+
+        <form onSubmit={handleQuickCreate} style={{ width: "100%", maxWidth: 460, background: "#fff", padding: "28px", borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 10px 25px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="cd-form-group">
+            <label style={{ fontWeight: 600, fontSize: "0.85rem", color: "#334155", marginBottom: 6 }}>Company Name</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Colombo Premier Fleet" 
+              required
+              value={newCompanyName} 
+              onChange={(e) => setNewCompanyName(e.target.value)} 
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CBD5E1", fontSize: "0.9rem", boxSizing: "border-box" }}
+            />
+          </div>
+          <div className="cd-form-group">
+            <label style={{ fontWeight: 600, fontSize: "0.85rem", color: "#334155", marginBottom: 6 }}>Phone Number</label>
+            <input 
+              type="text" 
+              placeholder="e.g. +94 77 123 4567" 
+              value={newPhone} 
+              onChange={(e) => setNewPhone(e.target.value)} 
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CBD5E1", fontSize: "0.9rem", boxSizing: "border-box" }}
+            />
+          </div>
+          <div className="cd-form-group">
+            <label style={{ fontWeight: 600, fontSize: "0.85rem", color: "#334155", marginBottom: 6 }}>Address / City</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Colombo 03, Sri Lanka" 
+              value={newAddress} 
+              onChange={(e) => setNewAddress(e.target.value)} 
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CBD5E1", fontSize: "0.9rem", boxSizing: "border-box" }}
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={saving}
+            className="cd-add-vehicle-btn" 
+            style={{ width: "100%", justifyContent: "center", padding: "12px", marginTop: 8, fontSize: "0.95rem" }}
+          >
+            {saving ? "Creating Profile..." : "Create & Launch Dashboard →"}
+          </button>
+          <button 
+            type="button" 
+            onClick={handleLogout} 
+            style={{ background: "transparent", border: "none", color: "#EF4444", fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", marginTop: 4, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+          >
+            <LogOut size={14} /> Log out of account
+          </button>
+        </form>
         <style>{loadingCSS}</style>
       </div>
     );
@@ -196,13 +284,22 @@ export default function CompanyDashboard() {
 
           {/* ── Main content ── */}
           <main className="cd-main">
-            <header className="cd-header">
+            <header className="cd-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h1 className="cd-title">
                   Good morning, <span style={{ color: "#f97316" }}>{company.companyName}</span>
                 </h1>
                 <p className="cd-subtitle">Here's how your fleet performed this month.</p>
               </div>
+              <button 
+                type="button" 
+                onClick={handleLogout}
+                className="cd-btn-outline"
+                style={{ color: "#EF4444", borderColor: "rgba(239,68,68,0.3)", display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
+                <LogOut size={14} />
+                <span>Log Out</span>
+              </button>
             </header>
 
             {/* ── Stat cards ── */}

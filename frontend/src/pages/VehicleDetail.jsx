@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { MapPin, Star, Check, CheckCircle2, MessageSquare, Navigation } from "lucide-react";
 import axios from "axios";
 import { API_URL } from "../config";
-import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, MarkerF } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { addDays, subDays } from "date-fns";
@@ -205,7 +205,7 @@ const VehicleDetail = () => {
                         ],
                       }}
                     >
-                      <Marker
+                      <MarkerF
                         position={{ lat: vehicle.lat, lng: vehicle.lng }}
                         title={`${vehicle.brand} ${vehicle.model} - Pickup Location`}
                         icon={{

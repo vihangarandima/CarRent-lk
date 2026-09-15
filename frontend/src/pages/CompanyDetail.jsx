@@ -108,7 +108,7 @@ const CompanyDetail = () => {
           </div>
           {vehicles.length === 0 ? (
             <div className="fleet-empty">
-              <Car size={40} color="#DDD6FE" />
+              <Car size={40} color="#f97316" />
               <p>This company hasn't listed any vehicles yet.</p>
             </div>
           ) : (

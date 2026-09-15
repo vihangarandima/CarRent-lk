@@ -16,6 +16,12 @@ import {
   Quote,
   ArrowRight,
   ChevronRight,
+  Search,
+  CalendarCheck,
+  KeyRound,
+  ThumbsUp,
+  Users,
+  Fuel,
 } from "lucide-react";
 
 const categories = [
@@ -240,31 +246,85 @@ const LandingPage = () => {
       {/* How it Works */}
       <section id="how-it-works" className="section steps-section">
         <div className="container">
-          <div className="section-header center">
-            <span className="section-badge">Simple Process</span>
-            <h2 className="section-title">
-              Rent in <span className="text-gradient">4 simple steps</span>
-            </h2>
-          </div>
 
-          <div className="steps-grid">
-            {steps.map((step, i) => (
-              <motion.div
-                key={step.num}
-                className="step-card"
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <span className="step-num">{step.num}</span>
-                <div className="step-img-wrap">
-                  <img src={step.image} alt={step.title} />
+          <div className="hiw-layout">
+            {/* Left visual */}
+            <motion.div
+              className="hiw-visual"
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <div className="hiw-img-stack blue-theme">
+                <div className="hiw-hero-content">
+                  <div className="hiw-hero-badge">SIMPLE STEPS</div>
+                  <h3 className="hiw-hero-title">How it<br/>works</h3>
+                  <p className="hiw-hero-subtitle">
+                    From browsing to driving in four steps. Renting a car has never been this straightforward.
+                  </p>
                 </div>
-                <h3>{step.title}</h3>
-                <p>{step.desc}</p>
-              </motion.div>
-            ))}
+
+                <div className="hiw-mockups">
+                  <div className="hiw-laptop-mockup">
+                    <div className="hiw-laptop-screen">
+                      <div className="hiw-laptop-notch"></div>
+                      <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&q=80&w=600" alt="App preview laptop" />
+                    </div>
+                    <div className="hiw-laptop-base">
+                      <div className="hiw-laptop-trackpad"></div>
+                    </div>
+                  </div>
+
+                  <div className="hiw-phone-mockup">
+                    <div className="hiw-phone-notch"></div>
+                    <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=400" alt="App preview phone" />
+                  </div>
+                </div>
+
+                <div className="hiw-glass-stats">
+                  <div className="hiw-stat">
+                    <span className="hiw-stat-val">200+</span>
+                    <span className="hiw-stat-label">CARS</span>
+                  </div>
+                  <div className="hiw-stat">
+                    <span className="hiw-stat-val">2</span>
+                    <span className="hiw-stat-label">MINS</span>
+                  </div>
+                  <div className="hiw-stat">
+                    <span className="hiw-stat-val">24/7</span>
+                    <span className="hiw-stat-label">SUPPORT</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Right steps timeline */}
+            <div className="hiw-steps">
+              {steps.map((step, i) => (
+                <motion.div
+                  key={step.num}
+                  className="hiw-step"
+                  initial={{ opacity: 0, x: 30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.12 }}
+                >
+                  <div className="hiw-step-left">
+                    <div className={`hiw-step-icon hiw-icon-${i}`}>
+                      {i === 0 && <Search size={20} />}
+                      {i === 1 && <CalendarCheck size={20} />}
+                      {i === 2 && <KeyRound size={20} />}
+                      {i === 3 && <ThumbsUp size={20} />}
+                    </div>
+                    {i < steps.length - 1 && <div className="hiw-connector" />}
+                  </div>
+                  <div className="hiw-step-body">
+                    <h3 className="hiw-step-title">{step.title}</h3>
+                    <p className="hiw-step-desc">{step.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -476,17 +536,26 @@ const LandingPage = () => {
         .view-all-link {
           display: inline-flex;
           align-items: center;
-          gap: 0.4rem;
-          color: var(--primary);
+          gap: 0.5rem;
+          color: #ea580c;
+          background: #fff7ed;
+          border: 1.5px solid rgba(249, 115, 22, 0.25);
+          padding: 0.55rem 1.25rem;
+          border-radius: 999px;
           font-weight: 700;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           white-space: nowrap;
-          transition: gap 0.25s ease, opacity 0.25s ease;
+          transition: all 0.25s ease;
+          text-decoration: none;
         }
 
         .view-all-link:hover {
-          gap: 0.65rem;
-          opacity: 0.95;
+          background: linear-gradient(135deg, #ff8800 0%, #ea580c 100%);
+          color: #ffffff;
+          border-color: transparent;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(249, 115, 22, 0.35);
+          gap: 0.75rem;
         }
 
         .vehicle-grid {
@@ -561,19 +630,22 @@ const LandingPage = () => {
         .category-cta {
           display: inline-flex;
           align-items: center;
-          gap: 0.4rem;
-          color: var(--primary-light);
+          gap: 0.5rem;
+          color: #ffffff;
           font-weight: 700;
-          padding: 0.75rem 1.5rem;
-          border: 2px solid rgba(249, 115, 22, 0.4);
+          padding: 0.85rem 1.75rem;
+          background: linear-gradient(135deg, #ff8800 0%, #f97316 45%, #ea580c 100%);
+          border: none;
           border-radius: var(--radius-pill);
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.45);
         }
 
         .category-cta:hover {
-          background: var(--primary);
-          color: white;
-          border-color: var(--primary);
+          background: linear-gradient(135deg, #ff9500 0%, #ea580c 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 28px -4px rgba(234, 88, 12, 0.55);
+          color: #ffffff;
         }
 
         .category-grid {
@@ -593,7 +665,7 @@ const LandingPage = () => {
 
         .category-card a:hover {
           transform: translateY(-4px);
-          box-shadow: var(--shadow-card-hover);
+          box-shadow: 0 16px 36px -8px rgba(249, 115, 22, 0.25);
         }
 
         .category-img-wrap {
@@ -617,8 +689,8 @@ const LandingPage = () => {
           inset: 0;
           background: linear-gradient(
             to top,
-            rgba(0, 0, 0, 0.72) 0%,
-            rgba(0, 0, 0, 0.24) 55%,
+            rgba(15, 23, 42, 0.85) 0%,
+            rgba(15, 23, 42, 0.3) 55%,
             transparent 100%
           );
         }
@@ -636,73 +708,306 @@ const LandingPage = () => {
           z-index: 2;
         }
 
-        /* Steps */
+        /* Steps - New Two-Column Timeline Layout */
         .steps-section {
-          background: var(--bg-warm);
+          background: #fdfbf7;
         }
 
-        .steps-grid {
+        .hiw-layout {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 1.5rem;
+          grid-template-columns: 1fr 1fr;
+          gap: 5rem;
+          align-items: center;
+          margin-top: 3.5rem;
         }
 
-        .step-card {
-          background: white;
-          border-radius: var(--radius-lg);
-          padding: 1.75rem;
-          border: 1px solid var(--border);
-          box-shadow: var(--shadow-card);
-          transition: all 0.35s ease;
+        /* Left Visual */
+        .hiw-visual {
           position: relative;
+        }
+
+        .hiw-img-stack.blue-theme {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 100%;
+          max-width: 480px;
+          height: 600px;
+          margin: 0 auto;
+          border-radius: 28px;
           overflow: hidden;
+          background: radial-gradient(circle at 50% 30%, #ff8800 0%, #f97316 35%, #ea580c 75%, #c2410c 100%);
+          box-shadow: 0 24px 60px rgba(249, 115, 22, 0.32);
+          padding-top: 3rem;
         }
 
-        .step-card:hover {
-          transform: translateY(-6px);
-          box-shadow: var(--shadow-card-hover);
-          border-color: rgba(249, 115, 22, 0.2);
+        .hiw-hero-content {
+          text-align: center;
+          padding: 0 2rem;
+          z-index: 2;
         }
 
-        .step-num {
-          font-family: var(--font-display);
-          font-size: 2.5rem;
-          font-weight: 900;
-          color: #ea580c;
-          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          line-height: 1;
+        .hiw-hero-badge {
           display: inline-block;
-          margin-bottom: 1rem;
-          letter-spacing: -0.03em;
+          background: rgba(255, 255, 255, 0.25);
+          color: white;
+          padding: 0.35rem 1.1rem;
+          border-radius: 99px;
+          font-size: 0.7rem;
+          font-weight: 800;
+          letter-spacing: 1.2px;
+          margin-bottom: 1.5rem;
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.4);
         }
 
-        .step-img-wrap {
-          height: 120px;
-          border-radius: var(--radius-sm);
-          overflow: hidden;
-          margin-bottom: 1.25rem;
+        .hiw-hero-title {
+          font-family: var(--font-display);
+          font-size: 3rem;
+          font-weight: 900;
+          color: white;
+          margin: 0 0 1rem;
+          line-height: 1.05;
+          letter-spacing: -1px;
         }
 
-        .step-img-wrap img {
+        .hiw-hero-subtitle {
+          color: rgba(255, 255, 255, 0.95);
+          font-size: 0.95rem;
+          line-height: 1.5;
+          margin: 0;
+          font-weight: 500;
+        }
+
+        .hiw-mockups {
+          position: relative;
+          width: 100%;
+          height: 300px;
+          margin-top: 2rem;
+          display: flex;
+          justify-content: center;
+        }
+
+        .hiw-laptop-mockup {
+          position: absolute;
+          top: 0;
+          left: 50%;
+          transform: translateX(-55%);
+          width: 340px;
+          z-index: 1;
+        }
+
+        .hiw-laptop-screen {
+          width: 100%;
+          height: 220px;
+          background: #111;
+          border-radius: 12px 12px 0 0;
+          padding: 8px 8px 0 8px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+          position: relative;
+        }
+
+        .hiw-laptop-notch {
+          position: absolute;
+          top: 8px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 60px;
+          height: 12px;
+          background: #111;
+          border-radius: 0 0 6px 6px;
+          z-index: 2;
+        }
+
+        .hiw-laptop-screen img {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          border-radius: 6px 6px 0 0;
         }
 
-        .step-card h3 {
-          font-family: var(--font-body);
-          font-size: 1.05rem;
+        .hiw-laptop-base {
+          width: 112%;
+          height: 14px;
+          background: #333;
+          border-radius: 0 0 16px 16px;
+          margin-left: -6%;
+          position: relative;
+          display: flex;
+          justify-content: center;
+          box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .hiw-laptop-trackpad {
+          width: 50px;
+          height: 6px;
+          background: #222;
+          border-radius: 0 0 4px 4px;
+        }
+
+        .hiw-phone-mockup {
+          position: absolute;
+          bottom: 30px;
+          right: 30px;
+          width: 130px;
+          height: 260px;
+          background: #111;
+          border-radius: 20px 20px 0 0;
+          padding: 8px 8px 0 8px;
+          box-shadow: -10px 10px 40px rgba(0,0,0,0.4);
+          z-index: 2;
+        }
+
+        .hiw-phone-notch {
+          position: absolute;
+          top: 8px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 40px;
+          height: 12px;
+          background: #111;
+          border-radius: 0 0 6px 6px;
+          z-index: 2;
+        }
+
+        .hiw-phone-mockup img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 12px 12px 0 0;
+        }
+
+        .hiw-glass-stats {
+          position: absolute;
+          bottom: 1.5rem;
+          left: 1.5rem;
+          right: 1.5rem;
+          display: flex;
+          justify-content: space-between;
+          background: rgba(255,255,255,0.2);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255,255,255,0.35);
+          border-radius: 16px;
+          padding: 1.25rem 0.5rem;
+          z-index: 3;
+        }
+
+        .hiw-stat {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          flex: 1;
+          border-right: 1px solid rgba(255,255,255,0.25);
+        }
+        
+        .hiw-stat:last-child {
+          border-right: none;
+        }
+
+        .hiw-stat-val {
+          font-size: 1.25rem;
           font-weight: 800;
-          margin-bottom: 0.5rem;
+          color: white;
+          line-height: 1.2;
+        }
+        
+        .hiw-stat-label {
+          font-size: 0.65rem;
+          font-weight: 700;
+          color: rgba(255,255,255,0.9);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-top: 0.3rem;
         }
 
-        .step-card p {
-          font-size: 0.88rem;
-          line-height: 1.6;
+        /* Right Steps Timeline */
+        .hiw-steps {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .hiw-step {
+          display: flex;
+          gap: 1.25rem;
+          align-items: flex-start;
+        }
+
+        .hiw-step-left {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          flex-shrink: 0;
+        }
+
+        .hiw-step-icon {
+          width: 52px;
+          height: 52px;
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+          background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+          color: #ea580c;
+          border: 1.5px solid rgba(249, 115, 22, 0.25);
+          box-shadow: 0 4px 14px rgba(249, 115, 22, 0.12);
+        }
+
+        .hiw-step:hover .hiw-step-icon {
+          transform: scale(1.1);
+          background: linear-gradient(135deg, #ff8800 0%, #ea580c 100%);
+          color: #ffffff;
+          box-shadow: 0 8px 22px rgba(249, 115, 22, 0.4);
+        }
+
+        .hiw-icon-0,
+        .hiw-icon-1,
+        .hiw-icon-2,
+        .hiw-icon-3 {
+          background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+          color: #ea580c;
+          border: 1.5px solid rgba(249, 115, 22, 0.25);
+        }
+
+        .hiw-connector {
+          width: 2px;
+          flex-grow: 1;
+          min-height: 36px;
+          background: linear-gradient(to bottom, rgba(249, 115, 22, 0.3) 0%, transparent 100%);
+          margin: 6px 0;
+        }
+
+        .hiw-step-body {
+          padding-bottom: 2.25rem;
+        }
+
+        .hiw-step-title {
+          font-size: 1.1rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin-bottom: 0.35rem;
+          line-height: 1.3;
+        }
+
+        .hiw-step-desc {
+          font-size: 0.9rem;
           color: var(--text-muted);
+          line-height: 1.65;
+          margin: 0;
+        }
+
+        @media (max-width: 860px) {
+          .hiw-layout {
+            grid-template-columns: 1fr;
+            gap: 4rem;
+          }
+          .hiw-main-img {
+            max-width: 100%;
+            height: 380px;
+          }
         }
 
         /* Why Us */
@@ -971,18 +1276,22 @@ const LandingPage = () => {
           display: inline-flex;
           align-items: center;
           gap: 0.55rem;
-          padding: 0.75rem 1.35rem;
-          background: var(--primary);
+          padding: 0.85rem 1.6rem;
+          background: linear-gradient(135deg, #ff8800 0%, #f97316 45%, #ea580c 100%);
           color: white;
-          border-radius: var(--radius-pill);
+          border-radius: 12px;
           font-weight: 700;
-          font-size: 0.92rem;
-          transition: all 0.25s ease;
+          font-size: 0.95rem;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 6px 20px -2px rgba(249, 115, 22, 0.4);
+          text-decoration: none;
         }
 
         .deal-btn:hover {
-          background: var(--primary-dark);
+          background: linear-gradient(135deg, #ff9500 0%, #ea580c 100%);
           transform: translateY(-2px);
+          box-shadow: 0 10px 24px -2px rgba(234, 88, 12, 0.55);
+          color: white;
         }
 
         .deal-card img {

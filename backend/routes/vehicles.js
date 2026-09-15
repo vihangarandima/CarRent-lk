@@ -89,9 +89,10 @@ router.post("/", auth, async (req, res) => {
       return res.status(400).json({ msg: "Valid vehicle type is required." });
     }
 
-    // Validation for 5 mandatory images
-    if (!images || !Array.isArray(images) || images.length !== 5) {
-      return res.status(400).json({ msg: "Exactly 5 images are mandatory." });
+    // Validation for images: At least 1 valid image required (up to 5)
+    const validImages = Array.isArray(images) ? images.filter(img => typeof img === "string" && img.trim() !== "") : [];
+    if (validImages.length === 0) {
+      return res.status(400).json({ msg: "Please upload at least 1 image of the vehicle." });
     }
 
     // Auto-attach company if the lister is a company account
@@ -116,7 +117,7 @@ router.post("/", auth, async (req, res) => {
       location,
       lat: lat || null,
       lng: lng || null,
-      images,
+      images: validImages,
       availableFrom,
       availableTo,
       company: companyId,
@@ -135,7 +136,7 @@ router.get("/:id", async (req, res) => {
   try {
     const vehicle = await Vehicle.findById(req.params.id)
       .populate("owner", "name email")
-      .populate("company", "companyName logo");
+      .populate("company", "companyName logo phone contactEmail address");
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
     res.json(vehicle);
   } catch (err) {

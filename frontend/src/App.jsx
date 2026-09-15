@@ -23,8 +23,6 @@ import CompanyDashboard from "./pages/CompanyDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 
 import ChooseListingType from "./pages/ChooseListingType";
-import ModeSwitcher from "./components/ModeSwitcher";
-import MobileBottomNav from "./components/MobileBottomNav";
 
 function AppContent() {
   const location = useLocation();
@@ -89,12 +87,6 @@ function AppContent() {
           display: flex;
           flex-direction: column;
           background: var(--bg);
-        }
-
-        @media (max-width: 900px) {
-          .app-container {
-            padding-bottom: 70px;
-          }
         }
 
         .app-bg-orbs {
@@ -165,8 +157,6 @@ function AppContent() {
       </main>
 
       {!hideNavAndFooter && <Footer />}
-      <ModeSwitcher />
-      {!hideNavAndFooter && <MobileBottomNav />}
     </div>
   );
 }

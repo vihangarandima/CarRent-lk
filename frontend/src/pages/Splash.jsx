@@ -15,7 +15,7 @@ const Splash = () => {
           playsInline
           className="background-video"
         >
-          <source src="http://localhost:5000/uploads/7154208-hd_1920_1080_25fps.mp4" type="video/mp4" />
+          <source src={`${API_URL}/uploads/7154208-hd_1920_1080_25fps.mp4`} type="video/mp4" />
         </video>
         <div className="video-overlay"></div>
       </div>
