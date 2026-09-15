@@ -122,7 +122,9 @@ const Hero = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.25, ease: "easeOut" }}
         >
-          <p className="hero-sub-top">Make The Right Choice</p>
+          <p className="hero-sub-top">
+            <span className="tag-sparkle">✦</span> Make The Right Choice <span className="tag-sparkle">✦</span>
+          </p>
           <h2 className="hero-sub-bottom">
             Find Your Dream Car, Which will Give You Wings
           </h2>
@@ -198,33 +200,36 @@ const Hero = () => {
             <ChevronDown size={14} className="select-chevron" />
           </div>
 
-          {/* Price Range: From */}
-          <div className="search-price-group">
-            <span className="price-label">From</span>
-            <div className="search-input-pill">
-              <span className="currency-symbol">LKR</span>
-              <input
-                type="number"
-                placeholder="5,000"
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-                className="price-input"
-              />
+          {/* Price Range Row (From & To) */}
+          <div className="search-price-row">
+            {/* Price Range: From */}
+            <div className="search-price-group">
+              <span className="price-label">From</span>
+              <div className="search-input-pill">
+                <span className="currency-symbol">LKR</span>
+                <input
+                  type="number"
+                  placeholder="5,000"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  className="price-input"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Price Range: To */}
-          <div className="search-price-group">
-            <span className="price-label">To</span>
-            <div className="search-input-pill">
-              <span className="currency-symbol">LKR</span>
-              <input
-                type="number"
-                placeholder="80,000"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                className="price-input"
-              />
+            {/* Price Range: To */}
+            <div className="search-price-group">
+              <span className="price-label">To</span>
+              <div className="search-input-pill">
+                <span className="currency-symbol">LKR</span>
+                <input
+                  type="number"
+                  placeholder="80,000"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  className="price-input"
+                />
+              </div>
             </div>
           </div>
 
@@ -241,7 +246,9 @@ const Hero = () => {
       </motion.div>
 
       <style>{`
-        /* EXACT YAMU HERO STYLES */
+        /* =========================================================
+           1. DESKTOP MODE (Default / min-width: 1025px)
+           ========================================================= */
         .yamu-exact-hero {
           position: relative;
           min-height: 100vh;
@@ -251,13 +258,13 @@ const Hero = () => {
           flex-direction: column;
           align-items: center;
           justify-content: space-between;
-          padding: 85px 1.5rem 2.5rem;
+          padding: 85px 2rem 2.25rem;
           box-sizing: border-box;
           overflow: hidden;
           background-color: #ea580c;
         }
 
-        /* Luminous Radiant Orange Gradient matching the Blue Reference */
+        /* Luminous Radiant Orange Gradient */
         .hero-gradient-overlay {
           position: absolute;
           inset: 0;
@@ -348,35 +355,37 @@ const Hero = () => {
           width: 100%;
           max-width: 1200px;
           margin: auto 0;
-          padding-top: 1.5rem;
+          padding-top: 0.5rem;
           text-align: center;
         }
 
-        /* Unified stage — text behind, cars in front, centered */
+        /* Unified stage — text towers high behind, cars sit neatly in front */
         .heroic-fleet-stage {
           position: relative;
           width: 100%;
-          max-width: 850px;
+          max-width: 900px;
           margin: 0 auto;
           display: flex;
-          align-items: flex-end;
-          justify-content: center;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+          padding-top: 5rem;
           overflow: visible;
         }
 
-        /* YAMU text — bold, wide, using project main display font (Poppins) with rich dimensional text shadow */
+        /* YAMU text — bold, towering high above cars with clear visibility */
         .watermark-yamu-text {
           position: absolute;
+          top: 0;
           left: 0;
           right: 0;
-          bottom: 46%;
-          font-family: var(--font-display, 'Poppins', 'Plus Jakarta Sans', sans-serif);
-          font-size: clamp(6.5rem, 14vw, 13rem);
-          font-weight: 900;
-          letter-spacing: -0.01em;
+          font-family: 'Changa One', 'Anton', 'Oswald', cursive, sans-serif;
+          font-size: clamp(9.5rem, 17vw, 15.5rem);
+          font-weight: 400;
+          letter-spacing: -0.02em;
           text-transform: uppercase;
           color: #ffffff;
-          line-height: 0.85;
+          line-height: 0.82;
           margin: 0;
           padding: 0;
           user-select: none;
@@ -387,11 +396,12 @@ const Hero = () => {
           text-align: center;
         }
 
-        /* Fleet image — sits at the bottom, covering the lower portion of YAMU */
+        /* Fleet image — sits at the bottom, overlapping only lower portion of YAMU */
         .fleet-image-wrap {
           position: relative;
           z-index: 2;
           width: 100%;
+          margin-top: -4.5rem;
           display: flex;
           justify-content: center;
           align-items: flex-end;
@@ -401,7 +411,7 @@ const Hero = () => {
         .fleet-cutout-img {
           width: 100%;
           height: auto;
-          max-height: 400px;
+          max-height: 380px;
           object-fit: contain;
           filter: none;
           box-shadow: none;
@@ -413,25 +423,40 @@ const Hero = () => {
 
         /* Taglines Below Vehicles */
         .hero-taglines {
-          margin-top: 1rem;
+          margin-top: 0.75rem;
           z-index: 15;
         }
 
         .hero-sub-top {
-          font-size: 0.92rem;
-          font-weight: 600;
-          color: rgba(255, 255, 255, 0.92);
-          margin: 0 0 4px 0;
-          letter-spacing: 0.03em;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: rgba(255, 255, 255, 0.95);
+          margin: 0 0 6px 0;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          background: rgba(255, 255, 255, 0.12);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          padding: 4px 16px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .tag-sparkle {
+          color: #fde047;
+          font-size: 0.78rem;
         }
 
         .hero-sub-bottom {
-          font-size: clamp(1.05rem, 2vw, 1.35rem);
+          font-size: clamp(1.1rem, 2vw, 1.4rem);
           font-weight: 700;
           color: #ffffff;
           margin: 0;
           letter-spacing: -0.01em;
-          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
         /* Search Card with Attached Tabs */
@@ -439,7 +464,7 @@ const Hero = () => {
           position: relative;
           z-index: 25;
           width: 100%;
-          max-width: 980px;
+          max-width: 1020px;
           margin-top: auto;
           display: flex;
           flex-direction: column;
@@ -456,8 +481,10 @@ const Hero = () => {
 
         .hero-tab-btn {
           border: none;
-          background: transparent;
-          color: rgba(255, 255, 255, 0.9);
+          background: rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          color: #ffffff;
           padding: 10px 22px;
           font-size: 0.85rem;
           font-weight: 600;
@@ -469,13 +496,13 @@ const Hero = () => {
 
         .hero-tab-btn.active {
           background: #ffffff;
-          color: #0284c7;
+          color: #ea580c;
           font-weight: 700;
-          box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.06);
+          box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.08);
         }
 
         .hero-tab-btn:not(.active):hover {
-          background: rgba(255, 255, 255, 0.15);
+          background: rgba(255, 255, 255, 0.3);
           color: #ffffff;
         }
 
@@ -483,7 +510,7 @@ const Hero = () => {
         .hero-search-bar {
           background: #ffffff;
           border-radius: 0 16px 16px 16px;
-          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.08);
           padding: 14px 20px;
           width: 100%;
           display: flex;
@@ -496,7 +523,7 @@ const Hero = () => {
         .search-lead-label {
           font-size: 0.88rem;
           font-weight: 700;
-          color: #4b5563;
+          color: #374151;
           white-space: nowrap;
           padding-right: 4px;
         }
@@ -506,19 +533,25 @@ const Hero = () => {
           position: relative;
           display: flex;
           align-items: center;
-          background: #ffffff;
+          background: #f8fafc;
           border: 1.5px solid #e2e8f0;
-          border-radius: 8px;
-          padding: 0 10px;
-          height: 42px;
+          border-radius: 10px;
+          padding: 0 12px;
+          height: 44px;
           flex: 1.2;
           min-width: 120px;
-          transition: border-color 0.2s;
+          transition: all 0.2s;
+        }
+
+        .search-field-pill:hover {
+          border-color: #cbd5e1;
+          background: #ffffff;
         }
 
         .search-field-pill:focus-within {
-          border-color: #f97316;
-          box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+          border-color: #ea580c;
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
         }
 
         .search-select {
@@ -526,7 +559,7 @@ const Hero = () => {
           border: none;
           background: transparent;
           outline: none;
-          font-size: 0.85rem;
+          font-size: 0.88rem;
           font-weight: 600;
           color: #1e293b;
           cursor: pointer;
@@ -537,9 +570,17 @@ const Hero = () => {
 
         .select-chevron {
           position: absolute;
-          right: 10px;
-          color: #f97316;
+          right: 12px;
+          color: #ea580c;
           pointer-events: none;
+        }
+
+        /* Price Range Row */
+        .search-price-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex: 1.5;
         }
 
         /* Price Input Groups */
@@ -548,7 +589,7 @@ const Hero = () => {
           align-items: center;
           gap: 6px;
           flex: 1;
-          min-width: 130px;
+          min-width: 120px;
         }
 
         .price-label {
@@ -561,23 +602,29 @@ const Hero = () => {
         .search-input-pill {
           display: flex;
           align-items: center;
-          background: #ffffff;
+          background: #f8fafc;
           border: 1.5px solid #e2e8f0;
-          border-radius: 8px;
-          padding: 0 8px;
-          height: 42px;
+          border-radius: 10px;
+          padding: 0 10px;
+          height: 44px;
           width: 100%;
           transition: all 0.2s;
         }
 
+        .search-input-pill:hover {
+          border-color: #cbd5e1;
+          background: #ffffff;
+        }
+
         .search-input-pill:focus-within {
-          border-color: #f97316;
-          box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+          border-color: #ea580c;
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
         }
 
         .currency-symbol {
           font-size: 0.72rem;
-          font-weight: 700;
+          font-weight: 800;
           color: #ea580c;
           margin-right: 4px;
         }
@@ -587,7 +634,7 @@ const Hero = () => {
           border: none;
           background: transparent;
           outline: none;
-          font-size: 0.85rem;
+          font-size: 0.88rem;
           font-weight: 600;
           color: #0f172a;
         }
@@ -603,9 +650,9 @@ const Hero = () => {
           color: #ffffff;
           border: none;
           border-radius: 10px;
-          padding: 0 26px;
-          height: 42px;
-          font-size: 0.92rem;
+          padding: 0 28px;
+          height: 44px;
+          font-size: 0.95rem;
           font-weight: 700;
           cursor: pointer;
           display: flex;
@@ -623,47 +670,236 @@ const Hero = () => {
           box-shadow: 0 10px 26px -2px rgba(234, 88, 12, 0.55);
         }
 
-        /* Responsive Breakpoints */
-        @media (max-width: 1024px) {
-          .hero-search-bar {
-            flex-wrap: wrap;
-            gap: 10px;
+        /* =========================================================
+           2. TABLET MODE (768px <= width <= 1024px)
+           ========================================================= */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .yamu-exact-hero {
+            padding: 85px 1.5rem 2rem;
+            min-height: 100vh;
+            min-height: 100dvh;
           }
-          .search-lead-label {
-            width: 100%;
-            margin-bottom: 2px;
-          }
+
           .hero-carousel-dots {
             display: none;
           }
+
+          .heroic-fleet-stage {
+            max-width: 700px;
+            padding-top: 3.8rem;
+          }
+
+          .watermark-yamu-text {
+            font-size: clamp(6.8rem, 14vw, 10rem);
+            letter-spacing: -0.02em;
+            line-height: 0.84;
+          }
+
+          .fleet-image-wrap {
+            margin-top: -3.2rem;
+          }
+
+          .fleet-cutout-img {
+            max-height: 280px;
+          }
+
+          .hero-sub-bottom {
+            font-size: 1.2rem;
+          }
+
+          .hero-search-card-container {
+            max-width: 760px;
+          }
+
+          .hero-search-bar {
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 16px 18px;
+          }
+
+          .search-lead-label {
+            width: 100%;
+            margin-bottom: -2px;
+          }
+
+          .search-field-pill {
+            flex: 1 1 45%;
+            min-width: 180px;
+          }
+
+          .search-price-row {
+            flex: 1 1 60%;
+            min-width: 240px;
+          }
+
+          .hero-search-submit-btn {
+            flex: 1 1 30%;
+            justify-content: center;
+            height: 44px;
+          }
         }
 
+        /* =========================================================
+           3. MOBILE MODE (width <= 768px)
+           ========================================================= */
         @media (max-width: 768px) {
           .yamu-exact-hero {
-            padding: 75px 1rem 1.5rem;
+            padding: 72px 1rem 1.5rem;
             min-height: auto;
+            min-height: 100dvh;
+            justify-content: flex-start;
+            gap: 0.75rem;
           }
+
+          .hero-carousel-dots {
+            display: none;
+          }
+
+          .hero-center-stage {
+            margin: auto 0 0.5rem;
+            padding-top: 0.25rem;
+            width: 100%;
+          }
+
+          .heroic-fleet-stage {
+            max-width: 100%;
+            width: 100%;
+            padding-top: 2.8rem;
+          }
+
           .watermark-yamu-text {
-            font-size: clamp(3.5rem, 16vw, 5.5rem);
-            letter-spacing: 0.02em;
-            bottom: 42%;
+            font-size: clamp(4.6rem, 19vw, 6.8rem);
+            letter-spacing: -0.02em;
+            line-height: 0.85;
+            text-shadow: 0 10px 24px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.18);
           }
+
+          .fleet-image-wrap {
+            margin-top: -2.2rem;
+          }
+
           .fleet-cutout-img {
-            max-height: 220px;
+            max-height: 200px;
+            width: 100%;
           }
+
+          .hero-taglines {
+            margin-top: 0.5rem;
+            padding: 0 0.5rem;
+          }
+
+          .hero-sub-top {
+            font-size: 0.76rem;
+            padding: 3px 12px;
+            margin-bottom: 4px;
+          }
+
+          .hero-sub-bottom {
+            font-size: 1.05rem;
+            line-height: 1.35;
+          }
+
+          /* Attached Tabs on Mobile */
+          .hero-search-card-container {
+            width: 100%;
+            max-width: 100%;
+            margin-top: auto;
+          }
+
+          .hero-tabs-header {
+            width: 100%;
+            display: flex;
+            gap: 3px;
+          }
+
+          .hero-tab-btn {
+            flex: 1;
+            text-align: center;
+            padding: 9px 8px;
+            font-size: 0.78rem;
+            border-radius: 10px 10px 0 0;
+            white-space: nowrap;
+          }
+
+          /* Search Bar on Mobile */
           .hero-search-bar {
             flex-direction: column;
             align-items: stretch;
             border-radius: 0 0 16px 16px;
             padding: 14px;
+            gap: 10px;
           }
+
+          .search-lead-label {
+            font-size: 0.82rem;
+            margin-bottom: -2px;
+          }
+
+          .search-field-pill {
+            width: 100%;
+            min-width: 0;
+            height: 44px;
+          }
+
+          .search-price-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            width: 100%;
+          }
+
           .search-price-group {
             width: 100%;
+            min-width: 0;
           }
+
+          .price-label {
+            font-size: 0.75rem;
+          }
+
+          .search-input-pill {
+            height: 42px;
+          }
+
           .hero-search-submit-btn {
             width: 100%;
+            height: 46px;
             justify-content: center;
-            margin-top: 4px;
+            margin-top: 2px;
+          }
+        }
+
+        /* =========================================================
+           4. EXTRA SMALL PHONES (width <= 420px)
+           ========================================================= */
+        @media (max-width: 420px) {
+          .yamu-exact-hero {
+            padding: 68px 0.75rem 1.25rem;
+          }
+
+          .heroic-fleet-stage {
+            padding-top: 2.4rem;
+          }
+
+          .watermark-yamu-text {
+            font-size: clamp(3.8rem, 18vw, 5.2rem);
+          }
+
+          .fleet-image-wrap {
+            margin-top: -1.8rem;
+          }
+
+          .fleet-cutout-img {
+            max-height: 165px;
+          }
+
+          .hero-sub-bottom {
+            font-size: 0.95rem;
+          }
+
+          .hero-tab-btn {
+            font-size: 0.72rem;
+            padding: 8px 4px;
           }
         }
       `}</style>

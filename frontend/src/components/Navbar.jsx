@@ -33,6 +33,12 @@ const Navbar = () => {
 
   const closeMenu = () => setMenuOpen(false);
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/";
+  };
+
   const listTarget =
     user?.role === "company"
       ? "/company-list-vehicle"
@@ -101,6 +107,21 @@ const Navbar = () => {
                 )}
                 <span>{profileLabel}</span>
               </Link>
+
+              {/* Dedicated Logout Button */}
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="nav-logout-btn"
+                title="Log Out"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>Logout</span>
+              </button>
             </>
           ) : (
             <>
@@ -145,9 +166,23 @@ const Navbar = () => {
 
         <div className="mobile-menu-actions">
           {token ? (
-            <Link to={profileTarget} className="mobile-btn-outline" onClick={closeMenu}>
-              {profileLabel}
-            </Link>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+              <Link to={profileTarget} className="mobile-btn-outline" onClick={closeMenu}>
+                {profileLabel}
+              </Link>
+              <button
+                type="button"
+                onClick={() => { closeMenu(); handleLogout(); }}
+                className="mobile-btn-logout"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                Log Out
+              </button>
+            </div>
           ) : (
             <>
               <Link to="/login" className="mobile-btn-outline" onClick={closeMenu}>
@@ -241,11 +276,36 @@ const Navbar = () => {
           color: #111111;
           font-weight: 600;
           font-size: 0.95rem;
+          padding: 0.5rem 0.75rem;
           transition: color 0.2s;
         }
         
         .nav-signin:hover {
           color: #FF8A00;
+        }
+
+        .nav-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+          color: #ffffff !important;
+          padding: 0.55rem 1.4rem;
+          border-radius: 999px;
+          font-weight: 700;
+          font-size: 0.92rem;
+          text-decoration: none;
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3);
+          white-space: nowrap;
+          border: none;
+        }
+
+        .nav-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 22px rgba(249, 115, 22, 0.45);
+          color: #ffffff !important;
+          filter: brightness(1.05);
         }
 
         .hero-nav.on-dark .brand-yamu {
@@ -267,19 +327,22 @@ const Navbar = () => {
           color: #ffffff;
           font-weight: 600;
         }
+        .hero-nav.on-dark .nav-signin:hover {
+          color: #ffedd5;
+        }
         .hero-nav.on-dark .burger span {
           background: #ffffff;
         }
         .hero-nav.on-dark .nav-btn {
-          background: #ffffff;
-          color: #0284c7;
-          font-weight: 700;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+          background: #ffffff !important;
+          color: #ea580c !important;
+          box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
         }
         .hero-nav.on-dark .nav-btn:hover {
-          background: #f8fafc;
+          background: #ffffff !important;
+          color: #c2410c !important;
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 8px 26px rgba(0, 0, 0, 0.28);
         }
         .hero-nav.on-dark .nav-list-btn {
           background: rgba(255, 255, 255, 0.22);
@@ -294,6 +357,43 @@ const Navbar = () => {
         .hero-nav.on-dark .nav-profile-pill {
           background: rgba(255, 255, 255, 0.95);
           border-color: transparent;
+        }
+
+        .nav-logout-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(239, 68, 68, 0.08);
+          border: 1.5px solid rgba(239, 68, 68, 0.25);
+          color: #ef4444;
+          padding: 0.4rem 0.9rem;
+          border-radius: 999px;
+          font-weight: 700;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+
+        .nav-logout-btn:hover {
+          background: #ef4444;
+          color: #ffffff;
+          border-color: #ef4444;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+        }
+
+        .hero-nav.on-dark .nav-logout-btn {
+          background: rgba(255, 255, 255, 0.15);
+          border-color: rgba(255, 255, 255, 0.35);
+          color: #ffffff;
+          backdrop-filter: blur(8px);
+        }
+
+        .hero-nav.on-dark .nav-logout-btn:hover {
+          background: #ef4444;
+          border-color: #ef4444;
+          color: #ffffff;
         }
 
         /* List Vehicle Button — compact pill to the left of profile */
@@ -485,6 +585,28 @@ const Navbar = () => {
           color: white;
           box-shadow: 0 8px 20px rgba(255, 138, 0, 0.2);
           margin-top: 0.5rem;
+        }
+
+        .mobile-btn-logout {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          min-height: 48px;
+          border-radius: 12px;
+          font-weight: 700;
+          font-size: 1rem;
+          background: rgba(239, 68, 68, 0.08);
+          border: 1.5px solid rgba(239, 68, 68, 0.3);
+          color: #ef4444;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .mobile-btn-logout:hover {
+          background: #ef4444;
+          color: #ffffff;
         }
 
         @media (max-width: 900px) {
