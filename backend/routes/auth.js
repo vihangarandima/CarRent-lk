@@ -68,62 +68,108 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Create mail transporter using SMTP settings from env
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.EMAIL_PORT, 10) || 587,
-  // Port 587 uses STARTTLS (secure: false), Port 465 uses implicit TLS (secure: true)
-  secure: parseInt(process.env.EMAIL_PORT, 10) === 465,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  // Optional: Add logging for debugging
-  logger: false, // Set to true to see SMTP debug logs
-  debug: false, // Set to true to see detailed SMTP communication
-});
+// Helper to create mail transporter dynamically
+const createTransporter = () => {
+  const emailUser = process.env.EMAIL_USER?.trim();
+  const rawPass = process.env.EMAIL_PASS?.trim();
+  const emailPass = rawPass ? rawPass.replace(/\s+/g, "") : "";
+
+  if (!emailUser || !emailPass) {
+    console.warn("⚠️ Warning: EMAIL_USER or EMAIL_PASS is missing from environment variables.");
+  }
+
+  // If using Gmail, using service: 'gmail' is much more reliable across cloud providers (Render, Railway, AWS)
+  const isGmail = (process.env.EMAIL_HOST || "").includes("gmail") || (emailUser && emailUser.includes("@gmail.com"));
+
+  if (isGmail) {
+    return nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: emailUser,
+        pass: emailPass,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+  }
+
+  return nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || "smtp.gmail.com",
+    port: parseInt(process.env.EMAIL_PORT, 10) || 587,
+    secure: parseInt(process.env.EMAIL_PORT, 10) === 465,
+    auth: {
+      user: emailUser,
+      pass: emailPass,
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+  });
+};
 
 // Send Verification OTP
 router.post("/send-otp", async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ msg: "Email is required" });
-    // Optional: Check if email already registered
+
+    // Check if email already registered
     const existingUser = await User.findOne({ email });
-    if (existingUser)
-      return res.status(400).json({ msg: "User already exists" });
+    if (existingUser) {
+      return res.status(400).json({ msg: "An account with this email already exists. Please log in instead." });
+    }
+
+    // Verify SMTP config exists
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.error("Missing EMAIL_USER or EMAIL_PASS in environment variables.");
+      return res.status(500).json({
+        msg: "Email service is not configured on this server. Please add EMAIL_USER and EMAIL_PASS to environment variables.",
+      });
+    }
+
     // Generate a cryptographically secure 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
     // Save or update existing OTP in database
     await OTP.findOneAndUpdate(
       { email },
       { otp, createdAt: Date.now() },
       { upsert: true, new: true },
     );
+
     // Send Email
+    const transporter = createTransporter();
     const mailOptions = {
-      from: `"CarRents.lk" <${process.env.EMAIL_USER}>`,
+      from: `"Yamu Car Rentals" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: "Verify Your CarRents.lk Account",
+      subject: "Your Yamu Car Rentals Verification Code",
       html: `
-                <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
-                    <h2 style="color: #7C3AED; text-align: center;">Welcome to CarRents.lk</h2>
-                    <p style="color: #374151; font-size: 16px; line-height: 1.5;">Please use the following 6-digit verification code to complete your signup process. This code will expire in 5 minutes:</p>
-                    <div style="background: #F5F3FF; border: 1.5px dashed #7C3AED; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                        <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #7C3AED;">${otp}</span>
-                    </div>
-                    <p style="color: #9CA3AF; font-size: 12px; text-align: center; margin-top: 30px;">If you didn't request this code, please ignore this email.</p>
-                </div>
-            `,
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffff;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="color: #ea580c; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">Yamu <span style="color: #0f172a;">Car Rentals</span></h1>
+            <p style="color: #64748b; font-size: 14px; margin-top: 6px;">Sri Lanka's Premier Car Sharing Marketplace</p>
+          </div>
+          <h2 style="color: #0f172a; font-size: 18px; font-weight: 700; margin-bottom: 8px;">Verify Your Email</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px;">Use the 6-digit verification code below to complete your registration. This code will expire in <strong>5 minutes</strong>:</p>
+          <div style="background: #fff7ed; border: 2px dashed #f97316; padding: 18px; border-radius: 12px; text-align: center; margin: 24px 0;">
+            <span style="font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #ea580c; font-family: monospace;">${otp}</span>
+          </div>
+          <p style="color: #94a3b8; font-size: 13px; line-height: 1.5; margin-top: 24px;">If you did not request this verification code, you can safely ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+          <p style="color: #cbd5e1; font-size: 12px; text-align: center; margin: 0;">&copy; ${new Date().getFullYear()} Yamu Car Rentals LK. All rights reserved.</p>
+        </div>
+      `,
     };
+
     await transporter.sendMail(mailOptions);
     res.json({ msg: "Verification OTP sent to your email." });
   } catch (err) {
     console.error("OTP Send Error:", err);
-    const message =
-      err && err.code === "EAUTH"
-        ? "SMTP login failed. Check EMAIL_USER and EMAIL_PASS in .env (Gmail app password required)."
-        : "Failed to send verification email.";
+    const isAuthErr = err && (err.code === "EAUTH" || err.responseCode === 535);
+    const message = isAuthErr
+      ? "SMTP authentication failed. Please check EMAIL_USER and EMAIL_PASS (Gmail App Password) in your hosting dashboard."
+      : `Failed to send verification email: ${err.message || "Unknown error"}`;
     res.status(500).json({ msg: message });
   }
 });

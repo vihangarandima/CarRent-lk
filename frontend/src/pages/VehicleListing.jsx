@@ -10,6 +10,7 @@ import {
   CircleF,
 } from "@react-google-maps/api";
 import { Link, useSearchParams } from "react-router-dom";
+import { useSiteConfig } from "../context/SiteConfigContext";
 import {
   MapPin,
   Car,
@@ -200,15 +201,18 @@ const VehicleListing = () => {
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
   });
 
+  const { config } = useSiteConfig();
+  const customThumbs = config?.vehicleListing?.categoryThumbnails || {};
+
   const vehicleTypeCards = [
-    { id: "bicycle", title: "Bicycle", image: bikeeImg },
-    { id: "threewheeler", title: "Three-wheeler", image: threewheelerImg },
-    { id: "mini-car", title: "Mini Car", image: miniCarImg },
-    { id: "car", title: "Car", image: carImg },
-    { id: "premium-car", title: "Premium Car", image: premiumCarImg },
-    { id: "mini-van", title: "Mini Van", image: miniVanImg },
-    { id: "van", title: "Van", image: vanImg },
-    { id: "others", title: "Others", image: othersCarImg },
+    { id: "bicycle", title: "Bicycle", image: customThumbs.bicycle || bikeeImg },
+    { id: "threewheeler", title: "Three-wheeler", image: customThumbs.threewheeler || threewheelerImg },
+    { id: "mini-car", title: "Mini Car", image: customThumbs["mini-car"] || miniCarImg },
+    { id: "car", title: "Car", image: customThumbs.car || carImg },
+    { id: "premium-car", title: "Premium Car", image: customThumbs["premium-car"] || premiumCarImg },
+    { id: "mini-van", title: "Mini Van", image: customThumbs["mini-van"] || miniVanImg },
+    { id: "van", title: "Van", image: customThumbs.van || vanImg },
+    { id: "others", title: "Others", image: customThumbs.others || othersCarImg },
   ];
 
   // Sync state changes to URL searchParams
