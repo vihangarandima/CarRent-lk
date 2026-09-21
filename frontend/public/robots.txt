@@ -1,0 +1,18 @@
+# robots.txt for Yamu Car Rentals
+User-agent: *
+Allow: /
+Allow: /vehicles
+Allow: /companies
+Allow: /why-us
+Allow: /login
+Allow: /register
+
+# Disallow private user/admin dashboards from being indexed
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /profile
+Disallow: /company-dashboard
+Disallow: /list-vehicle
+
+# Sitemap location
+Sitemap: https://yamucarrentals.lk/sitemap.xml
