@@ -15,4 +15,4 @@ Disallow: /company-dashboard
 Disallow: /list-vehicle
 
 # Sitemap location
-Sitemap: https://yamucarrentals.com/sitemap.xml
+Sitemap: https://yamucarrentals.lk/sitemap.xml
