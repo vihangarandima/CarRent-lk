@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Search, ChevronDown, MapPin } from "lucide-react";
 import fleetCutoutImg from "../assets/images/yamu_fleet_cutout.png";
+import { useSiteConfig } from "../context/SiteConfigContext";
 
 const VEHICLE_TYPES = [
   { id: "", label: "All Vehicle Types" },
@@ -33,6 +34,9 @@ const POPULAR_LOCATIONS = [
 
 const Hero = () => {
   const navigate = useNavigate();
+  const { config } = useSiteConfig();
+  const hero = config?.hero;
+
   const [activeTab, setActiveTab] = useState("rent"); // "rent" | "buy"
   const [vehicleType, setVehicleType] = useState("");
   const [location, setLocation] = useState("");
@@ -99,7 +103,7 @@ const Hero = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           >
-            YAMU
+            {hero?.watermarkText || "YAMU"}
             <span className="sr-only"> Car Rentals - Premium Vehicle Rentals in Sri Lanka</span>
           </motion.h1>
 
@@ -111,7 +115,7 @@ const Hero = () => {
             transition={{ duration: 0.75, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
           >
             <img
-              src={fleetCutoutImg}
+              src={hero?.fleetCutoutUrl || fleetCutoutImg}
               alt="Yamu Sri Lanka Vehicle Fleet"
               className="fleet-cutout-img"
             />
@@ -126,10 +130,10 @@ const Hero = () => {
           transition={{ duration: 0.6, delay: 0.25, ease: "easeOut" }}
         >
           <p className="hero-sub-top">
-            <span className="tag-sparkle">✦</span> Make The Right Choice <span className="tag-sparkle">✦</span>
+            <span className="tag-sparkle">✦</span> {hero?.taglineTop || "Make The Right Choice"} <span className="tag-sparkle">✦</span>
           </p>
           <h2 className="hero-sub-bottom">
-            Find Your Dream Car, Which will Give You Wings
+            {hero?.taglineBottom || "Find Your Dream Car, Which will Give You Wings"}
           </h2>
         </motion.div>
       </div>
@@ -155,7 +159,15 @@ const Hero = () => {
             className={`hero-tab-btn ${activeTab === "buy" ? "active" : ""}`}
             onClick={() => {
               setActiveTab("buy");
-              navigate("/choose-listing-type");
+              const token = localStorage.getItem("token");
+              const user = JSON.parse(localStorage.getItem("user") || "null");
+              if (token && user?.role === "company") {
+                navigate("/company-list-vehicle");
+              } else if (token && (user?.role === "owner" || user?.role === "admin" || user?.role === "renter")) {
+                navigate("/list-my-car");
+              } else {
+                navigate("/choose-listing-type");
+              }
             }}
           >
             I Want to List a Car

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, Coins, Building2, ArrowLeft, ArrowRight, User } from "lucide-react";
 
@@ -6,7 +6,31 @@ const ChooseListingType = () => {
   const navigate = useNavigate();
   const [listerType, setListerType] = useState('personal');
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    if (token && user) {
+      if (user.role === "company") {
+        navigate("/company-list-vehicle", { replace: true });
+      } else if (user.role === "owner" || user.role === "admin") {
+        navigate("/list-my-car", { replace: true });
+      }
+    }
+  }, [navigate]);
+
   const handleContinue = () => {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+
+    if (token && user) {
+      if (listerType === 'personal') {
+        navigate('/list-my-car');
+      } else {
+        navigate('/company-dashboard');
+      }
+      return;
+    }
+
     if (listerType === 'personal') {
       navigate('/register?role=owner');
     } else {

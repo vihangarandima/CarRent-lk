@@ -7,7 +7,7 @@ const UserSchema = new mongoose.Schema({
   firebaseId: { type: String },
   role: {
     type: String,
-    enum: ["owner", "renter", "company"],
+    enum: ["owner", "renter", "company", "admin"],
     default: "renter",
   },
   createdAt: { type: Date, default: Date.now },

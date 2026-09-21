@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect } from "react";
+import React, { useLayoutEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -19,16 +19,31 @@ import WhyUs from "./pages/WhyUs";
 import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
 import CompanyDashboard from "./pages/CompanyDashboard";
-
 import AdminDashboard from "./pages/AdminDashboard";
-
 import ChooseListingType from "./pages/ChooseListingType";
+import AnnouncementBar from "./components/AnnouncementBar";
+import WhatsAppFloat from "./components/WhatsAppFloat";
+import { SiteConfigProvider } from "./context/SiteConfigContext";
 
 function AppContent() {
   const location = useLocation();
-  const hideNavAndFooter = ["/login", "/register", "/splash", "/choose-listing-type", "/select-role", "/company-dashboard"].includes(
-    location.pathname,
-  );
+  const hideNavAndFooter = [
+    "/login",
+    "/register",
+    "/splash",
+    "/choose-listing-type",
+    "/select-role",
+    "/company-dashboard",
+    "/admin",
+  ].includes(location.pathname);
+
+  const hideFloatingWidgets = [
+    "/login",
+    "/register",
+    "/splash",
+    "/admin",
+    "/company-dashboard",
+  ].includes(location.pathname);
 
   useLayoutEffect(() => {
     const targetId = location.hash.replace("#", "");
@@ -78,7 +93,12 @@ function AppContent() {
         <div className="orb orb-3" />
       </div>
 
-      {!hideNavAndFooter && <Navbar />}
+      {!hideNavAndFooter && (
+        <>
+          <AnnouncementBar />
+          <Navbar />
+        </>
+      )}
 
       <style>{`
         .app-container {
@@ -156,6 +176,7 @@ function AppContent() {
         </Routes>
       </main>
 
+      {!hideFloatingWidgets && <WhatsAppFloat />}
       {!hideNavAndFooter && <Footer />}
     </div>
   );
@@ -163,9 +184,11 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <SiteConfigProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </SiteConfigProvider>
   );
 }
 
