@@ -92,15 +92,16 @@ const Hero = () => {
       <div className="hero-center-stage">
         {/* Unified Heroic Stage: Tall YAMU backdrop with foreground Fleet */}
         <div className="heroic-fleet-stage">
-          {/* Massive Tall Watermark Text: YAMU */}
-          <motion.div
+          {/* Massive Tall Watermark Text: YAMU as primary semantic h1 */}
+          <motion.h1
             className="watermark-yamu-text"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           >
             YAMU
-          </motion.div>
+            <span className="sr-only"> Car Rentals - Premium Vehicle Rentals in Sri Lanka</span>
+          </motion.h1>
 
           {/* Large Foreground Fleet Cutout overlapping the lower half */}
           <motion.div
