@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Phone, Mail, MapPin, ArrowUpRight } from "lucide-react";
 import logo from "../assets/images/logo.png";
+import { useSiteConfig } from "../context/SiteConfigContext";
 
 const socialIcons = [
   {
@@ -37,6 +38,19 @@ const socialIcons = [
 ];
 
 const Footer = () => {
+  const { config } = useSiteConfig();
+  const contact = config?.global?.contact;
+  const footer = config?.footer;
+  const social = config?.global?.socialLinks;
+
+  const dynamicSocialIcons = [
+    { label: "Facebook", url: social?.facebook || "https://www.facebook.com", path: "M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" },
+    { label: "TikTok", url: social?.tiktok || "https://www.tiktok.com", path: "M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" },
+    { label: "Instagram", url: social?.instagram || "https://www.instagram.com", path: "M7.8 2h8.4A5.8 5.8 0 0 1 22 7.8v8.4A5.8 5.8 0 0 1 16.2 22H7.8A5.8 5.8 0 0 1 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8A3.6 3.6 0 0 0 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6A3.6 3.6 0 0 0 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8 1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5" },
+    { label: "LinkedIn", url: social?.linkedin || "https://www.linkedin.com", path: "M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6M2 9h4v12H2z M4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4" },
+    { label: "YouTube", url: social?.youtube || "https://www.youtube.com", path: "M22.54 6.42a2.78 2.78 0 0 0-1.95-2C18.88 4 12 4 12 4s-6.88 0-8.59.42a2.78 2.78 0 0 0-1.95 2 29 29 0 0 0-.42 5.58 29 29 0 0 0 .42 5.58 2.78 2.78 0 0 0 1.95 2C5.12 20 12 20 12 20s6.88 0 8.59-.42a2.78 2.78 0 0 0 1.95-2 29 29 0 0 0 .42-5.58 29 29 0 0 0-.42-5.58" },
+  ];
+
   return (
     <footer className="site-footer">
       <div className="footer-cta-banner">
@@ -63,18 +77,17 @@ const Footer = () => {
         <div className="container footer-grid">
           <div className="footer-brand">
             <Link to="/" className="footer-logo">
-              <img src={logo} alt="Yamu Car Rentals" className="footer-logo-img" />
+              <img src={config?.global?.logoUrl || logo} alt="Yamu Car Rentals" className="footer-logo-img" />
               <span>
-                <span className="brand-yamu">Yamu</span>
-                <span className="brand-orange">&nbsp;Car Rentals</span>
+                <span className="brand-yamu">{config?.global?.brandName?.split(" ")[0] || "Yamu"}</span>
+                <span className="brand-orange">&nbsp;{config?.global?.brandName?.split(" ").slice(1).join(" ") || "Car Rentals"}</span>
               </span>
             </Link>
             <p className="footer-tagline">
-              Sri Lanka's most trusted car sharing marketplace. Rent verified
-              vehicles or earn by listing yours.
+              {footer?.tagline || "Sri Lanka's most trusted car sharing marketplace. Rent verified vehicles or earn by listing yours."}
             </p>
             <div className="footer-social">
-              {socialIcons.map((icon) => (
+              {dynamicSocialIcons.map((icon) => (
                 <a
                   key={icon.label}
                   href={icon.url || "#"}
@@ -126,14 +139,14 @@ const Footer = () => {
 
           <div className="footer-col footer-contact">
             <h4>Contact</h4>
-            <a href="tel:+94112345678">
-              <Phone size={14} /> +94 11 234 5678
+            <a href={`tel:${(contact?.phone || "+94 11 234 5678").replace(/\\s+/g, "")}`}>
+              <Phone size={14} /> {contact?.phone || "+94 11 234 5678"}
             </a>
-            <a href="mailto:hello@yamucarrentals.com">
-              <Mail size={14} /> hello@yamucarrentals.com
+            <a href={`mailto:${contact?.email || "hello@yamucarrentals.lk"}`}>
+              <Mail size={14} /> {contact?.email || "hello@yamucarrentals.lk"}
             </a>
             <span>
-              <MapPin size={14} /> Colombo, Sri Lanka
+              <MapPin size={14} /> {contact?.address || "Colombo, Sri Lanka"}
             </span>
           </div>
         </div>
@@ -142,7 +155,7 @@ const Footer = () => {
       <div className="footer-bottom">
         <div className="container footer-bottom-inner">
           <p>
-            &copy; {new Date().getFullYear()} Yamu Car Rentals. All rights reserved.
+            {footer?.copyrightText || `© ${new Date().getFullYear()} Yamu Car Rentals. All rights reserved.`}
           </p>
           <div className="footer-legal">
             <a href="#">Privacy Policy</a>

@@ -23,6 +23,7 @@ import {
   Users,
   Fuel,
 } from "lucide-react";
+import { useSiteConfig } from "../context/SiteConfigContext";
 
 const categories = [
   {
@@ -128,8 +129,12 @@ const steps = [
 ];
 
 const LandingPage = () => {
+  const { config } = useSiteConfig();
   const [featuredCars, setFeaturedCars] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const activeCategories = config?.home?.categories || categories;
+  const activeTestimonials = config?.home?.testimonials || testimonials;
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const listTarget =
@@ -217,22 +222,22 @@ const LandingPage = () => {
               </Link>
             </div>
             <div className="category-grid">
-              {categories.map((cat, i) => (
+              {activeCategories.map((cat, i) => (
                 <motion.div
-                  key={cat.id}
+                  key={cat.id || i}
                   className="category-card"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.08 }}
                 >
-                  <Link to="/vehicles">
+                  <Link to={`/vehicles?type=${cat.vehicleType || cat.id || ""}`}>
                     <div className="category-img-wrap">
                       <img src={cat.image} alt={cat.label} />
                       <div className="category-overlay" />
                     </div>
                     <div className="category-label">
-                      <cat.icon size={20} />
+                      <Car size={20} />
                       <span>{cat.label}</span>
                     </div>
                   </Link>
@@ -423,7 +428,7 @@ const LandingPage = () => {
           </div>
 
           <div className="testimonials-grid">
-            {testimonials.map((t, i) => (
+            {activeTestimonials.map((t, i) => (
               <motion.div
                 key={i}
                 className="testimonial-card"

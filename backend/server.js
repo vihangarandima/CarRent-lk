@@ -22,6 +22,8 @@ app.use("/api/vehicles", require("./routes/vehicles"));
 app.use("/api/bids", require("./routes/bids"));
 app.use("/api/companies", require("./routes/companies"));
 app.use("/api/upload", require("./routes/upload"));
+app.use("/api/site-config", require("./routes/siteConfig"));
+app.use("/api/admin", require("./routes/admin"));
 
 // Serve the uploads folder statically so frontend can access images
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
