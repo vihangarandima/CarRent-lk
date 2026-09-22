@@ -129,13 +129,38 @@ const steps = [
   },
 ];
 
+const resolveTestimonialAvatar = (t) => {
+  if (t?.avatar && typeof t.avatar === "string") {
+    if (t.avatar.includes("thivina") || t.name?.toLowerCase().includes("thivina")) return thivinaImg;
+    if (t.avatar.includes("punsara") || t.name?.toLowerCase().includes("punsara")) return punsaraImg;
+    if (t.avatar.includes("nirmal") || t.name?.toLowerCase().includes("nirmal")) return nirmalImg;
+    if (t.avatar.startsWith("http://") || t.avatar.startsWith("https://") || t.avatar.startsWith("/")) {
+      return t.avatar;
+    }
+  }
+  if (t?.avatar && typeof t.avatar !== "string") {
+    return t.avatar;
+  }
+  if (t?.name?.toLowerCase().includes("thivina")) return thivinaImg;
+  if (t?.name?.toLowerCase().includes("punsara")) return punsaraImg;
+  if (t?.name?.toLowerCase().includes("nirmal")) return nirmalImg;
+  return thivinaImg;
+};
+
 const LandingPage = () => {
   const { config } = useSiteConfig();
   const [featuredCars, setFeaturedCars] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const activeCategories = config?.home?.categories || categories;
-  const activeTestimonials = config?.home?.testimonials || testimonials;
+  const isDefaultOldMock =
+    config?.home?.testimonials?.length === 3 &&
+    config.home.testimonials.some((t) => t.name === "Sarah Mitchell" || t.name === "Kasun Silva");
+
+  const activeTestimonials =
+    !isDefaultOldMock && config?.home?.testimonials?.length
+      ? config.home.testimonials
+      : testimonials;
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const listTarget =
