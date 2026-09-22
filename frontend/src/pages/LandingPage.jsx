@@ -25,6 +25,10 @@ import {
 } from "lucide-react";
 import { useSiteConfig } from "../context/SiteConfigContext";
 
+import thivinaImg from "../assets/images/thivina.png";
+import punsaraImg from "../assets/images/punsara.png";
+import nirmalImg from "../assets/images/nirmal.png";
+
 const categories = [
   {
     id: "suv",
@@ -76,24 +80,21 @@ const testimonials = [
     location: "Colombo",
     rating: 5,
     text: "Booked a Toyota Fortuner for our family trip to Ella. Smooth process, verified host, and the car was spotless. Will definitely use again!",
-    avatar:
-      "C:\Users\Yasira\Desktop\CarRent-lk\frontend\src\assets\images\thivina.png",
+    avatar: thivinaImg,
   },
   {
     name: "Punsara Rajapaksa",
     location: "Kandy",
     rating: 5,
     text: "As a tourist, Yamu Car Rentals made renting so easy. Transparent pricing, no hidden fees, and 24/7 support when I had a question.",
-    avatar:
-      "C:\Users\Yasira\Desktop\CarRent-lk\frontend\src\assets\images\punsara.png",
+    avatar: punsaraImg,
   },
   {
     name: "Nirmal Perera",
     location: "Galle",
     rating: 5,
     text: "I listed my car and started earning within a week. The platform handles everything — verification, bookings, payments. Highly recommend!",
-    avatar:
-      "C:\Users\Yasira\Desktop\CarRent-lk\frontend\src\assets\images\nirmal.png",
+    avatar: nirmalImg,
   },
 ];
 
@@ -128,13 +129,38 @@ const steps = [
   },
 ];
 
+const resolveTestimonialAvatar = (t) => {
+  if (t?.avatar && typeof t.avatar === "string") {
+    if (t.avatar.includes("thivina") || t.name?.toLowerCase().includes("thivina")) return thivinaImg;
+    if (t.avatar.includes("punsara") || t.name?.toLowerCase().includes("punsara")) return punsaraImg;
+    if (t.avatar.includes("nirmal") || t.name?.toLowerCase().includes("nirmal")) return nirmalImg;
+    if (t.avatar.startsWith("http://") || t.avatar.startsWith("https://") || t.avatar.startsWith("/")) {
+      return t.avatar;
+    }
+  }
+  if (t?.avatar && typeof t.avatar !== "string") {
+    return t.avatar;
+  }
+  if (t?.name?.toLowerCase().includes("thivina")) return thivinaImg;
+  if (t?.name?.toLowerCase().includes("punsara")) return punsaraImg;
+  if (t?.name?.toLowerCase().includes("nirmal")) return nirmalImg;
+  return thivinaImg;
+};
+
 const LandingPage = () => {
   const { config } = useSiteConfig();
   const [featuredCars, setFeaturedCars] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const activeCategories = config?.home?.categories || categories;
-  const activeTestimonials = config?.home?.testimonials || testimonials;
+  const isDefaultOldMock =
+    config?.home?.testimonials?.length === 3 &&
+    config.home.testimonials.some((t) => t.name === "Sarah Mitchell" || t.name === "Kasun Silva");
+
+  const activeTestimonials =
+    !isDefaultOldMock && config?.home?.testimonials?.length
+      ? config.home.testimonials
+      : testimonials;
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const listTarget =
@@ -445,7 +471,7 @@ const LandingPage = () => {
                 </div>
                 <p className="testimonial-text">"{t.text}"</p>
                 <div className="testimonial-author">
-                  <img src={t.avatar} alt={t.name} />
+                  <img src={resolveTestimonialAvatar(t)} alt={t.name} />
                   <div>
                     <strong>{t.name}</strong>
                     <span>{t.location}</span>
