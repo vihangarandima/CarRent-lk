@@ -25,6 +25,10 @@ import {
 } from "lucide-react";
 import { useSiteConfig } from "../context/SiteConfigContext";
 
+import thivinaImg from "../assets/images/thivina.png";
+import punsaraImg from "../assets/images/punsara.png";
+import nirmalImg from "../assets/images/nirmal.png";
+
 const categories = [
   {
     id: "suv",
@@ -76,24 +80,21 @@ const testimonials = [
     location: "Colombo",
     rating: 5,
     text: "Booked a Toyota Fortuner for our family trip to Ella. Smooth process, verified host, and the car was spotless. Will definitely use again!",
-    avatar:
-      "C:\Users\Yasira\Desktop\CarRent-lk\frontend\src\assets\images\thivina.png",
+    avatar: thivinaImg,
   },
   {
     name: "Punsara Rajapaksa",
     location: "Kandy",
     rating: 5,
     text: "As a tourist, Yamu Car Rentals made renting so easy. Transparent pricing, no hidden fees, and 24/7 support when I had a question.",
-    avatar:
-      "C:\Users\Yasira\Desktop\CarRent-lk\frontend\src\assets\images\punsara.png",
+    avatar: punsaraImg,
   },
   {
     name: "Nirmal Perera",
     location: "Galle",
     rating: 5,
     text: "I listed my car and started earning within a week. The platform handles everything — verification, bookings, payments. Highly recommend!",
-    avatar:
-      "C:\Users\Yasira\Desktop\CarRent-lk\frontend\src\assets\images\nirmal.png",
+    avatar: nirmalImg,
   },
 ];
 

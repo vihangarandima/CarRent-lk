@@ -128,28 +128,25 @@ export const DEFAULT_CONFIG = {
     ],
     testimonials: [
       {
-        name: "Nimal Perera",
+        name: "Thivina pehasara",
         location: "Colombo",
         rating: 5,
         text: "Booked a Toyota Fortuner for our family trip to Ella. Smooth process, verified host, and the car was spotless. Will definitely use again!",
-        avatar:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100",
+        avatar: "/assets/images/thivina.png",
       },
       {
-        name: "Sarah Mitchell",
+        name: "Punsara Rajapaksa",
         location: "Kandy",
         rating: 5,
         text: "As a tourist, Yamu Car Rentals made renting so easy. Transparent pricing, no hidden fees, and 24/7 support when I had a question.",
-        avatar:
-          "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100",
+        avatar: "/assets/images/punsara.png",
       },
       {
-        name: "Kasun Silva",
+        name: "Nirmal Perera",
         location: "Galle",
         rating: 5,
         text: "I listed my car and started earning within a week. The platform handles everything — verification, bookings, payments. Highly recommend!",
-        avatar:
-          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=100",
+        avatar: "/assets/images/nirmal.png",
       },
     ],
     steps: [
