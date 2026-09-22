@@ -471,7 +471,7 @@ const LandingPage = () => {
                 </div>
                 <p className="testimonial-text">"{t.text}"</p>
                 <div className="testimonial-author">
-                  <img src={t.avatar} alt={t.name} />
+                  <img src={resolveTestimonialAvatar(t)} alt={t.name} />
                   <div>
                     <strong>{t.name}</strong>
                     <span>{t.location}</span>
