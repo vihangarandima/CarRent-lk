@@ -44,27 +44,36 @@ const upload = multer({
 
 // @route   POST api/upload
 // @desc    Upload an image and get back the URL
-router.post("/", upload.single("image"), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ msg: "No file uploaded" });
+router.post("/", (req, res) => {
+  upload.single("image")(req, res, (err) => {
+    if (err) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res
+          .status(400)
+          .json({ msg: "File too large. Maximum allowed size is 5MB." });
+      }
+      return res
+        .status(400)
+        .json({ msg: err.message || "Failed to upload file. Images only." });
     }
 
-    // Construct the URL where the image can be accessed statically
-    // Use environment variable, fall back to constructed URL
-    const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:5000`;
-    const imageUrl = `${baseUrl.replace(/\/$/, "")}/uploads/${req.file.filename}`;
+    try {
+      if (!req.file) {
+        return res.status(400).json({ msg: "No file uploaded" });
+      }
 
-    console.log("Image uploaded:", req.file.filename);
-    console.log("Image URL:", imageUrl);
+      const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:5000`;
+      const imageUrl = `${baseUrl.replace(/\/$/, "")}/uploads/${req.file.filename}`;
 
-    res.json({ url: imageUrl, msg: "Image uploaded successfully!" });
-  } catch (err) {
-    console.error("Upload error:", err.message);
-    res
-      .status(500)
-      .json({ msg: "Server Error during upload", error: err.message });
-  }
+      console.log("Image uploaded:", req.file.filename);
+      res.json({ url: imageUrl, msg: "Image uploaded successfully!" });
+    } catch (error) {
+      console.error("Upload error:", error.message);
+      res
+        .status(500)
+        .json({ msg: "Server Error during upload", error: error.message });
+    }
+  });
 });
 
 module.exports = router;

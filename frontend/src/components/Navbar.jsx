@@ -153,6 +153,9 @@ const Navbar = () => {
 
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`} id="mobile-menu">
         <div className="mobile-menu-links">
+          <Link to="/vehicles" className="mobile-nav-item" onClick={closeMenu}>
+            Find Cars
+          </Link>
           <Link to="/companies" className="mobile-nav-item" onClick={closeMenu}>
             Rent-A-Car Fleets
           </Link>
@@ -162,6 +165,11 @@ const Navbar = () => {
           <Link to="/why-us" className="mobile-nav-item" onClick={closeMenu}>
             Why us
           </Link>
+          {user?.role !== "admin" && (
+            <Link to={listTarget} className="mobile-nav-item" style={{ color: "#ea580c", fontWeight: 700 }} onClick={closeMenu}>
+              + {listLabel}
+            </Link>
+          )}
         </div>
 
         <div className="mobile-menu-actions">

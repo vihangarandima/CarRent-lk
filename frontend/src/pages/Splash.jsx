@@ -1,5 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config';
+import logo from '../assets/images/logo.png';
 
 const Splash = () => {
   const navigate = useNavigate();
@@ -24,24 +26,11 @@ const Splash = () => {
       <div className="content-wrapper">
         {/* Top Bar */}
         <header className="splash-header">
-          <div className="splash-logo">
-            <div className="logo-icon">
-              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                <circle cx="20" cy="20" r="18" stroke="url(#logo-grad)" strokeWidth="2.5" opacity="0.3" />
-                <path d="M20 4C11.163 4 4 11.163 4 20s7.163 16 16 16c4.418 0 8.418-1.791 11.314-4.686"
-                  stroke="url(#logo-grad)" strokeWidth="3" strokeLinecap="round" fill="none" />
-                <circle cx="20" cy="20" r="6" fill="url(#logo-grad)" />
-                <defs>
-                  <linearGradient id="logo-grad" x1="0" y1="0" x2="40" y2="40">
-                    <stop stopColor="#f97316" />
-                    <stop offset="1" stopColor="#ea580c" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
+          <div className="splash-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+            <img src={logo} alt="Yamu Car Rentals" style={{ width: 42, height: 42, objectFit: 'contain', marginRight: 8 }} />
             <div className="logo-text-container">
-              <span className="logo-text">CarRents</span>
-              <span className="logo-domain">.lk</span>
+              <span className="logo-text" style={{ color: '#ffffff' }}>Yamu</span>
+              <span className="logo-domain" style={{ color: '#f97316' }}> Car Rentals</span>
             </div>
           </div>
           <div className="splash-auth-buttons">
@@ -54,7 +43,7 @@ const Splash = () => {
             <button className="splash-login-btn" style={{ borderColor: 'var(--primary)' }} onClick={() => navigate('/profile')}>
               <span>Profile</span>
             </button>
-            <button className="splash-register-btn" onClick={() => navigate('/select-role')}>
+            <button className="splash-register-btn" onClick={() => navigate('/register')}>
               <span>Sign Up</span>
             </button>
           </div>

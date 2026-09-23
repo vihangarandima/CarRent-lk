@@ -32,14 +32,16 @@ import nirmalImg from "../assets/images/nirmal.png";
 const categories = [
   {
     id: "suv",
-    label: "SUV",
+    label: "SUV & 4x4",
+    vehicleType: "premium-car",
     icon: Truck,
     image:
       "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&q=80&w=400",
   },
   {
     id: "sedan",
-    label: "Sedan",
+    label: "Sedan & Cars",
+    vehicleType: "car",
     icon: Car,
     image:
       "https://images.unsplash.com/photo-1555215695-3004980adade?auto=format&fit=crop&q=80&w=400",
@@ -47,27 +49,31 @@ const categories = [
   {
     id: "luxury",
     label: "Luxury",
+    vehicleType: "premium-car",
     icon: Star,
     image:
       "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80&w=400",
   },
   {
-    id: "electric",
-    label: "Electric",
-    icon: Zap,
+    id: "mini-car",
+    label: "Mini Cars",
+    vehicleType: "mini-car",
+    icon: Car,
     image:
       "https://images.unsplash.com/photo-1593941707882-a5bba14938bc?auto=format&fit=crop&q=80&w=400",
   },
   {
     id: "van",
-    label: "Van",
+    label: "Vans & Groups",
+    vehicleType: "van",
     icon: Truck,
     image:
       "https://images.unsplash.com/photo-1527786356703-4b100916cd20?auto=format&fit=crop&q=80&w=400",
   },
   {
-    id: "coupe",
-    label: "Coupe",
+    id: "threewheeler",
+    label: "Three-Wheelers",
+    vehicleType: "threewheeler",
     icon: Car,
     image:
       "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=400",

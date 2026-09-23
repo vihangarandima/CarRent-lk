@@ -528,8 +528,13 @@ const ListVehicle = () => {
       await axios.post(`${API_URL}/api/vehicles`, payload, {
         headers: { "Content-Type": "application/json", "x-auth-token": token },
       });
+      const currentUser = JSON.parse(localStorage.getItem("user") || "null");
       alert("Vehicle listed successfully!");
-      window.location.href = "/company-dashboard";
+      if (currentUser?.role === "company") {
+        window.location.href = "/company-dashboard";
+      } else {
+        window.location.href = "/profile";
+      }
     } catch (err) {
       alert("Error: " + (err.response?.data?.msg || err.message));
     }

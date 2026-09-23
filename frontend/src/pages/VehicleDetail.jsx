@@ -1,12 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { MapPin, Star, Check, CheckCircle2, MessageSquare, Navigation } from "lucide-react";
+import {
+  MapPin,
+  Star,
+  Check,
+  CheckCircle2,
+  MessageSquare,
+  Navigation,
+  Fuel,
+  Users,
+  Settings2,
+  Phone,
+  Gauge,
+  Calendar,
+  Building2,
+} from "lucide-react";
 import axios from "axios";
 import { API_URL } from "../config";
 import { GoogleMap, useJsApiLoader, MarkerF } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { addDays, subDays } from "date-fns";
+import { addDays } from "date-fns";
 import ReviewSection from "../components/ReviewSection";
 
 const detailMapContainerStyle = {
@@ -21,8 +35,9 @@ const VehicleDetail = () => {
   // Booking State
   const [dateRange, setDateRange] = useState([null, null]);
   const [startDate, endDate] = dateRange;
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   
-  // Dummy booked dates (e.g. today + 2, today + 3) to show the feature
+  // Booked dates for demo
   const bookedDates = [
     addDays(new Date(), 2),
     addDays(new Date(), 3),
@@ -71,7 +86,32 @@ const VehicleDetail = () => {
       alert("Please select your required booking dates on the calendar first.");
       return;
     }
+
+    const hostPhone = vehicle.company?.phone || "+94770000000";
+    const cleanPhone = hostPhone.replace(/[^0-9]/g, "");
+    const dateStr = `${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
+    const msg = `Hello! I would like to book the ${vehicle.brand} ${vehicle.model} (${vehicle.year}) listed on Yamu Car Rentals for dates ${dateStr}. Is it available?`;
+    const waUrl = `https://wa.me/${cleanPhone.startsWith("0") ? "94" + cleanPhone.slice(1) : cleanPhone}?text=${encodeURIComponent(msg)}`;
+
+    // Try posting bid/inquiry if logged in
+    const token = localStorage.getItem("token");
+    if (token) {
+      axios
+        .post(
+          `${API_URL}/api/bids`,
+          {
+            vehicleId: vehicle._id,
+            offerPrice: vehicle.pricePerDay,
+            message: `Booking inquiry for ${dateStr}`,
+          },
+          { headers: { "x-auth-token": token } }
+        )
+        .catch((err) => console.warn("Inquiry logged:", err.message));
+    }
+
     setSent(true);
+    // Open WhatsApp in new tab
+    window.open(waUrl, "_blank", "noopener,noreferrer");
   };
 
   if (loading) {
@@ -79,7 +119,7 @@ const VehicleDetail = () => {
       <div className="detail-wrap">
         <div className="container" style={{ textAlign: "center", padding: "8rem 0" }}>
           <div className="spinner" style={{ margin: "0 auto 1rem" }} />
-          <p style={{ color: "#6b7280" }}>Loading vehicle...</p>
+          <p style={{ color: "#6b7280" }}>Loading vehicle details...</p>
         </div>
       </div>
     );
@@ -96,10 +136,11 @@ const VehicleDetail = () => {
     );
   }
 
-  const coverImage =
-    vehicle.images && vehicle.images.length > 0 && vehicle.images[0]
-      ? vehicle.images[0]
-      : "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=1200";
+  const images = Array.isArray(vehicle.images) && vehicle.images.length > 0
+    ? vehicle.images.filter(img => typeof img === "string" && img.trim() !== "")
+    : ["https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=1200"];
+
+  const currentImage = images[activeImageIndex] || images[0];
 
   return (
     <div className="detail-wrap">
@@ -107,6 +148,11 @@ const VehicleDetail = () => {
         {/* Breadcrumb */}
         <div className="breadcrumb">
           <Link to="/vehicles">← Back to Listings</Link>
+          {vehicle.company && (
+            <span style={{ marginLeft: 8, color: "#94a3b8" }}>
+              / <Link to={`/companies/${vehicle.company._id}`} style={{ color: "#ea580c" }}>{vehicle.company.companyName}</Link>
+            </span>
+          )}
         </div>
 
         <div className="detail-grid">
@@ -114,7 +160,7 @@ const VehicleDetail = () => {
           <div className="detail-main">
             <div className="main-image-wrap">
               <img
-                src={coverImage}
+                src={currentImage}
                 alt={`${vehicle.brand} ${vehicle.model}`}
                 className="main-image"
               />
@@ -131,9 +177,41 @@ const VehicleDetail = () => {
               </div>
             </div>
 
+            {/* Multiple Photos Thumbnails Gallery */}
+            {images.length > 1 && (
+              <div className="thumbnails-gallery" style={{ display: "flex", gap: 10, marginBottom: "1.75rem", overflowX: "auto", paddingBottom: 4 }}>
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActiveImageIndex(idx)}
+                    style={{
+                      width: 72,
+                      height: 52,
+                      borderRadius: 10,
+                      overflow: "hidden",
+                      border: activeImageIndex === idx ? "2.5px solid #ea580c" : "1.5px solid #e2e8f0",
+                      padding: 0,
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      background: "#fff",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="vehicle-header">
               <div>
                 <span className="vehicle-year-chip">{vehicle.year}</span>
+                {vehicle.vehicleType && (
+                  <span className="vehicle-year-chip" style={{ marginLeft: 6, background: "rgba(249,115,22,0.12)", color: "#ea580c" }}>
+                    {vehicle.vehicleType}
+                  </span>
+                )}
                 <h1>
                   {vehicle.brand} {vehicle.model}
                 </h1>
@@ -156,9 +234,41 @@ const VehicleDetail = () => {
               </div>
             </div>
 
+            {/* Key Specs Card */}
+            <div className="specs-overview-card" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, marginBottom: "2rem", background: "#ffffff", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Fuel size={18} color="#ea580c" />
+                <div>
+                  <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>FUEL</div>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{vehicle.fuelType || "Petrol"}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Settings2 size={18} color="#ea580c" />
+                <div>
+                  <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>TRANSMISSION</div>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{vehicle.transmission || "Automatic"}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Users size={18} color="#ea580c" />
+                <div>
+                  <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>SEATING</div>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{vehicle.seats || 5} Seats</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Gauge size={18} color="#ea580c" />
+                <div>
+                  <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>AFTER 100KM</div>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>LKR {vehicle.pricePerKmAfter100km || 0}/km</div>
+                </div>
+              </div>
+            </div>
+
             <div className="about-section">
-              <h3>About This Car</h3>
-              <p>{vehicle.description || "No description provided for this vehicle."}</p>
+              <h3>About This Vehicle</h3>
+              <p>{vehicle.description || "Well-maintained, clean, and reliable vehicle ready for self-drive or chauffeur rental across Sri Lanka."}</p>
             </div>
 
             <div className="features-section">
@@ -166,9 +276,11 @@ const VehicleDetail = () => {
               <div className="features-grid">
                 {[
                   "Air Conditioning",
-                  "Full Insurance",
-                  "Music System",
-                  "Free Delivery",
+                  "Comprehensive Insurance",
+                  "Bluetooth Audio System",
+                  "24/7 Roadside Assistance",
+                  "Free Islandwide Support",
+                  "Verified Host Verification",
                 ].map((f) => (
                   <div key={f} className="feature-tag">
                     <Check size={16} className="feature-check" />
@@ -183,7 +295,7 @@ const VehicleDetail = () => {
               <div className="location-map-section">
                 <h3>
                   <Navigation size={18} className="feature-check" />
-                  Pickup Location
+                  Pickup & Return Location
                 </h3>
                 <p className="location-address">
                   <MapPin size={14} /> {vehicle.location}
@@ -192,7 +304,7 @@ const VehicleDetail = () => {
                   {isLoaded ? (
                     <GoogleMap
                       mapContainerStyle={detailMapContainerStyle}
-                      center={{ lat: vehicle.lat, lng: vehicle.lng }}
+                      center={{ lat: Number(vehicle.lat), lng: Number(vehicle.lng) }}
                       zoom={15}
                       options={{
                         streetViewControl: false,
@@ -206,17 +318,8 @@ const VehicleDetail = () => {
                       }}
                     >
                       <MarkerF
-                        position={{ lat: vehicle.lat, lng: vehicle.lng }}
+                        position={{ lat: Number(vehicle.lat), lng: Number(vehicle.lng) }}
                         title={`${vehicle.brand} ${vehicle.model} - Pickup Location`}
-                        icon={{
-                          path: "M12 0C7.58 0 4 3.58 4 8c0 5.25 8 16 8 16s8-10.75 8-16c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z",
-                          fillColor: "#f97316",
-                          fillOpacity: 1,
-                          strokeColor: "#ffffff",
-                          strokeWeight: 2,
-                          scale: 2,
-                          anchor: { x: 12, y: 24 },
-                        }}
                       />
                     </GoogleMap>
                   ) : (
@@ -247,10 +350,10 @@ const VehicleDetail = () => {
               </div>
               
               <div className="owner-row">
-                <div className="owner-avatar">{vehicle.owner?.name?.[0] || "U"}</div>
+                <div className="owner-avatar">{vehicle.company?.companyName?.[0] || vehicle.owner?.name?.[0] || "Y"}</div>
                 <div>
-                  <strong>{vehicle.owner?.name || "Vehicle Owner"}</strong>
-                  <p>Verified Partner</p>
+                  <strong>{vehicle.company?.companyName || vehicle.owner?.name || "Verified Partner"}</strong>
+                  <p>{vehicle.company ? "Verified Fleet Partner" : "Verified Individual Host"}</p>
                 </div>
               </div>
               <hr className="divider" />
@@ -258,8 +361,16 @@ const VehicleDetail = () => {
               {sent ? (
                 <div className="sent-msg">
                   <CheckCircle2 size={44} className="sent-check-icon" />
-                  <h3>Request Sent!</h3>
-                  <p>The owner has received your booking inquiry and will contact you soon.</p>
+                  <h3>Booking Chat Launched!</h3>
+                  <p>WhatsApp was opened with your booking details. The host will confirm availability right away.</p>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    style={{ marginTop: 12, padding: "8px 16px", fontSize: "0.88rem" }}
+                    onClick={() => setSent(false)}
+                  >
+                    Send Another Inquiry
+                  </button>
                 </div>
               ) : (
                 <div className="booking-form">
@@ -280,6 +391,7 @@ const VehicleDetail = () => {
                   </div>
 
                   <button
+                    type="button"
                     className="btn-primary"
                     onClick={handleContact}
                     style={{
@@ -292,8 +404,27 @@ const VehicleDetail = () => {
                     }}
                   >
                     <MessageSquare size={18} />
-                    <span>Contact Owner</span>
+                    <span>Contact via WhatsApp</span>
                   </button>
+
+                  {vehicle.company?.phone && (
+                    <a
+                      href={`tel:${vehicle.company.phone.replace(/[^0-9]/g, "")}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        marginTop: 10,
+                        color: "#64748b",
+                        fontSize: "0.85rem",
+                        textDecoration: "none",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Phone size={14} /> Call Host Directly: {vehicle.company.phone}
+                    </a>
+                  )}
                 </div>
               )}
             </div>

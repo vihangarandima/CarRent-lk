@@ -17,7 +17,7 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
       : "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=600";
 
   const year = vehicle.year || "2024";
-  const originalPrice = (vehicle.pricePerDay * 1.12).toLocaleString();
+  const originalPrice = Math.round((vehicle.pricePerDay || 0) * 1.12).toLocaleString();
 
   return (
     <motion.div

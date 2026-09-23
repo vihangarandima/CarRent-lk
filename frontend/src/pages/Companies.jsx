@@ -58,7 +58,7 @@ const vehicleCategoryCards = [
     image: carImg,
   },
   {
-    id: "suv",
+    id: "premium-car",
     title: "SUVs & Luxury",
     subtitle: "Premium 4x4 & Offroad",
     image: premiumCarImg,
@@ -70,7 +70,7 @@ const vehicleCategoryCards = [
     image: vanImg,
   },
   {
-    id: "threewheel",
+    id: "threewheeler",
     title: "Three-Wheelers",
     subtitle: "Quick City Rides",
     image: threewheelerImg,

@@ -139,7 +139,7 @@ const Footer = () => {
 
           <div className="footer-col footer-contact">
             <h4>Contact</h4>
-            <a href={`tel:${(contact?.phone || "+94 11 234 5678").replace(/\\s+/g, "")}`}>
+            <a href={`tel:${(contact?.phone || "+94 11 234 5678").replace(/\s+/g, "")}`}>
               <Phone size={14} /> {contact?.phone || "+94 11 234 5678"}
             </a>
             <a href={`mailto:${contact?.email || "hello@yamucarrentals.lk"}`}>

@@ -24,23 +24,28 @@ const auth = (req, res, next) => {
 // @desc    Get all vehicles with filters
 router.get("/", async (req, res) => {
   try {
-    const { brand, model, location, minPrice, maxPrice, companyId } = req.query;
+    const { brand, model, location, minPrice, maxPrice, companyId, vehicleType } = req.query;
     let query = {};
     if (brand) query.brand = new RegExp(brand, "i");
     if (model) query.model = new RegExp(model, "i");
     if (location) query.location = new RegExp(location, "i");
+    if (vehicleType) query.vehicleType = vehicleType;
     if (companyId) query.company = companyId;
     if (minPrice || maxPrice) {
       query.pricePerDay = {};
-      if (minPrice) query.pricePerDay.$gte = parseInt(minPrice);
-      if (maxPrice) query.pricePerDay.$lte = parseInt(maxPrice);
+      const parsedMin = parseInt(minPrice, 10);
+      const parsedMax = parseInt(maxPrice, 10);
+      if (!isNaN(parsedMin)) query.pricePerDay.$gte = parsedMin;
+      if (!isNaN(parsedMax)) query.pricePerDay.$lte = parsedMax;
+      if (Object.keys(query.pricePerDay).length === 0) delete query.pricePerDay;
     }
 
     const vehicles = await Vehicle.find(query)
-      .populate("owner", "name email")
-      .populate("company", "companyName logo address");
+      .populate("owner", "name email role")
+      .populate("company", "companyName logo address phone contactEmail isVerified");
     res.json(vehicles);
   } catch (err) {
+    console.error("Error fetching vehicles:", err);
     res.status(500).send("Server Error");
   }
 });
@@ -49,12 +54,12 @@ router.get("/", async (req, res) => {
 // @desc    Get all vehicles listed by the logged-in user (owner or company)
 router.get("/my", auth, async (req, res) => {
   try {
-    const vehicles = await Vehicle.find({ owner: req.user.id }).populate(
-      "company",
-      "companyName logo",
-    );
+    const vehicles = await Vehicle.find({ owner: req.user.id })
+      .populate("company", "companyName logo phone address isVerified")
+      .sort({ createdAt: -1 });
     res.json(vehicles);
   } catch (err) {
+    console.error("Error fetching user vehicles:", err);
     res.status(500).send("Server Error");
   }
 });

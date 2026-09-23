@@ -220,26 +220,79 @@ router.post("/login", async (req, res) => {
 // Firebase Login Route
 router.post("/firebase-login", async (req, res) => {
   try {
-    const { name, email, firebaseId } = req.body;
+    const { name, email, firebaseId, role, companyName, phone, address } =
+      req.body;
+
+    if (!email) {
+      return res.status(400).json({ msg: "Email is required for authentication" });
+    }
 
     // Check if user exists
     let user = await User.findOne({ email });
+    let companyData = null;
 
     if (!user) {
-      // Create new user
+      // Create new user with selected role
+      const initialRole = role && ["owner", "renter", "company", "admin"].includes(role) ? role : "renter";
       user = new User({
-        name,
+        name: name || email.split("@")[0],
         email,
         firebaseId,
-        role: "renter",
+        role: initialRole,
         password: "firebase_user",
       });
       await user.save();
+
+      // If registered as company, create company profile
+      if (initialRole === "company") {
+        const company = new Company({
+          user: user._id,
+          companyName: companyName || (name ? `${name} Rentals` : "My Rental Fleet"),
+          contactEmail: email,
+          phone: phone || "",
+          address: address || "Colombo, Sri Lanka",
+          isVerified: true,
+        });
+        await company.save();
+        companyData = {
+          id: company._id,
+          companyName: company.companyName,
+          logo: company.logo,
+        };
+      }
     } else {
-      // Update firebaseId if user exists
-      if (!user.firebaseId) {
+      // Update firebaseId if not set
+      if (!user.firebaseId && firebaseId) {
         user.firebaseId = firebaseId;
         await user.save();
+      }
+
+      // If user requested role upgrade to company or is already company
+      if (role === "company" && user.role !== "company" && user.role !== "admin") {
+        user.role = "company";
+        await user.save();
+      }
+
+      if (user.role === "company") {
+        let company = await Company.findOne({ user: user._id }).select(
+          "_id companyName logo phone address contactEmail"
+        );
+        if (!company) {
+          company = new Company({
+            user: user._id,
+            companyName: companyName || `${user.name} Rentals`,
+            contactEmail: email,
+            phone: phone || "",
+            address: address || "Colombo, Sri Lanka",
+            isVerified: true,
+          });
+          await company.save();
+        }
+        companyData = {
+          id: company._id,
+          companyName: company.companyName,
+          logo: company.logo,
+        };
       }
     }
 
@@ -250,7 +303,13 @@ router.post("/firebase-login", async (req, res) => {
 
     res.json({
       token,
-      user: { id: user._id, name, email, role: user.role },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+      company: companyData,
     });
   } catch (err) {
     console.error("Firebase login error:", err);
@@ -261,17 +320,33 @@ router.post("/firebase-login", async (req, res) => {
 // Update User Profile
 router.post("/update-profile", async (req, res) => {
   try {
-    const { userId, name } = req.body;
+    const { userId, name, phone, address } = req.body;
 
-    if (!userId || !name) {
-      return res.status(400).json({ msg: "User ID and name are required" });
+    if (!userId) {
+      return res.status(400).json({ msg: "User ID is required" });
     }
 
-    // Find user and update name
-    const user = await User.findByIdAndUpdate(userId, { name }, { new: true });
+    const updateFields = {};
+    if (name && name.trim()) updateFields.name = name.trim();
+
+    // Find user and update
+    const user = await User.findByIdAndUpdate(userId, updateFields, {
+      new: true,
+    }).select("-password");
 
     if (!user) {
       return res.status(404).json({ msg: "User not found" });
+    }
+
+    // Also update associated company details if applicable
+    if (user.role === "company" && (phone || address || name)) {
+      await Company.findOneAndUpdate(
+        { user: user._id },
+        {
+          ...(phone ? { phone } : {}),
+          ...(address ? { address } : {}),
+        }
+      );
     }
 
     res.json({

@@ -4,10 +4,12 @@ import axios from "axios";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { API_URL } from "../config";
+import logo from "../assets/images/logo.png";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [forgotMsg, setForgotMsg] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,6 +25,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setForgotMsg("");
     try {
       const res = await axios.post(
         `${API_URL}/api/auth/login`,
@@ -30,6 +33,9 @@ const Login = () => {
       );
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
+      if (res.data.company) {
+        localStorage.setItem("company", JSON.stringify(res.data.company));
+      }
       navigate("/home");
       window.location.reload();
     } catch (err) {
@@ -44,11 +50,10 @@ const Login = () => {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
+    setForgotMsg("");
     try {
-      console.log("Starting Firebase Google Auth Popup...");
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      console.log("Firebase authenticated user:", user);
 
       // Send to backend
       const res = await axios.post(
@@ -60,9 +65,11 @@ const Login = () => {
         },
       );
 
-      console.log("Backend response:", res.data);
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
+      if (res.data.company) {
+        localStorage.setItem("company", JSON.stringify(res.data.company));
+      }
       navigate("/home");
       window.location.reload();
     } catch (err) {
@@ -75,40 +82,40 @@ const Login = () => {
     }
   };
 
+  const handleForgotPassword = () => {
+    if (!formData.email) {
+      setForgotMsg("Please enter your email address above first, then click Forgot.");
+      return;
+    }
+    setForgotMsg(`Password reset link request has been noted for ${formData.email}. Please check your inbox or contact support.`);
+  };
+
   return (
     <div className="auth-page">
       <div className="auth-card fade-in">
         {/* Logo matching the homepage header */}
         <div className="auth-header">
           <Link to="/" className="brand-logo">
-            <div className="logo-icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-              </svg>
-            </div>
+            <img src={logo} alt="Yamu Car Rentals" style={{ width: 44, height: 44, objectFit: 'contain' }} />
             <span className="logo-text">
-              CarRents<span>.lk</span>
+              Yamu<span> Car Rentals</span>
             </span>
           </Link>
 
           <div className="hero-badge-mini">
             <span className="sparkle">✦</span>
-            <span>Welcome back to the marketplace</span>
+            <span>Welcome back to Yamu Car Rentals</span>
           </div>
 
           <h1>Sign in</h1>
           <p>Enter your details to access your dashboard</p>
         </div>
+
+        {forgotMsg && (
+          <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", color: "#c2410c", padding: "10px 14px", borderRadius: 10, fontSize: "0.85rem", marginBottom: "1rem", lineHeight: 1.4 }}>
+            {forgotMsg}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="input-group">
@@ -128,9 +135,14 @@ const Login = () => {
           <div className="input-group">
             <div className="label-flex">
               <label>PASSWORD</label>
-              <Link to="/forgot-password" id="forgot-link">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                id="forgot-link"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
                 Forgot?
-              </Link>
+              </button>
             </div>
             <div className="input-wrapper">
               <input
@@ -186,7 +198,7 @@ const Login = () => {
 
         <div className="auth-footer">
           <p>
-            New to CarRents.lk? <Link to="/select-role">Create an account</Link>
+            New to Yamu Car Rentals? <Link to="/register">Create an account</Link>
           </p>
         </div>
       </div>
