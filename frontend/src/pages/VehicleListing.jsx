@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { API_URL } from "../config";
+import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import VehicleCard from "../components/VehicleCard";
 import {
   GoogleMap,
@@ -1163,9 +1164,10 @@ const VehicleListing = () => {
                             {curV.images && curV.images[0] && (
                               <div className="map-info-img-wrap">
                                 <img
-                                  src={curV.images[0]}
+                                  src={formatVehicleImageUrl(curV.images[0])}
                                   alt={`${curV.brand} ${curV.model}`}
                                   className="map-info-img"
+                                  onError={handleImageError}
                                 />
                                 {hasMultiple && (
                                   <span className="map-info-img-badge">
@@ -1287,7 +1289,11 @@ const VehicleListing = () => {
                       >
                         <div className="map-sidebar-img-wrap">
                           {v.images && v.images[0] ? (
-                            <img src={v.images[0]} alt={v.brand} />
+                            <img
+                              src={formatVehicleImageUrl(v.images[0])}
+                              alt={v.brand}
+                              onError={handleImageError}
+                            />
                           ) : (
                             <div className="map-sidebar-placeholder">
                               <Car size={20} />

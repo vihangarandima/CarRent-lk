@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config";
+import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import {
   Car,
   Calendar,
@@ -395,9 +396,10 @@ const Profile = () => {
                       <div className="listing-card-media">
                         {item.images && item.images.length > 0 ? (
                           <img
-                            src={item.images[0]}
+                            src={formatVehicleImageUrl(item.images[0])}
                             alt={`${item.brand} ${item.model}`}
                             className="listing-img"
+                            onError={handleImageError}
                           />
                         ) : (
                           <div className="listing-placeholder">

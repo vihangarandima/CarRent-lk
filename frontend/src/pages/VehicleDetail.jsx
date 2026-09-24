@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { API_URL } from "../config";
+import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import { GoogleMap, useJsApiLoader, MarkerF } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -136,9 +137,13 @@ const VehicleDetail = () => {
     );
   }
 
-  const images = Array.isArray(vehicle.images) && vehicle.images.length > 0
+  const rawImages = Array.isArray(vehicle.images) && vehicle.images.length > 0
     ? vehicle.images.filter(img => typeof img === "string" && img.trim() !== "")
-    : ["https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=1200"];
+    : [];
+
+  const images = rawImages.length > 0
+    ? rawImages.map(formatVehicleImageUrl)
+    : [formatVehicleImageUrl(null)];
 
   const currentImage = images[activeImageIndex] || images[0];
 
@@ -163,6 +168,7 @@ const VehicleDetail = () => {
                 src={currentImage}
                 alt={`${vehicle.brand} ${vehicle.model}`}
                 className="main-image"
+                onError={handleImageError}
               />
               <div className="image-badge">
                 <MapPin
@@ -198,7 +204,12 @@ const VehicleDetail = () => {
                       transition: "all 0.2s ease",
                     }}
                   >
-                    <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img
+                      src={img}
+                      alt=""
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      onError={handleImageError}
+                    />
                   </button>
                 ))}
               </div>

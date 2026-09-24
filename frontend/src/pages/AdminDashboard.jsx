@@ -58,6 +58,7 @@ import {
   Cell,
 } from "recharts";
 import { API_URL } from "../config";
+import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import {
   useSiteConfig,
   HOLIDAY_THEME_PRESETS,
@@ -1982,9 +1983,10 @@ const AdminDashboard = () => {
                             <td>
                               <div className="vehicle-cell">
                                 <img
-                                  src={v.images?.[0] || "/logo.png"}
+                                  src={formatVehicleImageUrl(v.images?.[0])}
                                   alt={v.model}
                                   className="v-cell-thumb"
+                                  onError={handleImageError}
                                 />
                                 <div>
                                   <div className="font-semibold">

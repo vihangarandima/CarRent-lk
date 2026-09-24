@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config";
+import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import {
   BarChart3,
   Building2,
@@ -485,7 +486,12 @@ export default function CompanyDashboard() {
                             <td>
                               <div className="cd-cell-vehicle">
                                 {v.images && v.images[0] ? (
-                                  <img src={v.images[0]} alt={v.brand} className="cd-vehicle-thumb" />
+                                  <img
+                                    src={formatVehicleImageUrl(v.images[0])}
+                                    alt={v.brand}
+                                    className="cd-vehicle-thumb"
+                                    onError={handleImageError}
+                                  />
                                 ) : (
                                   <div className="cd-vehicle-thumb-placeholder"><Car size={14} /></div>
                                 )}

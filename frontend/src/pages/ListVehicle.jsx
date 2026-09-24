@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
 import { API_URL } from "../config";
+import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import { GoogleMap, useJsApiLoader, MarkerF, CircleF } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -728,7 +729,12 @@ const ListVehicle = () => {
                   {[0, 1, 2, 3, 4].map((i) => (
                     <div key={i} className="photo-upload-box">
                       {formData.images[i] ? (
-                        <img src={formData.images[i]} alt={`Upload ${i}`} className="uploaded-img" />
+                        <img
+                          src={formatVehicleImageUrl(formData.images[i])}
+                          alt={`Upload ${i}`}
+                          className="uploaded-img"
+                          onError={handleImageError}
+                        />
                       ) : (
                         <div className="upload-placeholder">
                           <div className="upload-icon">+</div>
