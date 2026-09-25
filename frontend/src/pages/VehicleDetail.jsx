@@ -361,6 +361,22 @@ const VehicleDetail = () => {
                 </span>
                 <span className="per-day">/ day</span>
               </div>
+              <div
+                style={{
+                  fontSize: "0.78rem",
+                  fontWeight: 700,
+                  color: "#ea580c",
+                  background: "#fff7ed",
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  display: "inline-block",
+                  marginTop: "6px",
+                  marginBottom: "12px",
+                  border: "1px solid #ffedd5",
+                }}
+              >
+                ⚡ Free 100 km/day included • +LKR {(vehicle.pricePerKmAfter100km || 0).toLocaleString()}/km extra
+              </div>
               
               <div className="owner-row">
                 <div className="owner-avatar">{vehicle.company?.companyName?.[0] || vehicle.owner?.name?.[0] || "Y"}</div>

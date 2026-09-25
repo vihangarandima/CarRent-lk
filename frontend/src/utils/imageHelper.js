@@ -17,6 +17,11 @@ export const formatVehicleImageUrl = (imgUrl) => {
 
   const trimmed = imgUrl.trim();
 
+  // If it's a blob/object URL or inline data URI, return as-is
+  if (trimmed.startsWith("blob:") || trimmed.startsWith("data:")) {
+    return trimmed;
+  }
+
   // If it's a localhost link from an older upload or local DB
   if (trimmed.startsWith("http://localhost:5000") || trimmed.startsWith("http://127.0.0.1:5000")) {
     if (API_URL && !API_URL.includes("localhost")) {

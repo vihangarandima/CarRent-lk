@@ -8,7 +8,7 @@ import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import { GoogleMap, useJsApiLoader, MarkerF, CircleF } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight, LocateFixed, Search, Navigation, Loader2 } from "lucide-react";
+import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight, LocateFixed, Search, Navigation, Loader2, X } from "lucide-react";
 
 // Vehicle Type Images
 import bikeeImg from "../assets/images/bikee.jpg";
@@ -204,6 +204,9 @@ const ListVehicle = () => {
     lng: 79.8612,
   });
 
+  const [previewUrls, setPreviewUrls] = useState(["", "", "", "", ""]);
+  const [uploadingSlots, setUploadingSlots] = useState({});
+
   const [mapCenter, setMapCenter] = useState({ lat: 6.9271, lng: 79.8612 });
   const [mapZoom, setMapZoom] = useState(13);
 
@@ -327,20 +330,81 @@ const ListVehicle = () => {
   };
 
   const handlePhotoUpload = async (e, index) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate file type & size (max 10MB)
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file (PNG, JPG, JPEG, WebP).");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Photo size exceeds 10MB limit.");
+      return;
+    }
+
+    // Immediately display the selected image locally for instant feedback
+    const localBlobUrl = URL.createObjectURL(file);
+    setPreviewUrls((prev) => {
+      const updated = [...prev];
+      updated[index] = localBlobUrl;
+      return updated;
+    });
+    setUploadingSlots((prev) => ({ ...prev, [index]: true }));
+
     const uploadData = new FormData();
     uploadData.append("image", file);
 
     try {
       const res = await axios.post(`${API_URL}/api/upload`, uploadData);
-      const newImages = [...formData.images];
-      newImages[index] = res.data.url;
-      setFormData({ ...formData, images: newImages });
-      toast.success("Photo uploaded successfully!");
+      const uploadedUrl = res.data?.url;
+      if (!uploadedUrl) {
+        throw new Error("Upload did not return an image URL.");
+      }
+
+      setFormData((prev) => {
+        const newImages = [...prev.images];
+        newImages[index] = uploadedUrl;
+        return { ...prev, images: newImages };
+      });
+      toast.success(`Photo ${index + 1} uploaded successfully!`);
     } catch (err) {
-      toast.error(err.response?.data?.msg || "Failed to upload image.");
+      console.error("Photo upload error:", err);
+      toast.error(err.response?.data?.msg || "Failed to upload image. Please try again.");
+      // Roll back local preview and form slot on upload failure
+      setPreviewUrls((prev) => {
+        const updated = [...prev];
+        updated[index] = "";
+        return updated;
+      });
+      setFormData((prev) => {
+        const newImages = [...prev.images];
+        newImages[index] = "";
+        return { ...prev, images: newImages };
+      });
+    } finally {
+      setUploadingSlots((prev) => ({ ...prev, [index]: false }));
+      if (e.target) {
+        e.target.value = "";
+      }
     }
+  };
+
+  const handleRemovePhoto = (index, e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setPreviewUrls((prev) => {
+      const updated = [...prev];
+      updated[index] = "";
+      return updated;
+    });
+    setFormData((prev) => {
+      const newImages = [...prev.images];
+      newImages[index] = "";
+      return { ...prev, images: newImages };
+    });
   };
 
   const fetchNominatimReverse = async (lat, lng) => {
@@ -760,29 +824,66 @@ const ListVehicle = () => {
                 <p className="step-desc">Upload 1 to 5 high-quality photos of your vehicle (at least 1 is required).</p>
 
                 <div className="photo-grid">
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <div key={i} className="photo-upload-box">
-                      {formData.images[i] ? (
-                        <img
-                          src={formatVehicleImageUrl(formData.images[i])}
-                          alt={`Upload ${i}`}
-                          className="uploaded-img"
-                          onError={handleImageError}
+                  {[0, 1, 2, 3, 4].map((i) => {
+                    const currentImg = previewUrls[i] || formData.images[i];
+                    const isUploading = uploadingSlots[i];
+
+                    return (
+                      <div
+                        key={i}
+                        className={`photo-upload-box ${currentImg ? "has-photo" : ""} ${isUploading ? "is-uploading" : ""}`}
+                      >
+                        {currentImg ? (
+                          <>
+                            <img
+                              src={formatVehicleImageUrl(currentImg)}
+                              alt={`Upload ${i + 1}`}
+                              className="uploaded-img"
+                            />
+                            <button
+                              type="button"
+                              className="photo-delete-btn"
+                              title="Remove photo"
+                              onClick={(e) => handleRemovePhoto(i, e)}
+                            >
+                              <X size={14} />
+                            </button>
+                            <div className="photo-change-overlay">
+                              <span>Change Photo</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="upload-placeholder">
+                            <div className="upload-icon">+</div>
+                            <span>Photo {i + 1}</span>
+                          </div>
+                        )}
+
+                        {isUploading && (
+                          <div className="photo-upload-loading">
+                            <Loader2 size={24} className="animate-spin" />
+                            <span>Uploading...</span>
+                          </div>
+                        )}
+
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/jpg, image/webp"
+                          disabled={isUploading}
+                          onChange={(e) => handlePhotoUpload(e, i)}
                         />
-                      ) : (
-                        <div className="upload-placeholder">
-                          <div className="upload-icon">+</div>
-                          <span>Photo {i + 1}</span>
-                        </div>
-                      )}
-                      <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, i)} />
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="form-actions space-between">
                   <button type="button" className="btn-back" onClick={prevStep}>Back</button>
-                  <button type="submit" className="btn-next" disabled={!formData.images.some(img => typeof img === "string" && img.trim() !== "")}>
+                  <button
+                    type="submit"
+                    className="btn-next"
+                    disabled={!formData.images.some(img => typeof img === "string" && img.trim() !== "")}
+                  >
                     Continue <ChevronRight size={18} />
                   </button>
                 </div>
@@ -1583,9 +1684,16 @@ const ListVehicle = () => {
           overflow: hidden;
           transition: all 0.2s;
         }
+        .photo-upload-box.has-photo {
+          border: 2px solid #e2e8f0;
+          background: #000;
+        }
         .photo-upload-box:hover {
           border-color: #f97316;
           background: #fff7ed;
+        }
+        .photo-upload-box.has-photo:hover {
+          border-color: #f97316;
         }
         .photo-upload-box input {
           position: absolute;
@@ -1593,6 +1701,10 @@ const ListVehicle = () => {
           opacity: 0;
           cursor: pointer;
           z-index: 10;
+        }
+        .photo-upload-box.is-uploading input {
+          cursor: not-allowed;
+          pointer-events: none;
         }
         .upload-placeholder {
           position: absolute;
@@ -1619,6 +1731,65 @@ const ListVehicle = () => {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          display: block;
+        }
+        .photo-delete-btn {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          background: rgba(15, 23, 42, 0.75);
+          color: #fff;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          z-index: 20;
+          transition: all 0.2s;
+          backdrop-filter: blur(4px);
+        }
+        .photo-delete-btn:hover {
+          background: #ef4444;
+          transform: scale(1.1);
+        }
+        .photo-change-overlay {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+          padding: 8px 4px 6px;
+          text-align: center;
+          opacity: 0;
+          transition: opacity 0.2s;
+          pointer-events: none;
+        }
+        .photo-change-overlay span {
+          color: #fff;
+          font-size: 0.72rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+        }
+        .photo-upload-box:hover .photo-change-overlay {
+          opacity: 1;
+        }
+        .photo-upload-loading {
+          position: absolute;
+          inset: 0;
+          background: rgba(255, 255, 255, 0.88);
+          backdrop-filter: blur(4px);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.4rem;
+          color: #f97316;
+          font-size: 0.75rem;
+          font-weight: 700;
+          z-index: 15;
         }
 
         /* Map */

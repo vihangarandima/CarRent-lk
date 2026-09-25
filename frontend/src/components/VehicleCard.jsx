@@ -100,6 +100,9 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
               LKR {vehicle.pricePerDay?.toLocaleString()}
               <small>/day</small>
             </div>
+            <div className="v-price-extra">
+              +LKR {Number(vehicle.pricePerKmAfter100km || 0).toLocaleString()}/km after 100km
+            </div>
           </div>
         </div>
 
@@ -275,25 +278,30 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           display: flex;
           justify-content: space-between;
           align-items: flex-end;
+          gap: 0.75rem;
           margin-bottom: 1.1rem;
         }
 
         .v-location {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 5px;
           color: #64748b;
           font-size: 0.8rem;
           font-weight: 600;
+          flex: 1;
+          line-height: 1.35;
         }
 
         .v-location svg {
           color: #f97316;
           flex-shrink: 0;
+          margin-top: 2px;
         }
 
         .v-pricing {
           text-align: right;
+          flex-shrink: 0;
         }
 
         .v-price-old {
@@ -306,7 +314,7 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         }
 
         .v-price-main {
-          font-size: 1.2rem;
+          font-size: 1.25rem;
           font-weight: 900;
           color: #ea580c;
           line-height: 1;
@@ -317,6 +325,20 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           color: #64748b;
           font-weight: 600;
           margin-left: 2px;
+        }
+
+        .v-price-extra {
+          display: inline-block;
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: #ea580c;
+          background: #fff7ed;
+          padding: 2px 7px;
+          border-radius: 6px;
+          border: 1px solid #ffedd5;
+          margin-top: 4px;
+          line-height: 1.2;
+          white-space: nowrap;
         }
 
         /* VIEW DETAILS BUTTON — Radiant Sunset Orange matching user reference */

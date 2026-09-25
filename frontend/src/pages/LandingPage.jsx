@@ -420,8 +420,8 @@ const LandingPage = () => {
               viewport={{ once: true }}
             >
               <img
-                src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&q=80&w=800"
-                alt="Happy travelers with rental car"
+                src="/assets/images/why_us_colombo.jpg"
+                alt="Colombo Sri Lanka Skyline and Travel"
                 className="why-img"
               />
               <div className="trust-card">
@@ -1115,6 +1115,7 @@ const LandingPage = () => {
           width: 100%;
           height: 420px;
           object-fit: cover;
+          object-position: center 30%;
           border-radius: var(--radius-xl);
           box-shadow: var(--shadow-card);
         }
