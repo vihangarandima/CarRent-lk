@@ -6,9 +6,23 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const [user, setUser] = useState(() =>
+    JSON.parse(localStorage.getItem("user") || "null")
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleUserUpdate = () => {
+      setUser(JSON.parse(localStorage.getItem("user") || "null"));
+    };
+    window.addEventListener("user-updated", handleUserUpdate);
+    window.addEventListener("storage", handleUserUpdate);
+    return () => {
+      window.removeEventListener("user-updated", handleUserUpdate);
+      window.removeEventListener("storage", handleUserUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -78,6 +92,7 @@ const Navbar = () => {
         <div className="nav-links hidden-mobile">
           <Link to="/vehicles">Find Cars</Link>
           <Link to="/companies">Rent-A-Car Fleets</Link>
+          <Link to="/reviews">Reviews</Link>
           <Link to="/#how-it-works">How it works</Link>
           <Link to="/why-us">Why us</Link>
         </div>
@@ -158,6 +173,9 @@ const Navbar = () => {
           </Link>
           <Link to="/companies" className="mobile-nav-item" onClick={closeMenu}>
             Rent-A-Car Fleets
+          </Link>
+          <Link to="/reviews" className="mobile-nav-item" onClick={closeMenu}>
+            Reviews & Ratings
           </Link>
           <Link to="/#how-it-works" className="mobile-nav-item" onClick={closeMenu}>
             How it works

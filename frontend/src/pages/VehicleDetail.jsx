@@ -22,6 +22,7 @@ import { GoogleMap, useJsApiLoader, MarkerF } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { addDays } from "date-fns";
+import { useToast } from "../context/ToastContext";
 import ReviewSection from "../components/ReviewSection";
 
 const detailMapContainerStyle = {
@@ -32,6 +33,7 @@ const detailMapContainerStyle = {
 
 const VehicleDetail = () => {
   const { id } = useParams();
+  const { toast } = useToast();
   
   // Booking State
   const [dateRange, setDateRange] = useState([null, null]);
@@ -84,7 +86,7 @@ const VehicleDetail = () => {
   const handleContact = (e) => {
     e.preventDefault();
     if (!startDate || !endDate) {
-      alert("Please select your required booking dates on the calendar first.");
+      toast.warning("Please select your required booking dates on the calendar first.", "Dates Required");
       return;
     }
 

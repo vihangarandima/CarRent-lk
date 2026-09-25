@@ -4,6 +4,7 @@ import axios from "axios";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { API_URL } from "../config";
+import { useToast } from "../context/ToastContext";
 import logo from "../assets/images/logo.png";
 
 const Login = () => {
@@ -11,6 +12,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [forgotMsg, setForgotMsg] = useState("");
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -36,12 +38,14 @@ const Login = () => {
       if (res.data.company) {
         localStorage.setItem("company", JSON.stringify(res.data.company));
       }
+      toast.success("Welcome back!", "Signed In");
       navigate("/home");
       window.location.reload();
     } catch (err) {
-      alert(
+      toast.error(
         err.response?.data?.msg ||
           "Login failed. Please check your email and password.",
+        "Sign In Error"
       );
     } finally {
       setLoading(false);
@@ -70,12 +74,13 @@ const Login = () => {
       if (res.data.company) {
         localStorage.setItem("company", JSON.stringify(res.data.company));
       }
+      toast.success(`Welcome, ${user.displayName || "traveler"}!`, "Google Sign In");
       navigate("/home");
       window.location.reload();
     } catch (err) {
       console.error("Google login error:", err);
       if (err.code !== "auth/popup-closed-by-user") {
-        alert("Google login failed: " + err.message);
+        toast.error("Google login failed: " + err.message, "Sign In Error");
       }
     } finally {
       setLoading(false);

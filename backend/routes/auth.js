@@ -208,6 +208,8 @@ router.post("/login", async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        phone: user.phone || "",
+        profileImage: user.profileImage || "",
       },
       company: companyData,
     });
@@ -308,6 +310,8 @@ router.post("/firebase-login", async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        phone: user.phone || "",
+        profileImage: user.profileImage || "",
       },
       company: companyData,
     });
@@ -317,17 +321,59 @@ router.post("/firebase-login", async (req, res) => {
   }
 });
 
+// @route   GET /api/auth/me
+// @desc    Get current user profile data
+router.get("/me", async (req, res) => {
+  try {
+    const token = req.header("x-auth-token");
+    if (!token) return res.status(401).json({ msg: "No token provided" });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    let companyData = null;
+    if (user.role === "company") {
+      const company = await Company.findOne({ user: user._id }).select(
+        "_id companyName logo phone address"
+      );
+      if (company) {
+        companyData = {
+          id: company._id,
+          companyName: company.companyName,
+          logo: company.logo,
+        };
+      }
+    }
+
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone || "",
+        profileImage: user.profileImage || "",
+      },
+      company: companyData,
+    });
+  } catch (err) {
+    res.status(401).json({ msg: "Invalid token" });
+  }
+});
+
 // Update User Profile
 router.post("/update-profile", async (req, res) => {
   try {
-    const { userId, name, phone, address } = req.body;
+    const { userId, name, phone, address, profileImage } = req.body;
 
     if (!userId) {
       return res.status(400).json({ msg: "User ID is required" });
     }
 
     const updateFields = {};
-    if (name && name.trim()) updateFields.name = name.trim();
+    if (name !== undefined && name.trim()) updateFields.name = name.trim();
+    if (phone !== undefined) updateFields.phone = phone.trim();
+    if (profileImage !== undefined) updateFields.profileImage = profileImage;
 
     // Find user and update
     const user = await User.findByIdAndUpdate(userId, updateFields, {
@@ -339,12 +385,13 @@ router.post("/update-profile", async (req, res) => {
     }
 
     // Also update associated company details if applicable
-    if (user.role === "company" && (phone || address || name)) {
+    if (user.role === "company" && (phone || address || name || profileImage)) {
       await Company.findOneAndUpdate(
         { user: user._id },
         {
           ...(phone ? { phone } : {}),
           ...(address ? { address } : {}),
+          ...(profileImage ? { logo: profileImage } : {}),
         }
       );
     }
@@ -356,6 +403,8 @@ router.post("/update-profile", async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        phone: user.phone || "",
+        profileImage: user.profileImage || "",
       },
     });
   } catch (err) {

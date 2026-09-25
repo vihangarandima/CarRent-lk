@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config";
+import { useToast } from "../context/ToastContext";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import {
   BarChart3,
@@ -50,6 +51,7 @@ const navItems = [
 
 export default function CompanyDashboard() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
@@ -119,8 +121,9 @@ export default function CompanyDashboard() {
         const updatedUser = { ...user, role: "company" };
         localStorage.setItem("user", JSON.stringify(updatedUser));
       }
+      toast.success("Company profile created successfully!");
     } catch (err) {
-      alert("Failed to initialize company profile. Please try again.");
+      toast.error("Failed to initialize company profile. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -134,8 +137,9 @@ export default function CompanyDashboard() {
       });
       setCompany(res.data);
       setEditMode(false);
+      toast.success("Company profile updated successfully!");
     } catch (err) {
-      alert("Failed to save profile. Please try again.");
+      toast.error("Failed to save profile. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -148,8 +152,9 @@ export default function CompanyDashboard() {
       });
       setVehicles(vehicles.filter((v) => v._id !== vehicleId));
       setDeleteConfirm(null);
+      toast.success("Vehicle removed from fleet.");
     } catch (err) {
-      alert("Failed to delete vehicle.");
+      toast.error("Failed to delete vehicle: " + (err.response?.data?.msg || err.message));
     }
   };
 

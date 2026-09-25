@@ -12,6 +12,7 @@ import {
 } from "@react-google-maps/api";
 import { Link, useSearchParams } from "react-router-dom";
 import { useSiteConfig } from "../context/SiteConfigContext";
+import { useToast } from "../context/ToastContext";
 import {
   MapPin,
   Car,
@@ -203,6 +204,7 @@ const VehicleListing = () => {
   });
 
   const { config } = useSiteConfig();
+  const { toast } = useToast();
   const customThumbs = config?.vehicleListing?.categoryThumbnails || {};
 
   const vehicleTypeCards = [
@@ -403,7 +405,7 @@ const VehicleListing = () => {
   const handleLocateMe = () => {
     setIsLocating(true);
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      toast.warning("Geolocation is not supported by your browser");
       setIsLocating(false);
       return;
     }
@@ -425,17 +427,18 @@ const VehicleListing = () => {
         setFilter({ ...filter, location: "My GPS Location" });
         setViewMode("map");
         setIsLocating(false);
+        toast.info("Filtering vehicles near your GPS location.");
       },
       (error) => {
-        let errorMsg = `Unable to retrieve your location. (Error: ${error.message})`;
+        let errorMsg = `Unable to retrieve your location. (${error.message})`;
         if (error.code === error.PERMISSION_DENIED) {
-           errorMsg = "Location permission denied. Please click the site settings icon near the URL bar to allow location access.";
+           errorMsg = "Location permission denied. Please allow location access in your browser.";
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-           errorMsg = "Location information is unavailable. Please ensure your Windows Location Services are turned on in Settings -> Privacy & Security -> Location.";
+           errorMsg = "Location information is currently unavailable on your device.";
         } else if (error.code === error.TIMEOUT) {
-           errorMsg = "The request to get user location timed out. Please try again.";
+           errorMsg = "The request to get your location timed out. Please try again.";
         }
-        alert(errorMsg);
+        toast.warning(errorMsg, "Location Notice");
         setIsLocating(false);
       },
       { timeout: 15000, maximumAge: 60000 }

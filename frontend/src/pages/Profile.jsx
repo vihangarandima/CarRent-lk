@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config";
+import { useToast } from "../context/ToastContext";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import {
   Car,
@@ -24,10 +25,15 @@ import {
   CheckCircle2,
   ShieldCheck,
   User,
+  Camera,
+  Upload,
+  Loader2,
+  Image as ImageIcon,
 } from "lucide-react";
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { toast, confirm } = useToast();
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user") || "null") || {
     name: "User",
@@ -39,12 +45,99 @@ const Profile = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState(user.name || "");
   const [editPhone, setEditPhone] = useState(user.phone || "");
+  const [profileImage, setProfileImage] = useState(user.profileImage || "");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef(null);
+  const modalFileInputRef = useRef(null);
+  const settingsFileInputRef = useRef(null);
+
   const [myVehicles, setMyVehicles] = useState([]);
   const [loadingVehicles, setLoadingVehicles] = useState(false);
+  const [myReviews, setMyReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
   const [loading, setLoading] = useState(false);
   const [settingsStatus, setSettingsStatus] = useState("");
 
   const userId = user.id || user._id;
+
+  const handleAvatarUpload = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file (JPG, PNG, WebP).");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be 10MB or less.");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const uploadRes = await axios.post(`${API_URL}/api/upload`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const uploadedUrl = uploadRes.data?.url;
+      if (!uploadedUrl) {
+        throw new Error("Upload did not return an image URL.");
+      }
+
+      await axios.post(`${API_URL}/api/auth/update-profile`, {
+        userId: userId,
+        profileImage: uploadedUrl,
+      });
+
+      const updatedUser = {
+        ...user,
+        profileImage: uploadedUrl,
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setProfileImage(uploadedUrl);
+      window.dispatchEvent(new Event("user-updated"));
+      window.dispatchEvent(new Event("storage"));
+      toast.success("Profile photo updated successfully!", "Avatar Changed");
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      toast.error("Failed to upload photo: " + (err.response?.data?.msg || err.message));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    const ok = await confirm({
+      title: "Remove Profile Picture?",
+      message: "Are you sure you want to remove your profile picture and switch back to initials?",
+      confirmText: "Remove Photo",
+      cancelText: "Keep Photo",
+      isDestructive: true,
+    });
+    if (!ok) return;
+
+    setLoading(true);
+    try {
+      await axios.post(`${API_URL}/api/auth/update-profile`, {
+        userId: userId,
+        profileImage: "",
+      });
+      const updatedUser = {
+        ...user,
+        profileImage: "",
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setProfileImage("");
+      window.dispatchEvent(new Event("user-updated"));
+      window.dispatchEvent(new Event("storage"));
+      toast.success("Profile picture removed.");
+    } catch (err) {
+      toast.error("Failed to remove photo: " + (err.response?.data?.msg || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -56,32 +149,48 @@ const Profile = () => {
   // Fetch real listed vehicles if user is host/owner
   useEffect(() => {
     if (!token) return;
-    const fetchUserVehicles = async () => {
+    const fetchUserData = async () => {
       setLoadingVehicles(true);
+      setLoadingReviews(true);
       try {
-        const res = await axios.get(`${API_URL}/api/vehicles/my`, {
-          headers: { "x-auth-token": token },
-        });
-        setMyVehicles(res.data || []);
+        const [vehRes, revRes] = await Promise.all([
+          axios.get(`${API_URL}/api/vehicles/my`, {
+            headers: { "x-auth-token": token },
+          }).catch(() => ({ data: [] })),
+          axios.get(`${API_URL}/api/reviews/my`, {
+            headers: { "x-auth-token": token },
+          }).catch(() => ({ data: [] }))
+        ]);
+        setMyVehicles(vehRes.data || []);
+        setMyReviews(revRes.data || []);
       } catch (err) {
-        console.warn("Could not fetch user listings:", err);
+        console.warn("Could not fetch user data:", err);
       } finally {
         setLoadingVehicles(false);
+        setLoadingReviews(false);
       }
     };
-    fetchUserVehicles();
+    fetchUserData();
   }, [token]);
 
   const handleDeleteVehicle = async (vehicleId) => {
-    if (!window.confirm("Are you sure you want to delete this vehicle listing?")) return;
+    const ok = await confirm({
+      title: "Delete Vehicle Listing?",
+      message: "Are you sure you want to delete this vehicle listing? This action cannot be undone.",
+      confirmText: "Delete Listing",
+      cancelText: "Keep Listing",
+      isDestructive: true,
+    });
+    if (!ok) return;
+
     try {
       await axios.delete(`${API_URL}/api/vehicles/${vehicleId}`, {
         headers: { "x-auth-token": token },
       });
       setMyVehicles(myVehicles.filter((v) => v._id !== vehicleId));
-      alert("Vehicle removed successfully.");
+      toast.success("Vehicle listing removed successfully.");
     } catch (err) {
-      alert("Failed to delete vehicle: " + (err.response?.data?.msg || err.message));
+      toast.error("Failed to delete vehicle: " + (err.response?.data?.msg || err.message));
     }
   };
 
@@ -94,7 +203,7 @@ const Profile = () => {
   // Handle Save Profile
   const handleSaveProfile = async () => {
     if (!editName.trim()) {
-      alert("Name cannot be empty");
+      toast.warning("Name cannot be empty");
       return;
     }
 
@@ -115,10 +224,12 @@ const Profile = () => {
 
       // Close modal and refresh
       setShowEditModal(false);
-      alert("Profile updated successfully!");
-      window.location.reload();
+      toast.success("Profile updated successfully!");
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (err) {
-      alert(
+      toast.error(
         "Failed to update profile: " + (err.response?.data?.msg || err.message),
       );
     } finally {
@@ -199,11 +310,13 @@ const Profile = () => {
   const tabs = isRenter ? [
     { id: "overview", label: "Overview", icon: <Grid size={16} /> },
     { id: "bookings", label: "My Trips", icon: <Calendar size={16} /> },
+    { id: "reviews", label: `My Reviews (${myReviews.length})`, icon: <Star size={16} /> },
     { id: "settings", label: "Settings", icon: <SettingsIcon size={16} /> },
   ] : [
     { id: "overview", label: "Overview", icon: <Grid size={16} /> },
     { id: "listings", label: `My Cars (${myVehicles.length})`, icon: <Car size={16} /> },
     { id: "bookings", label: "Bookings", icon: <Calendar size={16} /> },
+    { id: "reviews", label: `My Reviews (${myReviews.length})`, icon: <Star size={16} /> },
     { id: "settings", label: "Settings", icon: <SettingsIcon size={16} /> },
   ];
 
@@ -212,9 +325,43 @@ const Profile = () => {
       <div className="container">
         {/* Profile Header */}
         <div className="profile-header-card">
-          <div className="avatar-wrapper">
-            <div className="avatar-lg">{initial}</div>
-            <div className="online-indicator" title="Online Host"></div>
+          <div
+            className="avatar-wrapper"
+            onClick={() => fileInputRef.current?.click()}
+            title="Click to change profile picture"
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
+              accept="image/*"
+              style={{ display: "none" }}
+            />
+            {uploadingAvatar ? (
+              <div className="avatar-lg avatar-loading">
+                <Loader2 size={32} className="spinner-icon" />
+              </div>
+            ) : profileImage ? (
+              <img
+                src={profileImage}
+                alt={user.name}
+                className="avatar-lg avatar-img-cover"
+              />
+            ) : (
+              <div className="avatar-lg">{initial}</div>
+            )}
+            <button
+              type="button"
+              className="avatar-edit-badge"
+              title="Upload new profile picture"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+            >
+              <Camera size={14} />
+            </button>
+            <div className="online-indicator" title="Active Account"></div>
           </div>
 
           <div className="profile-meta">
@@ -463,6 +610,101 @@ const Profile = () => {
             </div>
           )}
 
+          {activeTab === "reviews" && (
+            <div className="animate-in">
+              <div className="section-header">
+                <div>
+                  <h2>My Reviews & Community Feedback</h2>
+                  <p style={{ margin: "2px 0 0", color: "#64748b", fontSize: "0.9rem" }}>
+                    Verified reviews and feedback you have submitted on Yamu Car Rentals.
+                  </p>
+                </div>
+                <Link to="/reviews" className="btn-add-vehicle" style={{ textDecoration: "none" }}>
+                  <Plus size={16} /> Write New Review
+                </Link>
+              </div>
+
+              {loadingReviews ? (
+                <div style={{ padding: "4rem 0", textAlign: "center", color: "#64748b" }}>
+                  Loading your reviews...
+                </div>
+              ) : myReviews.length === 0 ? (
+                <div className="empty-pane">
+                  <div className="empty-icon-circle">
+                    <Star size={36} />
+                  </div>
+                  <h3>No Reviews Written Yet</h3>
+                  <p>Share your experience from past trips to help other travelers and support verified hosts.</p>
+                  <Link to="/reviews" className="btn-primary-action">
+                    Explore Reviews Portal & Write a Review
+                  </Link>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.5rem", marginTop: "1rem" }}>
+                  {myReviews.map((rev) => (
+                    <div
+                      key={rev._id}
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "16px",
+                        padding: "1.4rem",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.8rem",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", gap: "2px" }}>
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              size={14}
+                              fill={i < rev.rating ? "#f59e0b" : "#e2e8f0"}
+                              color={i < rev.rating ? "#f59e0b" : "#cbd5e1"}
+                            />
+                          ))}
+                        </div>
+                        <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>
+                          {new Date(rev.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      {rev.vehicle && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#f8fafc", padding: "6px 10px", borderRadius: "8px" }}>
+                          <Car size={14} color="#f97316" />
+                          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#0f172a" }}>
+                            {rev.vehicle.brand} {rev.vehicle.model} ({rev.vehicle.year})
+                          </span>
+                        </div>
+                      )}
+
+                      {rev.title && (
+                        <h4 style={{ margin: 0, fontSize: "0.98rem", fontWeight: 800, color: "#0f172a" }}>
+                          {rev.title}
+                        </h4>
+                      )}
+
+                      <p style={{ margin: 0, fontSize: "0.88rem", color: "#475569", lineHeight: 1.5 }}>
+                        {rev.comment}
+                      </p>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: "0.6rem", borderTop: "1px solid #f1f5f9" }}>
+                        <span style={{ fontSize: "0.78rem", color: "#10b981", fontWeight: 700 }}>
+                          ✓ Verified Trip
+                        </span>
+                        <span style={{ fontSize: "0.78rem", color: "#64748b" }}>
+                          👍 {rev.helpfulCount || 0} found helpful
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === "settings" && (
             <div className="animate-in settings-pane">
               <div className="settings-header">
@@ -481,6 +723,49 @@ const Profile = () => {
               )}
 
               <form className="settings-form" onSubmit={handleSaveSettings}>
+                {/* Profile Photo Section in Settings */}
+                <div className="field">
+                  <label>Profile Picture</label>
+                  <div className="avatar-edit-modal-row">
+                    <div className="modal-avatar-preview">
+                      {profileImage ? (
+                        <img src={profileImage} alt={user.name} />
+                      ) : (
+                        <div className="modal-avatar-initial">{initial}</div>
+                      )}
+                    </div>
+                    <div className="avatar-modal-btns">
+                      <input
+                        type="file"
+                        ref={settingsFileInputRef}
+                        onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
+                        accept="image/*"
+                        style={{ display: "none" }}
+                      />
+                      <button
+                        type="button"
+                        className="btn-upload-photo"
+                        onClick={() => settingsFileInputRef.current?.click()}
+                        disabled={uploadingAvatar}
+                      >
+                        <Upload size={14} />
+                        <span>{uploadingAvatar ? "Uploading..." : "Upload Photo"}</span>
+                      </button>
+                      {profileImage && (
+                        <button
+                          type="button"
+                          className="btn-remove-photo"
+                          onClick={handleRemoveAvatar}
+                          disabled={loading}
+                        >
+                          <Trash2 size={14} />
+                          <span>Remove</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="field">
                   <label>Full Name</label>
                   <input
@@ -539,6 +824,49 @@ const Profile = () => {
             </div>
 
             <div className="modal-body">
+              {/* Profile Photo in Modal */}
+              <div className="form-group">
+                <label>Profile Picture</label>
+                <div className="avatar-edit-modal-row">
+                  <div className="modal-avatar-preview">
+                    {profileImage ? (
+                      <img src={profileImage} alt={user.name} />
+                    ) : (
+                      <div className="modal-avatar-initial">{initial}</div>
+                    )}
+                  </div>
+                  <div className="avatar-modal-btns">
+                    <input
+                      type="file"
+                      ref={modalFileInputRef}
+                      onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
+                      accept="image/*"
+                      style={{ display: "none" }}
+                    />
+                    <button
+                      type="button"
+                      className="btn-upload-photo"
+                      onClick={() => modalFileInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                    >
+                      <Upload size={14} />
+                      <span>{uploadingAvatar ? "Uploading..." : "Change Photo"}</span>
+                    </button>
+                    {profileImage && (
+                      <button
+                        type="button"
+                        className="btn-remove-photo"
+                        onClick={handleRemoveAvatar}
+                        disabled={loading}
+                      >
+                        <Trash2 size={14} />
+                        <span>Remove</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="form-group">
                 <label>Full Name</label>
                 <input
@@ -622,6 +950,13 @@ const Profile = () => {
           position: relative;
           display: flex;
           flex-shrink: 0;
+          cursor: pointer;
+          border-radius: 20px;
+          transition: transform 0.2s ease;
+        }
+
+        .avatar-wrapper:hover {
+          transform: scale(1.03);
         }
 
         .avatar-lg {
@@ -637,17 +972,153 @@ const Profile = () => {
           color: #ffffff;
           box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.45);
           letter-spacing: -1px;
+          overflow: hidden;
+        }
+
+        .avatar-img-cover {
+          width: 84px;
+          height: 84px;
+          border-radius: 20px;
+          object-fit: cover;
+        }
+
+        .avatar-loading {
+          background: #1e293b;
+        }
+
+        .spinner-icon {
+          animation: spin 1s linear infinite;
+          color: #ffffff;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .avatar-edit-badge {
+          position: absolute;
+          top: -6px;
+          right: -6px;
+          width: 26px;
+          height: 26px;
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 50%;
+          color: #f97316;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          z-index: 2;
+        }
+
+        .avatar-wrapper:hover .avatar-edit-badge {
+          background: #f97316;
+          color: #ffffff;
+          border-color: #f97316;
+          transform: scale(1.15);
         }
 
         .online-indicator {
           position: absolute;
           bottom: -2px;
           right: -2px;
-          width: 22px;
-          height: 22px;
+          width: 20px;
+          height: 20px;
           background: #10b981;
-          border: 3.5px solid #ffffff;
+          border: 3px solid #ffffff;
           border-radius: 50%;
+          z-index: 3;
+        }
+
+        .avatar-edit-modal-row {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 14px;
+          padding: 12px 16px;
+          margin-top: 6px;
+        }
+
+        .modal-avatar-preview {
+          width: 60px;
+          height: 60px;
+          border-radius: 14px;
+          overflow: hidden;
+          background: linear-gradient(135deg, #ff8800, #ea580c);
+          flex-shrink: 0;
+          box-shadow: 0 4px 10px rgba(249, 115, 22, 0.2);
+        }
+
+        .modal-avatar-preview img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .modal-avatar-initial {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.6rem;
+          font-weight: 800;
+          color: white;
+        }
+
+        .avatar-modal-btns {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .btn-upload-photo {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: #0f172a;
+          color: white;
+          border: none;
+          padding: 0.5rem 0.95rem;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .btn-upload-photo:hover {
+          background: #f97316;
+        }
+
+        .btn-upload-photo:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .btn-remove-photo {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(239, 68, 68, 0.08);
+          color: #ef4444;
+          border: 1px solid rgba(239, 68, 68, 0.25);
+          padding: 0.5rem 0.85rem;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-remove-photo:hover {
+          background: #ef4444;
+          color: white;
         }
 
         .profile-meta {

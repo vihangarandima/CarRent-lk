@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config";
+import { useToast } from "../context/ToastContext";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import { GoogleMap, useJsApiLoader, MarkerF, CircleF } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight, LocateFixed, Search, Navigation } from "lucide-react";
+import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight, LocateFixed, Search, Navigation, Loader2 } from "lucide-react";
 
 // Vehicle Type Images
 import bikeeImg from "../assets/images/bikee.jpg";
@@ -205,6 +207,10 @@ const ListVehicle = () => {
   const [mapCenter, setMapCenter] = useState({ lat: 6.9271, lng: 79.8612 });
   const [mapZoom, setMapZoom] = useState(13);
 
+  const navigate = useNavigate();
+  const { toast, showSuccessModal } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Custom inputs for "Other" selections
   const [customBrand, setCustomBrand] = useState("");
   const [customModel, setCustomModel] = useState("");
@@ -331,8 +337,9 @@ const ListVehicle = () => {
       const newImages = [...formData.images];
       newImages[index] = res.data.url;
       setFormData({ ...formData, images: newImages });
+      toast.success("Photo uploaded successfully!");
     } catch (err) {
-      alert(err.response?.data?.msg || "Failed to upload image.");
+      toast.error(err.response?.data?.msg || "Failed to upload image.");
     }
   };
 
@@ -508,16 +515,26 @@ const ListVehicle = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("token");
-      if (!token) return alert("Please login first.");
+      if (!token) {
+        toast.warning("Please sign in to list your vehicle.", "Authentication Required");
+        return;
+      }
 
-      if (!startDate || !endDate) return alert("Please select availability dates.");
+      if (!startDate || !endDate) {
+        toast.warning("Please select availability dates.", "Dates Required");
+        return;
+      }
 
       // Use custom brand/model if "Other" is selected
       const finalBrand = formData.brand === "Other" ? customBrand : formData.brand;
       const finalModel = formData.model === "Other" ? customModel : formData.model;
 
-      if (!finalBrand || !finalModel) return alert("Please specify the brand and model.");
+      if (!finalBrand || !finalModel) {
+        toast.warning("Please specify both the brand and model.", "Vehicle Details Required");
+        return;
+      }
 
+      setIsSubmitting(true);
       const payload = {
         ...formData,
         brand: finalBrand,
@@ -530,14 +547,31 @@ const ListVehicle = () => {
         headers: { "Content-Type": "application/json", "x-auth-token": token },
       });
       const currentUser = JSON.parse(localStorage.getItem("user") || "null");
-      alert("Vehicle listed successfully!");
-      if (currentUser?.role === "company") {
-        window.location.href = "/company-dashboard";
-      } else {
-        window.location.href = "/profile";
-      }
+      const targetUrl = currentUser?.role === "company" ? "/company-dashboard" : "/profile";
+
+      showSuccessModal({
+        title: "Vehicle Listed Successfully! 🎉",
+        badge: "Live on Yamu",
+        message: `Your ${finalBrand} ${finalModel} is now live and ready for bookings from verified travelers across Sri Lanka.`,
+        vehicleInfo: {
+          brand: finalBrand,
+          model: finalModel,
+          location: formData.district || formData.location || "Sri Lanka",
+          pricePerDay: formData.pricePerDay,
+        },
+        primaryText: currentUser?.role === "company" ? "Go to Company Dashboard" : "View in My Profile",
+        onPrimary: () => {
+          navigate(targetUrl);
+        },
+        secondaryText: "List Another Vehicle",
+        onSecondary: () => {
+          window.location.reload();
+        },
+      });
     } catch (err) {
-      alert("Error: " + (err.response?.data?.msg || err.message));
+      toast.error(err.response?.data?.msg || err.message, "Listing Failed");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -982,8 +1016,17 @@ const ListVehicle = () => {
                 </div>
 
                 <div className="form-actions space-between mt-4">
-                  <button type="button" className="btn-back" onClick={prevStep}>Back</button>
-                  <button type="submit" className="btn-submit">List Vehicle</button>
+                  <button type="button" className="btn-back" onClick={prevStep} disabled={isSubmitting}>Back</button>
+                  <button type="submit" className="btn-submit" disabled={isSubmitting} style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        <span>Listing Vehicle...</span>
+                      </>
+                    ) : (
+                      <span>List Vehicle</span>
+                    )}
+                  </button>
                 </div>
               </form>
             )}

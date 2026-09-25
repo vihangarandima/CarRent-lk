@@ -35,16 +35,14 @@ const categories = [
     label: "SUV & 4x4",
     vehicleType: "premium-car",
     icon: Truck,
-    image:
-      "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/images/suv_category.jpg",
   },
   {
     id: "sedan",
     label: "Sedan & Cars",
     vehicleType: "car",
     icon: Car,
-    image:
-      "https://images.unsplash.com/photo-1555215695-3004980adade?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/images/sedan_category.jpg",
   },
   {
     id: "luxury",
@@ -59,16 +57,14 @@ const categories = [
     label: "Mini Cars",
     vehicleType: "mini-car",
     icon: Car,
-    image:
-      "https://images.unsplash.com/photo-1593941707882-a5bba14938bc?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/images/electric_category.jpg",
   },
   {
     id: "van",
     label: "Vans & Groups",
     vehicleType: "van",
     icon: Truck,
-    image:
-      "https://images.unsplash.com/photo-1527786356703-4b100916cd20?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/images/van_category.jpg",
   },
   {
     id: "threewheeler",

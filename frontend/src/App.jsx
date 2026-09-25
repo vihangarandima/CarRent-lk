@@ -21,9 +21,11 @@ import CompanyDetail from "./pages/CompanyDetail";
 import CompanyDashboard from "./pages/CompanyDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ChooseListingType from "./pages/ChooseListingType";
+import ReviewsPortal from "./pages/ReviewsPortal";
 import AnnouncementBar from "./components/AnnouncementBar";
 import WhatsAppFloat from "./components/WhatsAppFloat";
 import { SiteConfigProvider } from "./context/SiteConfigContext";
+import { ToastProvider } from "./context/ToastContext";
 
 function AppContent() {
   const location = useLocation();
@@ -172,6 +174,8 @@ function AppContent() {
           <Route path="/company-list-vehicle" element={<ListVehicle />} />
           <Route path="/choose-listing-type" element={<ChooseListingType />} />
           <Route path="/select-role" element={<ChooseListingType />} />
+          <Route path="/reviews" element={<ReviewsPortal />} />
+          <Route path="/reviews-portal" element={<ReviewsPortal />} />
           <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
       </main>
@@ -185,9 +189,11 @@ function AppContent() {
 function App() {
   return (
     <SiteConfigProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <ToastProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </ToastProvider>
     </SiteConfigProvider>
   );
 }

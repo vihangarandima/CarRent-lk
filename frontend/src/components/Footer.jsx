@@ -118,6 +118,7 @@ const Footer = () => {
             <Link to="/vehicles">Browse Cars</Link>
             <Link to="/vehicles">SUVs & Vans</Link>
             <Link to="/companies">Rental Companies</Link>
+            <Link to="/reviews">Customer Reviews</Link>
             <Link to="/vehicles">Luxury Cars</Link>
           </div>
 
@@ -132,6 +133,7 @@ const Footer = () => {
           <div className="footer-col">
             <h4>Company</h4>
             <Link to="/why-us">Why Yamu Car Rentals</Link>
+            <Link to="/reviews">Reviews & Stories</Link>
             <Link to="/#how-it-works">How It Works</Link>
             <Link to="/companies">Partners</Link>
             <Link to="/login">Sign In</Link>
@@ -139,14 +141,14 @@ const Footer = () => {
 
           <div className="footer-col footer-contact">
             <h4>Contact</h4>
-            <a href={`tel:${(contact?.phone || "+94 11 234 5678").replace(/\s+/g, "")}`}>
-              <Phone size={14} /> {contact?.phone || "+94 11 234 5678"}
+            <a href={`tel:${(contact?.phone || "+94 70 243 4288").replace(/\s+/g, "")}`}>
+              <Phone size={14} /> {contact?.phone || "+94 70 243 4288"}
             </a>
-            <a href={`mailto:${contact?.email || "hello@yamucarrentals.lk"}`}>
-              <Mail size={14} /> {contact?.email || "hello@yamucarrentals.lk"}
+            <a href={`mailto:${contact?.email || "yamucarrentals@gmail.com"}`}>
+              <Mail size={14} /> {contact?.email || "yamucarrentals@gmail.com"}
             </a>
             <span>
-              <MapPin size={14} /> {contact?.address || "Colombo, Sri Lanka"}
+              <MapPin size={14} /> {contact?.address || "551/1, Thalgahawatta Lane, Wawa Road, Boralasgamuwa"}
             </span>
           </div>
         </div>

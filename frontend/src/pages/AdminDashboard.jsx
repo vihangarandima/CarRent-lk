@@ -64,6 +64,7 @@ import {
   HOLIDAY_THEME_PRESETS,
   DEFAULT_CONFIG,
 } from "../context/SiteConfigContext";
+import { useToast } from "../context/ToastContext";
 
 const VEHICLE_TYPES = [
   { id: "bicycle", label: "Bicycle / Bike" },
@@ -80,6 +81,7 @@ const COLORS = ["#f97316", "#3b82f6", "#10b981", "#8b5cf6", "#ec4899", "#eab308"
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { toast, confirm } = useToast();
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const { config, updateConfig, restoreSnapshot, resetToDefaults, refreshConfig } =
@@ -246,30 +248,34 @@ const AdminDashboard = () => {
   };
 
   const handleRollback = async (snapshotId) => {
-    if (!window.confirm("Are you sure you want to restore this configuration snapshot?")) return;
+    const ok = await confirm({
+      title: "Restore Configuration Snapshot?",
+      message: "Are you sure you want to restore this configuration snapshot? Live settings will be reverted.",
+      confirmText: "Restore Snapshot",
+    });
+    if (!ok) return;
     try {
       await restoreSnapshot(snapshotId);
-      setActionFeedback("Snapshot restored successfully!");
+      toast.success("Snapshot restored successfully!");
       fetchTabData("rollback");
-      setTimeout(() => setActionFeedback(""), 3000);
     } catch (err) {
-      alert("Error restoring snapshot: " + err.message);
+      toast.error("Error restoring snapshot: " + err.message);
     }
   };
 
   const handleResetDefaults = async () => {
-    if (
-      !window.confirm(
-        "WARNING: This will reset all site customizations to factory defaults. Continue?"
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Reset to Factory Defaults?",
+      message: "WARNING: This will reset all site customizations, colors, and content to factory defaults. This action cannot be undone.",
+      confirmText: "Reset Defaults",
+      isDestructive: true,
+    });
+    if (!ok) return;
     try {
       await resetToDefaults();
-      setActionFeedback("Site reset to factory defaults!");
-      setTimeout(() => setActionFeedback(""), 3000);
+      toast.success("Site reset to factory defaults!");
     } catch (err) {
-      alert("Error resetting: " + err.message);
+      toast.error("Error resetting: " + err.message);
     }
   };
 
@@ -281,11 +287,10 @@ const AdminDashboard = () => {
         { role: newRole },
         { headers: { "x-auth-token": token } }
       );
-      setActionFeedback(`User role changed to ${newRole}`);
+      toast.success(`User role changed to ${newRole}`);
       fetchTabData("users");
-      setTimeout(() => setActionFeedback(""), 3000);
     } catch (err) {
-      alert("Error updating role: " + (err.response?.data?.msg || err.message));
+      toast.error("Error updating role: " + (err.response?.data?.msg || err.message));
     }
   };
 
@@ -297,11 +302,10 @@ const AdminDashboard = () => {
         {},
         { headers: { "x-auth-token": token } }
       );
-      setActionFeedback(res.data.msg);
+      toast.success(res.data.msg);
       fetchTabData("companies");
-      setTimeout(() => setActionFeedback(""), 3000);
     } catch (err) {
-      alert("Error verifying company: " + (err.response?.data?.msg || err.message));
+      toast.error("Error verifying company: " + (err.response?.data?.msg || err.message));
     }
   };
 
@@ -313,41 +317,50 @@ const AdminDashboard = () => {
         {},
         { headers: { "x-auth-token": token } }
       );
-      setActionFeedback(res.data.msg);
+      toast.success(res.data.msg);
       fetchTabData("fleet");
-      setTimeout(() => setActionFeedback(""), 3000);
     } catch (err) {
-      alert("Error updating vehicle: " + (err.response?.data?.msg || err.message));
+      toast.error("Error updating vehicle: " + (err.response?.data?.msg || err.message));
     }
   };
 
   // Vehicle delete
   const handleDeleteVehicle = async (vehicleId) => {
-    if (!window.confirm("Are you sure you want to permanently delete this vehicle listing?")) return;
+    const ok = await confirm({
+      title: "Delete Vehicle Listing?",
+      message: "Are you sure you want to permanently delete this vehicle listing from the platform?",
+      confirmText: "Delete Listing",
+      isDestructive: true,
+    });
+    if (!ok) return;
     try {
       await axios.delete(`${API_URL}/api/admin/vehicles/${vehicleId}`, {
         headers: { "x-auth-token": token },
       });
-      setActionFeedback("Vehicle deleted successfully");
+      toast.success("Vehicle deleted successfully");
       fetchTabData("fleet");
-      setTimeout(() => setActionFeedback(""), 3000);
     } catch (err) {
-      alert("Error deleting vehicle: " + err.message);
+      toast.error("Error deleting vehicle: " + err.message);
     }
   };
 
   // Review delete
   const handleDeleteReview = async (reviewId) => {
-    if (!window.confirm("Delete this review?")) return;
+    const ok = await confirm({
+      title: "Delete Customer Review?",
+      message: "Are you sure you want to delete this review?",
+      confirmText: "Delete Review",
+      isDestructive: true,
+    });
+    if (!ok) return;
     try {
       await axios.delete(`${API_URL}/api/admin/reviews/${reviewId}`, {
         headers: { "x-auth-token": token },
       });
-      setActionFeedback("Review deleted");
+      toast.success("Review deleted");
       fetchTabData("reviews");
-      setTimeout(() => setActionFeedback(""), 3000);
     } catch (err) {
-      alert("Error deleting review: " + err.message);
+      toast.error("Error deleting review: " + err.message);
     }
   };
 
