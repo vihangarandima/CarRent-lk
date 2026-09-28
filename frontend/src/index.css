@@ -408,16 +408,7 @@ img {
 }
 
 /* ===== LIST VEHICLE PAGE (dark theme preserved) ===== */
-.lv-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0f0a1e 0%, #1a1030 50%, #0f0a1e 100%);
-  padding: 60px 20px;
-}
 
-.lv-container {
-  max-width: 1000px;
-  margin: 0 auto;
-}
 
 .lv-header {
   text-align: center;

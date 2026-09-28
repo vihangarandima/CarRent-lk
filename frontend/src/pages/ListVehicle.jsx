@@ -225,6 +225,13 @@ const ListVehicle = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -666,10 +673,16 @@ const ListVehicle = () => {
         {/* Left Column: Form */}
         <div className="lv-left-col">
           <div className="stepper">
-            {["Details", "Pricing & Dates", "Photos", "Location"].map((label, idx) => (
+            {[
+              { label: "Details", short: "Details" },
+              { label: "Pricing & Dates", short: "Pricing" },
+              { label: "Photos", short: "Photos" },
+              { label: "Location", short: "Location" },
+            ].map((s, idx) => (
               <div key={idx} className={`step ${step === idx + 1 ? "active" : step > idx + 1 ? "completed" : ""}`}>
-                <div className="step-circle">{step > idx + 1 ? <CheckCircle2 size={16} /> : idx + 1}</div>
-                <span>{label}</span>
+                <div className="step-circle">{step > idx + 1 ? <CheckCircle2 size={15} /> : idx + 1}</div>
+                <span className="step-label-full">{s.label}</span>
+                <span className="step-label-short">{s.short}</span>
               </div>
             ))}
           </div>
@@ -802,7 +815,7 @@ const ListVehicle = () => {
                       startDate={startDate}
                       endDate={endDate}
                       onChange={(update) => setDateRange(update)}
-                      monthsShown={2}
+                      monthsShown={isMobile ? 1 : 2}
                       minDate={new Date()}
                       inline
                       className="premium-calendar"
@@ -1545,6 +1558,8 @@ const ListVehicle = () => {
         .step.active .step-circle { background: #f97316; color: white; }
         .step.completed { color: #10b981; }
         .step.completed .step-circle { background: #10b981; color: white; }
+        .step-label-short { display: none; }
+        .step-label-full { display: inline; }
 
         .form-card {
           background: #ffffff;
@@ -1967,15 +1982,229 @@ const ListVehicle = () => {
         @media (max-width: 1024px) {
           .lv-container {
             grid-template-columns: 1fr;
+            max-width: 720px;
           }
           .lv-right-col {
             display: none;
           }
-          .lt-cards {
-            grid-template-columns: 1fr;
+          .vehicle-type-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
           }
-          .lt-card-container {
-            padding: 2rem 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+          .lv-page {
+            padding-bottom: 6.5rem;
+          }
+
+          .lv-hero {
+            padding: 105px 1.25rem 2.25rem;
+          }
+
+          .lv-badge {
+            padding: 0.35rem 0.85rem;
+            font-size: 0.78rem;
+            margin-bottom: 0.75rem;
+          }
+
+          .lv-hero h1 {
+            font-size: 1.75rem;
+            line-height: 1.25;
+            margin: 0 0 0.5rem;
+          }
+
+          .lv-hero p {
+            font-size: 0.92rem;
+            line-height: 1.5;
+            max-width: 480px;
+            margin: 0 auto;
+          }
+
+          .lv-container {
+            margin: -1.25rem auto 0;
+            padding: 0 1rem;
+            width: 100%;
+            box-sizing: border-box;
+          }
+
+          .stepper {
+            padding: 0.75rem 0.85rem;
+            border-radius: 0.85rem;
+            gap: 0.25rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+          }
+
+          .step {
+            gap: 0.35rem;
+            font-size: 0.76rem;
+            font-weight: 700;
+          }
+
+          .step-circle {
+            width: 22px;
+            height: 22px;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+          }
+
+          .step-label-full {
+            display: none;
+          }
+
+          .step-label-short {
+            display: inline;
+            font-size: 0.75rem;
+          }
+
+          .form-card {
+            padding: 1.35rem 1rem;
+            border-radius: 1.25rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+          }
+
+          .form-step h2 {
+            font-size: 1.3rem;
+            margin-bottom: 0.25rem;
+          }
+
+          .step-desc {
+            font-size: 0.86rem;
+            margin-bottom: 1.25rem;
+            line-height: 1.4;
+          }
+
+          .form-row {
+            flex-direction: column;
+            gap: 0.85rem;
+            margin-bottom: 0.85rem;
+          }
+
+          .form-group {
+            margin-bottom: 0.85rem;
+            width: 100%;
+          }
+
+          .form-group.mb-4 {
+            margin-bottom: 1.25rem;
+          }
+
+          label {
+            font-size: 0.78rem;
+            letter-spacing: 0.03em;
+          }
+
+          input, select, textarea {
+            padding: 0.85rem 0.95rem;
+            font-size: 0.95rem;
+            border-radius: 0.75rem;
+          }
+
+          .district-select {
+            padding: 0.85rem 1rem;
+            font-size: 0.95rem;
+          }
+
+          .calendar-wrap {
+            padding: 0.5rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .map-wrapper {
+            height: 280px;
+            border-radius: 0.85rem;
+          }
+
+          .form-actions {
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
+          }
+
+          .form-actions.space-between {
+            flex-direction: column-reverse;
+          }
+
+          .btn-next, .btn-submit {
+            width: 100%;
+            justify-content: center;
+            padding: 0.9rem 1.5rem;
+            font-size: 0.98rem;
+          }
+
+          .btn-back {
+            width: 100%;
+            text-align: center;
+            padding: 0.65rem;
+            font-size: 0.92rem;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .vehicle-type-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.65rem;
+          }
+
+          .type-card {
+            padding: 0.85rem 0.5rem;
+            min-height: 96px;
+            border-radius: 0.85rem;
+          }
+
+          .type-card img {
+            width: 50px;
+            height: 34px;
+          }
+
+          .type-card span {
+            font-size: 0.8rem;
+          }
+
+          .photo-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.65rem;
+            margin-bottom: 1.25rem;
+          }
+
+          .photo-upload-box {
+            height: 120px;
+            border-radius: 0.85rem;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .lv-container {
+            padding: 0 0.5rem;
+          }
+
+          .form-card {
+            padding: 1.15rem 0.75rem;
+          }
+
+          .stepper {
+            padding: 0.65rem 0.5rem;
+          }
+
+          .step-circle {
+            width: 20px;
+            height: 20px;
+            font-size: 0.65rem;
+          }
+
+          .step-label-short {
+            font-size: 0.7rem;
+          }
+
+          .type-card {
+            min-height: 88px;
+            padding: 0.65rem 0.35rem;
+          }
+
+          .type-card span {
+            font-size: 0.75rem;
           }
         }
       `}</style>
