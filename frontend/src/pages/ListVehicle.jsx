@@ -172,14 +172,288 @@ const PIN_SVG = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
 </svg>
 `);
 
-const detectDistrict = (address) => {
-  if (!address) return null;
-  const lowerAddr = address.toLowerCase();
-  for (const district of sriLankaDistricts) {
-    if (lowerAddr.includes(district.toLowerCase())) {
-      return district;
+const townToDistrictMap = {
+  // Colombo District
+  boralesgamuwa: "Colombo",
+  maharagama: "Colombo",
+  dehiwala: "Colombo",
+  "mount lavinia": "Colombo",
+  moratuwa: "Colombo",
+  nugegoda: "Colombo",
+  kottawa: "Colombo",
+  homagama: "Colombo",
+  kaduwela: "Colombo",
+  malabe: "Colombo",
+  battaramulla: "Colombo",
+  rajagiriya: "Colombo",
+  "sri jayawardenepura": "Colombo",
+  kotte: "Colombo",
+  kolonnawa: "Colombo",
+  hanwella: "Colombo",
+  avissawella: "Colombo",
+  padukka: "Colombo",
+  piliyandala: "Colombo",
+  kesbewa: "Colombo",
+  ratmalana: "Colombo",
+  wellawatte: "Colombo",
+  bambalapitiya: "Colombo",
+  kollupitiya: "Colombo",
+  borella: "Colombo",
+  cinnamon: "Colombo",
+  dematagoda: "Colombo",
+  maradana: "Colombo",
+  fort: "Colombo",
+  pettah: "Colombo",
+  kotahena: "Colombo",
+  mattakkuliya: "Colombo",
+  angoda: "Colombo",
+  athurugiriya: "Colombo",
+  pannipitiya: "Colombo",
+  hokandara: "Colombo",
+  thalawathugoda: "Colombo",
+  pelawatte: "Colombo",
+  kohuwala: "Colombo",
+  kalubowila: "Colombo",
+  nawala: "Colombo",
+  kirulapone: "Colombo",
+
+  // Gampaha District
+  negombo: "Gampaha",
+  katunayake: "Gampaha",
+  wattala: "Gampaha",
+  "ja-ela": "Gampaha",
+  jaela: "Gampaha",
+  kandana: "Gampaha",
+  kelaniya: "Gampaha",
+  peliyagoda: "Gampaha",
+  kiribathgoda: "Gampaha",
+  kadawatha: "Gampaha",
+  biyagama: "Gampaha",
+  ragama: "Gampaha",
+  gampaha: "Gampaha",
+  minuwangoda: "Gampaha",
+  mirigama: "Gampaha",
+  veyangoda: "Gampaha",
+  nittambuwa: "Gampaha",
+  seeduwa: "Gampaha",
+  mahabage: "Gampaha",
+  yakkala: "Gampaha",
+  divulapitiya: "Gampaha",
+  delgoda: "Gampaha",
+  ganemulla: "Gampaha",
+
+  // Kalutara District
+  panadura: "Kalutara",
+  wadduwa: "Kalutara",
+  kalutara: "Kalutara",
+  beruwala: "Kalutara",
+  aluthgama: "Kalutara",
+  horana: "Kalutara",
+  bandaragama: "Kalutara",
+  matugama: "Kalutara",
+  ingiriya: "Kalutara",
+  agalawatta: "Kalutara",
+
+  // Kandy District
+  kandy: "Kandy",
+  peradeniya: "Kandy",
+  katugastota: "Kandy",
+  gampola: "Kandy",
+  nawalapitiya: "Kandy",
+  kundasale: "Kandy",
+  digana: "Kandy",
+  akurana: "Kandy",
+  kadugannawa: "Kandy",
+  pilimathalawa: "Kandy",
+
+  // Galle District
+  galle: "Galle",
+  hikkaduwa: "Galle",
+  unawatuna: "Galle",
+  ambalangoda: "Galle",
+  karapitiya: "Galle",
+  bentota: "Galle",
+  elpitiya: "Galle",
+  baddegama: "Galle",
+  koggala: "Galle",
+  ahangama: "Galle",
+
+  // Matara District
+  matara: "Matara",
+  mirissa: "Matara",
+  weligama: "Matara",
+  dikwella: "Matara",
+  akuressa: "Matara",
+  deniyaya: "Matara",
+  kamburupitiya: "Matara",
+  dondra: "Matara",
+
+  // Hambantota District
+  tangalle: "Hambantota",
+  hambantota: "Hambantota",
+  beliatta: "Hambantota",
+  tissamaharama: "Hambantota",
+  ambalantota: "Hambantota",
+  kataragama: "Hambantota",
+
+  // Kurunegala District
+  kurunegala: "Kurunegala",
+  kuliyapitiya: "Kurunegala",
+  narammala: "Kurunegala",
+  wariyapola: "Kurunegala",
+  pannala: "Kurunegala",
+  alawwa: "Kurunegala",
+  polgahawela: "Kurunegala",
+
+  // Puttalam District
+  puttalam: "Puttalam",
+  chilaw: "Puttalam",
+  wennappuwa: "Puttalam",
+  marawila: "Puttalam",
+  dankotuwa: "Puttalam",
+  kalpitiya: "Puttalam",
+
+  // Anuradhapura District
+  anuradhapura: "Anuradhapura",
+  kekirawa: "Anuradhapura",
+  medawachchiya: "Anuradhapura",
+  eppawala: "Anuradhapura",
+  tambuttegama: "Anuradhapura",
+  mihintale: "Anuradhapura",
+  habarana: "Anuradhapura",
+
+  // Polonnaruwa District
+  polonnaruwa: "Polonnaruwa",
+  kaduruwela: "Polonnaruwa",
+  hingurakgoda: "Polonnaruwa",
+
+  // Badulla District
+  badulla: "Badulla",
+  bandarawela: "Badulla",
+  ella: "Badulla",
+  welimada: "Badulla",
+  "hali ela": "Badulla",
+  haputale: "Badulla",
+  mahiyanganaya: "Badulla",
+
+  // Monaragala District
+  monaragala: "Monaragala",
+  wellawaya: "Monaragala",
+  buttala: "Monaragala",
+  bibile: "Monaragala",
+
+  // Ratnapura District
+  ratnapura: "Ratnapura",
+  balangoda: "Ratnapura",
+  embilipitiya: "Ratnapura",
+  pelmadulla: "Ratnapura",
+  kuruwita: "Ratnapura",
+  eheliyagoda: "Ratnapura",
+
+  // Kegalle District
+  kegalle: "Kegalle",
+  mawanella: "Kegalle",
+  warakapola: "Kegalle",
+  ruwanwella: "Kegalle",
+  yatiyantota: "Kegalle",
+  rambukkana: "Kegalle",
+
+  // Nuwara Eliya District
+  "nuwara eliya": "Nuwara Eliya",
+  hatton: "Nuwara Eliya",
+  talawakelle: "Nuwara Eliya",
+  ginigathena: "Nuwara Eliya",
+  maskeliya: "Nuwara Eliya",
+
+  // Matale District
+  matale: "Matale",
+  dambulla: "Matale",
+  sigiriya: "Matale",
+  galewela: "Matale",
+
+  // Jaffna District
+  jaffna: "Jaffna",
+  nallur: "Jaffna",
+  chavakachcheri: "Jaffna",
+  "point pedro": "Jaffna",
+  chunnakam: "Jaffna",
+
+  // Kilinochchi District
+  kilinochchi: "Kilinochchi",
+
+  // Mannar District
+  mannar: "Mannar",
+
+  // Vavuniya District
+  vavuniya: "Vavuniya",
+
+  // Mullaitivu District
+  mullaitivu: "Mullaitivu",
+
+  // Batticaloa District
+  batticaloa: "Batticaloa",
+  kattankudy: "Batticaloa",
+
+  // Ampara District
+  ampara: "Ampara",
+  kalmunai: "Ampara",
+  sammanthurai: "Ampara",
+  "arugam bay": "Ampara",
+
+  // Trincomalee District
+  trincomalee: "Trincomalee",
+  kinniya: "Trincomalee",
+  nilaveli: "Trincomalee",
+};
+
+const detectDistrict = (address, lat, lng, googleResult) => {
+  // 1. Check Google address components if provided
+  if (googleResult && Array.isArray(googleResult.address_components)) {
+    for (const comp of googleResult.address_components) {
+      const text = (comp.long_name || comp.short_name || "").toLowerCase();
+      for (const d of sriLankaDistricts) {
+        if (text.includes(d.toLowerCase())) {
+          return d;
+        }
+      }
     }
   }
+
+  // 2. Check full address text for direct district name match
+  if (address && typeof address === "string") {
+    const lowerAddr = address.toLowerCase();
+    for (const d of sriLankaDistricts) {
+      if (lowerAddr.includes(d.toLowerCase())) {
+        return d;
+      }
+    }
+
+    // 3. Check known town / suburb dictionary
+    for (const [town, d] of Object.entries(townToDistrictMap)) {
+      if (lowerAddr.includes(town)) {
+        return d;
+      }
+    }
+  }
+
+  // 4. Geographic coordinates fallback (closest district center)
+  if (typeof lat === "number" && typeof lng === "number" && !isNaN(lat) && !isNaN(lng)) {
+    let closestDistrict = null;
+    let minDistance = Infinity;
+    for (const [d, coords] of Object.entries(districtCenters)) {
+      const dLat = lat - coords.lat;
+      const dLng = (lng - coords.lng) * Math.cos((lat * Math.PI) / 180);
+      const distSq = dLat * dLat + dLng * dLng;
+      if (distSq < minDistance) {
+        minDistance = distSq;
+        closestDistrict = d;
+      }
+    }
+    if (closestDistrict) {
+      return closestDistrict;
+    }
+  }
+
   return null;
 };
 
@@ -291,6 +565,16 @@ const ListVehicle = () => {
       );
     }
   }, []);
+
+  // Auto-detect & sync district whenever location or coordinates are set but district is not yet selected
+  useEffect(() => {
+    if (!formData.district && (formData.location || (formData.lat && formData.lng))) {
+      const detected = detectDistrict(formData.location, formData.lat, formData.lng);
+      if (detected) {
+        setFormData((prev) => (prev.district ? prev : { ...prev, district: detected }));
+      }
+    }
+  }, [formData.location, formData.lat, formData.lng, formData.district]);
 
   const nextStep = (e) => {
     e.preventDefault();
@@ -473,7 +757,7 @@ const ListVehicle = () => {
       if (data && data.display_name) {
         const parts = data.display_name.split(',');
         const shortAddr = parts.slice(0, 4).join(',').trim();
-        const detectedDistrict = detectDistrict(data.display_name);
+        const detectedDistrict = detectDistrict(data.display_name, lat, lng);
         setFormData((prev) => ({
           ...prev,
           lat,
@@ -501,7 +785,7 @@ const ListVehicle = () => {
       geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status === "OK" && results && results[0]) {
           const address = results[0].formatted_address;
-          const detectedDistrict = detectDistrict(address);
+          const detectedDistrict = detectDistrict(address, lat, lng, results[0]);
           setFormData((prev) => ({
             ...prev,
             lat,
@@ -549,7 +833,7 @@ const ListVehicle = () => {
         setMapZoom(15);
         const parts = data[0].display_name.split(',');
         const shortAddr = parts.slice(0, 4).join(',').trim();
-        const detectedDistrict = detectDistrict(data[0].display_name);
+        const detectedDistrict = detectDistrict(data[0].display_name, lat, lng);
         setFormData((prev) => ({
           ...prev,
           lat,
@@ -578,7 +862,7 @@ const ListVehicle = () => {
           const lat = loc.lat();
           const lng = loc.lng();
           const address = results[0].formatted_address;
-          const detectedDistrict = detectDistrict(address);
+          const detectedDistrict = detectDistrict(address, lat, lng, results[0]);
           setMapCenter({ lat, lng });
           setMapZoom(15);
           setFormData((prev) => ({
