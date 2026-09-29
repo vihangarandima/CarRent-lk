@@ -336,6 +336,56 @@ const ListVehicle = () => {
     setCustomModel("");
   };
 
+  const compressImageForUpload = (file) => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") {
+        return resolve(file);
+      }
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        img.src = e.target.result;
+      };
+      img.onload = () => {
+        const maxDim = 1600;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob && blob.size < file.size) {
+              const compressedFile = new File(
+                [blob],
+                file.name.replace(/\.[^.]+$/, ".jpg"),
+                { type: "image/jpeg" }
+              );
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          "image/jpeg",
+          0.85
+        );
+      };
+      img.onerror = () => resolve(file);
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handlePhotoUpload = async (e, index) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -359,10 +409,12 @@ const ListVehicle = () => {
     });
     setUploadingSlots((prev) => ({ ...prev, [index]: true }));
 
-    const uploadData = new FormData();
-    uploadData.append("image", file);
-
     try {
+      // Compress large phone camera images client-side for lightning-fast uploads
+      const fileToUpload = await compressImageForUpload(file);
+      const uploadData = new FormData();
+      uploadData.append("image", fileToUpload);
+
       const res = await axios.post(`${API_URL}/api/upload`, uploadData);
       const uploadedUrl = res.data?.url;
       if (!uploadedUrl) {
@@ -605,11 +657,24 @@ const ListVehicle = () => {
         return;
       }
 
+      if (Object.values(uploadingSlots).some(Boolean)) {
+        toast.warning("Please wait for all vehicle photos to finish uploading.", "Upload in Progress");
+        return;
+      }
+
+      const validImages = formData.images.filter(img => typeof img === "string" && img.trim() !== "");
+      if (validImages.length === 0) {
+        toast.warning("Please upload at least 1 photo of your vehicle.", "Photos Required");
+        setStep(3);
+        return;
+      }
+
       setIsSubmitting(true);
       const payload = {
         ...formData,
         brand: finalBrand,
         model: finalModel,
+        images: validImages,
         availableFrom: startDate.toISOString(),
         availableTo: endDate.toISOString(),
       };
@@ -895,9 +960,20 @@ const ListVehicle = () => {
                   <button
                     type="submit"
                     className="btn-next"
-                    disabled={!formData.images.some(img => typeof img === "string" && img.trim() !== "")}
+                    disabled={
+                      !formData.images.some(img => typeof img === "string" && img.trim() !== "") ||
+                      Object.values(uploadingSlots).some(Boolean)
+                    }
                   >
-                    Continue <ChevronRight size={18} />
+                    {Object.values(uploadingSlots).some(Boolean) ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" /> Uploading Photos...
+                      </>
+                    ) : (
+                      <>
+                        Continue <ChevronRight size={18} />
+                      </>
+                    )}
                   </button>
                 </div>
               </form>

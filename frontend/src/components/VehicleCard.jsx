@@ -30,7 +30,7 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         <img
           src={coverImage}
           alt={`${vehicle.brand} ${vehicle.model}`}
-          onError={(e) => handleImageError(e, coverImage)}
+          onError={(e) => handleImageError(e, formatVehicleImageUrl(null, vehicle?.vehicleType))}
         />
         <div className="v-card-badges">
           <span className="v-year-badge">{year}</span>
