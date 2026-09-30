@@ -41,6 +41,7 @@ import {
 import { formatLKR } from "../data/mock";
 
 const navItems = [
+
   { label: "Overview", icon: LayoutDashboard },
   { label: "Fleet", icon: CarFront },
   { label: "Bookings", icon: CalendarCheck },
