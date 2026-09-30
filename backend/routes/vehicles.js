@@ -151,14 +151,26 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// @route   PUT api/vehicles/:id
+// @route   PUT /api/vehicles/:id and PATCH /api/vehicles/:id
 // @desc    Update vehicle details and availability (owner or company)
-router.put("/:id", auth, async (req, res) => {
+const handleVehicleUpdate = async (req, res) => {
   try {
     const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
-    if (vehicle.owner.toString() !== req.user.id)
+
+    let isAuthorized = vehicle.owner && vehicle.owner.toString() === req.user.id;
+    if (!isAuthorized && vehicle.company) {
+      const company = await Company.findOne({ user: req.user.id });
+      if (company && vehicle.company.toString() === company._id.toString()) {
+        isAuthorized = true;
+      }
+    }
+    const user = await User.findById(req.user.id);
+    if (user && user.role === "admin") isAuthorized = true;
+
+    if (!isAuthorized) {
       return res.status(401).json({ msg: "Not authorized to update this vehicle" });
+    }
 
     const {
       brand,
@@ -179,9 +191,9 @@ router.put("/:id", auth, async (req, res) => {
 
     if (brand !== undefined) vehicle.brand = brand;
     if (model !== undefined) vehicle.model = model;
-    if (year !== undefined) vehicle.year = Number(year);
-    if (pricePerDay !== undefined) vehicle.pricePerDay = Number(pricePerDay);
-    if (pricePerKmAfter100km !== undefined) vehicle.pricePerKmAfter100km = Number(pricePerKmAfter100km);
+    if (year !== undefined && !isNaN(Number(year))) vehicle.year = Number(year);
+    if (pricePerDay !== undefined && !isNaN(Number(pricePerDay))) vehicle.pricePerDay = Number(pricePerDay);
+    if (pricePerKmAfter100km !== undefined && !isNaN(Number(pricePerKmAfter100km))) vehicle.pricePerKmAfter100km = Number(pricePerKmAfter100km);
     if (vehicleType !== undefined) vehicle.vehicleType = vehicleType;
     if (fuelType !== undefined) vehicle.fuelType = fuelType;
     if (transmission !== undefined) vehicle.transmission = transmission;
@@ -198,7 +210,11 @@ router.put("/:id", auth, async (req, res) => {
     console.error("Vehicle update error:", err);
     res.status(500).json({ msg: err.message || "Server Error" });
   }
-});
+};
+
+router.put("/:id", auth, handleVehicleUpdate);
+router.patch("/:id", auth, handleVehicleUpdate);
+router.patch("/:id/availability", auth, handleVehicleUpdate);
 
 // @route   DELETE api/vehicles/:id
 // @desc    Delete a vehicle (owner/company must own it)

@@ -220,12 +220,18 @@ const Profile = () => {
   const handleSaveVehicleProfile = async (e) => {
     if (e) e.preventDefault();
     if (!selectedVehicle) return;
+    const vehicleId = selectedVehicle._id || selectedVehicle.id;
+    if (!vehicleId) {
+      toast.error("Vehicle ID is missing");
+      return;
+    }
     setSavingVehicle(true);
     try {
-      const res = await axios.put(`${API_URL}/api/vehicles/${selectedVehicle._id}`, vehicleEditData, {
-        headers: { "x-auth-token": token },
+      const currentToken = localStorage.getItem("token") || token;
+      const res = await axios.put(`${API_URL}/api/vehicles/${vehicleId}`, vehicleEditData, {
+        headers: { "x-auth-token": currentToken },
       });
-      setMyVehicles(myVehicles.map((v) => (v._id === selectedVehicle._id ? res.data : v)));
+      setMyVehicles(myVehicles.map((v) => ((v._id || v.id) === vehicleId ? res.data : v)));
       setSelectedVehicle(null);
       toast.success(`${res.data.brand} ${res.data.model} updated successfully!`);
     } catch (err) {
