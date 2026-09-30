@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
         // Attach vehicle count and rating per company
         const result = await Promise.all(
             companies.map(async (c) => {
-                const vehicles = await Vehicle.find({ company: c._id }).select('_id');
+                const vehicles = await Vehicle.find({ company: c._id, status: { $nin: ["hidden", "flagged"] } }).select('_id');
                 const vehicleIds = vehicles.map(v => v._id);
                 const vehicleCount = vehicleIds.length;
                 
@@ -123,7 +123,7 @@ router.get('/:id', async (req, res) => {
         const company = await Company.findById(req.params.id).populate('user', 'name email');
         if (!company) return res.status(404).json({ msg: 'Company not found' });
 
-        const vehicles = await Vehicle.find({ company: company._id });
+        const vehicles = await Vehicle.find({ company: company._id, status: { $nin: ["hidden", "flagged"] } });
         const vehicleIds = vehicles.map(v => v._id);
         const reviews = await Review.find({ vehicle: { $in: vehicleIds } });
         const reviewCount = reviews.length;

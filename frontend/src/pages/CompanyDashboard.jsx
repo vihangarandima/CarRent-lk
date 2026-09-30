@@ -38,10 +38,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatLKR, revenueData } from "../data/mock";
+import { formatLKR } from "../data/mock";
 
 const navItems = [
-  { label: "Overview", icon: LayoutDashboard, active: true },
+  { label: "Overview", icon: LayoutDashboard },
   { label: "Fleet", icon: CarFront },
   { label: "Bookings", icon: CalendarCheck },
   { label: "Payments", icon: CreditCard },
@@ -57,11 +57,17 @@ export default function CompanyDashboard() {
 
   const [company, setCompany] = useState(null);
   const [vehicles, setVehicles] = useState([]);
+  const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [activeTab, setActiveTab] = useState("Overview");
+
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [vehicleEditData, setVehicleEditData] = useState({});
+  const [savingVehicle, setSavingVehicle] = useState(false);
 
   const [newCompanyName, setNewCompanyName] = useState(user?.name ? `${user.name} Rentals` : "");
   const [newPhone, setNewPhone] = useState("");
@@ -74,13 +80,16 @@ export default function CompanyDashboard() {
     }
     const fetchData = async () => {
       try {
-        const [companyRes, vehiclesRes] = await Promise.all([
+        const [companyRes, vehiclesRes, bidsRes] = await Promise.all([
           axios.get(`${API_URL}/api/companies/me`, {
             headers: { "x-auth-token": token },
           }),
           axios.get(`${API_URL}/api/vehicles/my`, {
             headers: { "x-auth-token": token },
           }),
+          axios.get(`${API_URL}/api/bids/my`, {
+            headers: { "x-auth-token": token },
+          }).catch(() => ({ data: [] })),
         ]);
         if (companyRes.data) {
           setCompany(companyRes.data);
@@ -92,6 +101,7 @@ export default function CompanyDashboard() {
           }
         }
         setVehicles(vehiclesRes.data || []);
+        setBids(bidsRes.data || []);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
       } finally {
@@ -158,13 +168,89 @@ export default function CompanyDashboard() {
     }
   };
 
+  const handleOpenVehicleProfile = (v) => {
+    setSelectedVehicle(v);
+    setVehicleEditData({
+      brand: v.brand || "",
+      model: v.model || "",
+      year: v.year || new Date().getFullYear(),
+      pricePerDay: v.pricePerDay || "",
+      pricePerKmAfter100km: v.pricePerKmAfter100km || 0,
+      vehicleType: v.vehicleType || "car",
+      fuelType: v.fuelType || "Petrol",
+      transmission: v.transmission || "Auto",
+      location: v.location || "",
+      description: v.description || "",
+      status: v.status || "active",
+      availableFrom: v.availableFrom ? new Date(v.availableFrom).toISOString().split("T")[0] : "",
+      availableTo: v.availableTo ? new Date(v.availableTo).toISOString().split("T")[0] : "",
+    });
+  };
+
+  const handleSaveVehicleProfile = async (e) => {
+    if (e) e.preventDefault();
+    if (!selectedVehicle) return;
+    setSavingVehicle(true);
+    try {
+      const res = await axios.put(`${API_URL}/api/vehicles/${selectedVehicle._id}`, vehicleEditData, {
+        headers: { "x-auth-token": token },
+      });
+      setVehicles(vehicles.map((v) => (v._id === selectedVehicle._id ? res.data : v)));
+      setSelectedVehicle(null);
+      toast.success(`${res.data.brand} ${res.data.model} updated successfully!`);
+    } catch (err) {
+      console.error("Vehicle update error:", err);
+      toast.error("Failed to update vehicle: " + (err.response?.data?.msg || err.message));
+    } finally {
+      setSavingVehicle(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/");
   };
 
-  const totalRevenue = revenueData.reduce((s, r) => s + r.revenue, 0);
+  // Calculations from real data
+  const totalVehicles = vehicles.length;
+  const activeVehicles = vehicles.filter((v) => (v.status || "active") === "active").length;
+  const utilisationRate = totalVehicles > 0 ? Math.round((activeVehicles / totalVehicles) * 100) : 0;
+
+  const clearedRevenue = bids
+    .filter((b) => b.status === "accepted")
+    .reduce((sum, b) => sum + (Number(b.offerPrice) || 0), 0);
+
+  const pendingRevenue = bids
+    .filter((b) => b.status === "pending")
+    .reduce((sum, b) => sum + (Number(b.offerPrice) || 0), 0);
+
+  const refundedRevenue = bids
+    .filter((b) => b.status === "rejected")
+    .reduce((sum, b) => sum + (Number(b.offerPrice) || 0), 0);
+
+  const activeBookings = bids.filter((b) => b.status === "accepted" || b.status === "pending").length;
+  const todayBookings = bids.filter((b) => new Date(b.createdAt).toDateString() === new Date().toDateString()).length;
+  const dailyFleetRate = vehicles.reduce((sum, v) => sum + (Number(v.pricePerDay) || 0), 0);
+
+  // Generate real monthly chart data from real bids (past 7 months)
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const now = new Date();
+  const revenueChartData = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const mIdx = d.getMonth();
+    const yr = d.getFullYear();
+    const mLabel = monthNames[mIdx];
+    const rev = bids
+      .filter((b) => {
+        if (b.status !== "accepted") return false;
+        const bd = new Date(b.createdAt);
+        return bd.getFullYear() === yr && bd.getMonth() === mIdx;
+      })
+      .reduce((sum, b) => sum + (Number(b.offerPrice) || 0), 0);
+    revenueChartData.push({ month: mLabel, revenue: rev });
+  }
 
   /* ── Loading state ── */
   if (loading)
@@ -191,46 +277,46 @@ export default function CompanyDashboard() {
         <form onSubmit={handleQuickCreate} style={{ width: "100%", maxWidth: 460, background: "#fff", padding: "28px", borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 10px 25px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="cd-form-group">
             <label style={{ fontWeight: 600, fontSize: "0.85rem", color: "#334155", marginBottom: 6 }}>Company Name</label>
-            <input 
-              type="text" 
-              placeholder="e.g. Colombo Premier Fleet" 
+            <input
+              type="text"
+              placeholder="e.g. Colombo Premier Fleet"
               required
-              value={newCompanyName} 
-              onChange={(e) => setNewCompanyName(e.target.value)} 
+              value={newCompanyName}
+              onChange={(e) => setNewCompanyName(e.target.value)}
               style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CBD5E1", fontSize: "0.9rem", boxSizing: "border-box" }}
             />
           </div>
           <div className="cd-form-group">
             <label style={{ fontWeight: 600, fontSize: "0.85rem", color: "#334155", marginBottom: 6 }}>Phone Number</label>
-            <input 
-              type="text" 
-              placeholder="e.g. +94 77 123 4567" 
-              value={newPhone} 
-              onChange={(e) => setNewPhone(e.target.value)} 
+            <input
+              type="text"
+              placeholder="e.g. +94 77 123 4567"
+              value={newPhone}
+              onChange={(e) => setNewPhone(e.target.value)}
               style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CBD5E1", fontSize: "0.9rem", boxSizing: "border-box" }}
             />
           </div>
           <div className="cd-form-group">
             <label style={{ fontWeight: 600, fontSize: "0.85rem", color: "#334155", marginBottom: 6 }}>Address / City</label>
-            <input 
-              type="text" 
-              placeholder="e.g. Colombo 03, Sri Lanka" 
-              value={newAddress} 
-              onChange={(e) => setNewAddress(e.target.value)} 
+            <input
+              type="text"
+              placeholder="e.g. Colombo 03, Sri Lanka"
+              value={newAddress}
+              onChange={(e) => setNewAddress(e.target.value)}
               style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CBD5E1", fontSize: "0.9rem", boxSizing: "border-box" }}
             />
           </div>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={saving}
-            className="cd-add-vehicle-btn" 
+            className="cd-add-vehicle-btn"
             style={{ width: "100%", justifyContent: "center", padding: "12px", marginTop: 8, fontSize: "0.95rem" }}
           >
             {saving ? "Creating Profile..." : "Create & Launch Dashboard →"}
           </button>
-          <button 
-            type="button" 
-            onClick={handleLogout} 
+          <button
+            type="button"
+            onClick={handleLogout}
             style={{ background: "transparent", border: "none", color: "#EF4444", fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", marginTop: 4, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
           >
             <LogOut size={14} /> Log out of account
@@ -254,9 +340,10 @@ export default function CompanyDashboard() {
             </Link>
 
             <nav className="cd-nav">
-              {navItems.map(({ label, icon: Icon, active }) => (
+              {navItems.map(({ label, icon: Icon }) => (
                 <button key={label} type="button"
-                  className={`cd-nav-item ${active ? "cd-nav-active" : ""}`}>
+                  className={`cd-nav-item ${activeTab === label ? "cd-nav-active" : ""}`}
+                  onClick={() => setActiveTab(label)}>
                   <Icon size={16} />
                   {label}
                 </button>
@@ -297,8 +384,8 @@ export default function CompanyDashboard() {
                 </h1>
                 <p className="cd-subtitle">Here's how your fleet performed this month.</p>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={handleLogout}
                 className="cd-btn-outline"
                 style={{ color: "#EF4444", borderColor: "rgba(239,68,68,0.3)", display: "inline-flex", alignItems: "center", gap: 6 }}
@@ -308,227 +395,497 @@ export default function CompanyDashboard() {
               </button>
             </header>
 
-            {/* ── Stat cards ── */}
-            <div className="cd-stats-grid">
-              <StatCard icon={Wallet} label="Revenue (7 months)" value={formatLKR(totalRevenue)} delta="+18.2%" deltaColor="#10b981" />
-              <StatCard icon={CalendarCheck} label="Active bookings" value="12" delta="+3 today" deltaColor="#10b981" />
-              <StatCard icon={CarFront} label="Fleet size" value={`${vehicles.length} vehicles`} delta={`${vehicles.length > 0 ? vehicles.length : 0} listed`} deltaColor="#71717a" />
-              <StatCard icon={TrendingUp} label="Utilisation" value="78%" delta="+6.4%" deltaColor="#10b981" />
-            </div>
-
-            {/* ── Chart + Quick actions row ── */}
-            <div className="cd-mid-row">
-              <section className="cd-card cd-chart-card">
-                <div className="cd-card-head">
-                  <h2 className="cd-card-title">Revenue (LKR)</h2>
-                  <span className="cd-monthly-badge"><BarChart3 size={14} /> Monthly</span>
+            {/* ── OVERVIEW TAB ── */}
+            {activeTab === "Overview" && (
+              <>
+                {/* ── Stat cards ── */}
+                <div className="cd-stats-grid">
+                  <StatCard icon={Wallet} label="Revenue (7 months)" value={formatLKR(clearedRevenue)} delta={dailyFleetRate > 0 ? `${formatLKR(dailyFleetRate)}/day fleet rate` : "Rs. 0"} deltaColor={clearedRevenue > 0 ? "#10b981" : "#71717a"} />
+                  <StatCard icon={CalendarCheck} label="Active bookings" value={activeBookings} delta={todayBookings > 0 ? `+${todayBookings} today` : `${bids.length} total inquiries`} deltaColor={activeBookings > 0 ? "#10b981" : "#71717a"} />
+                  <StatCard icon={CarFront} label="Fleet size" value={`${totalVehicles} vehicle${totalVehicles === 1 ? "" : "s"}`} delta={`${activeVehicles} active listing${activeVehicles === 1 ? "" : "s"}`} deltaColor="#71717a" />
+                  <StatCard icon={TrendingUp} label="Utilisation" value={`${utilisationRate}%`} delta={totalVehicles > 0 ? `${activeVehicles} of ${totalVehicles} active` : "0 listed"} deltaColor={utilisationRate > 0 ? "#10b981" : "#71717a"} />
                 </div>
-                <div className="cd-chart-wrap">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={revenueData}>
-                      <defs>
-                        <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#0f766e" stopOpacity={0.55} />
-                          <stop offset="100%" stopColor="#0f766e" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" />
-                      <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}k`} />
-                      <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid #e5e7eb", background: "#fff", color: "#111827" }} formatter={(v) => formatLKR(v)} />
-                      <Area type="monotone" dataKey="revenue" stroke="#0f766e" strokeWidth={3} fill="url(#rev)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </section>
 
-              <section className="cd-card cd-actions-card">
-                <h2 className="cd-card-title">Quick actions</h2>
-                <div className="cd-actions-grid">
-                  {[
-                    { label: "Add vehicle", icon: Plus, to: "/list-my-car" },
-                    { label: "New booking", icon: CalendarCheck },
-                    { label: "Withdraw", icon: Wallet },
-                    { label: "Reports", icon: BarChart3 },
-                  ].map(({ label, icon: Icon, to }) => (
-                    to ? (
-                      <Link key={label} to={to} className="cd-action-btn">
-                        <Icon size={20} className="cd-action-icon" />
-                        <span className="cd-action-label">{label}</span>
-                      </Link>
-                    ) : (
-                      <button key={label} type="button" className="cd-action-btn">
-                        <Icon size={20} className="cd-action-icon" />
-                        <span className="cd-action-label">{label}</span>
+                {/* ── Chart + Quick actions row ── */}
+                <div className="cd-mid-row">
+                  <section className="cd-card cd-chart-card">
+                    <div className="cd-card-head">
+                      <h2 className="cd-card-title">Revenue (LKR)</h2>
+                      <span className="cd-monthly-badge"><BarChart3 size={14} /> Monthly</span>
+                    </div>
+                    <div className="cd-chart-wrap">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={revenueChartData}>
+                          <defs>
+                            <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#0f766e" stopOpacity={0.55} />
+                              <stop offset="100%" stopColor="#0f766e" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" />
+                          <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                          <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}k`} />
+                          <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid #e5e7eb", background: "#fff", color: "#111827" }} formatter={(v) => formatLKR(v)} />
+                          <Area type="monotone" dataKey="revenue" stroke="#0f766e" strokeWidth={3} fill="url(#rev)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </section>
+
+                  <section className="cd-card cd-actions-card">
+                    <h2 className="cd-card-title">Quick actions</h2>
+                    <div className="cd-actions-grid">
+                      {[
+                        { label: "Add vehicle", icon: Plus, to: "/list-my-car" },
+                        { label: "New booking", icon: CalendarCheck },
+                        { label: "Withdraw", icon: Wallet },
+                        { label: "Reports", icon: BarChart3 },
+                      ].map(({ label, icon: Icon, to }) => (
+                        to ? (
+                          <Link key={label} to={to} className="cd-action-btn">
+                            <Icon size={20} className="cd-action-icon" />
+                            <span className="cd-action-label">{label}</span>
+                          </Link>
+                        ) : (
+                          <button key={label} type="button" className="cd-action-btn">
+                            <Icon size={20} className="cd-action-icon" />
+                            <span className="cd-action-label">{label}</span>
+                          </button>
+                        )
+                      ))}
+                    </div>
+
+                    <h3 className="cd-payment-title">Payment status</h3>
+                    <ul className="cd-payment-list">
+                      {[
+                        { label: "Cleared", value: clearedRevenue, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+                        { label: "Pending payout", value: pendingRevenue, color: "#f97316", bg: "rgba(249,115,22,0.1)" },
+                        { label: "Refunded", value: refundedRevenue, color: "#ef4444", bg: "rgba(239,68,68,0.1)" },
+                      ].map((p) => (
+                        <li key={p.label} className="cd-payment-row" style={{ background: p.bg }}>
+                          <span className="cd-payment-label">{p.label}</span>
+                          <span className="cd-payment-value" style={{ color: p.color }}>{formatLKR(p.value)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                </div>
+
+                {/* ── Company Profile Card ── */}
+                <section className="cd-card cd-profile-card">
+                  <div className="cd-card-head">
+                    <div>
+                      <h2 className="cd-card-title">Company Information</h2>
+                      <p className="cd-card-desc">Manage your public contact details.</p>
+                    </div>
+                    {!editMode ? (
+                      <button className="cd-btn-outline" onClick={() => setEditMode(true)}>
+                        <Edit3 size={12} /> Edit
                       </button>
-                    )
-                  ))}
-                </div>
-
-                <h3 className="cd-payment-title">Payment status</h3>
-                <ul className="cd-payment-list">
-                  {[
-                    { label: "Cleared", value: 412000, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-                    { label: "Pending payout", value: 96500, color: "#f97316", bg: "rgba(249,115,22,0.1)" },
-                    { label: "Refunded", value: 34500, color: "#ef4444", bg: "rgba(239,68,68,0.1)" },
-                  ].map((p) => (
-                    <li key={p.label} className="cd-payment-row" style={{ background: p.bg }}>
-                      <span className="cd-payment-label">{p.label}</span>
-                      <span className="cd-payment-value" style={{ color: p.color }}>{formatLKR(p.value)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            </div>
-
-            {/* ── Company Profile Card ── */}
-            <section className="cd-card cd-profile-card">
-              <div className="cd-card-head">
-                <div>
-                  <h2 className="cd-card-title">Company Information</h2>
-                  <p className="cd-card-desc">Manage your public contact details.</p>
-                </div>
-                {!editMode ? (
-                  <button className="cd-btn-outline" onClick={() => setEditMode(true)}>
-                    <Edit3 size={12} /> Edit
-                  </button>
-                ) : (
-                  <div className="cd-edit-actions">
-                    <button className="cd-btn-text" onClick={() => { setEditMode(false); setEditData(company); }}>Cancel</button>
-                    <button className="cd-btn-primary-sm" onClick={handleSave} disabled={saving}>
-                      {saving ? "Saving..." : "Save"}
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="cd-card-body">
-                {editMode ? (
-                  <div className="cd-edit-form">
-                    <div className="cd-form-row">
-                      <div className="cd-form-group">
-                        <label>Company Name</label>
-                        <input type="text" value={editData.companyName || ""} onChange={(e) => setEditData({ ...editData, companyName: e.target.value })} />
-                      </div>
-                      <div className="cd-form-group">
-                        <label>Phone Number</label>
-                        <input type="text" value={editData.phone || ""} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
-                      </div>
-                    </div>
-                    <div className="cd-form-row">
-                      <div className="cd-form-group">
-                        <label>Contact Email</label>
-                        <input type="email" value={editData.contactEmail || ""} onChange={(e) => setEditData({ ...editData, contactEmail: e.target.value })} />
-                      </div>
-                      <div className="cd-form-group">
-                        <label>Address</label>
-                        <input type="text" value={editData.address || ""} onChange={(e) => setEditData({ ...editData, address: e.target.value })} />
-                      </div>
-                    </div>
-                    <div className="cd-form-group">
-                      <label>Logo URL</label>
-                      <input type="text" value={editData.logo || ""} onChange={(e) => setEditData({ ...editData, logo: e.target.value })} />
-                    </div>
-                    <div className="cd-form-group">
-                      <label>Description</label>
-                      <textarea rows={3} value={editData.description || ""} onChange={(e) => setEditData({ ...editData, description: e.target.value })} placeholder="Describe your services..." />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="cd-info-grid">
-                    <div className="cd-info-item">
-                      <div className="cd-info-icon"><MapPin size={16} /></div>
-                      <div><span className="cd-info-label">Address</span><span className="cd-info-value">{company.address || "Not specified"}</span></div>
-                    </div>
-                    <div className="cd-info-item">
-                      <div className="cd-info-icon"><Phone size={16} /></div>
-                      <div><span className="cd-info-label">Phone</span><span className="cd-info-value">{company.phone || "Not specified"}</span></div>
-                    </div>
-                    <div className="cd-info-item">
-                      <div className="cd-info-icon"><Mail size={16} /></div>
-                      <div><span className="cd-info-label">Email</span><span className="cd-info-value">{company.contactEmail || "Not specified"}</span></div>
-                    </div>
-                    {company.description && (
-                      <div className="cd-info-item cd-info-full">
-                        <div><span className="cd-info-label">About</span><p className="cd-info-desc">{company.description}</p></div>
+                    ) : (
+                      <div className="cd-edit-actions">
+                        <button className="cd-btn-text" onClick={() => { setEditMode(false); setEditData(company); }}>Cancel</button>
+                        <button className="cd-btn-primary-sm" onClick={handleSave} disabled={saving}>
+                          {saving ? "Saving..." : "Save"}
+                        </button>
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            </section>
+                  <div className="cd-card-body">
+                    {editMode ? (
+                      <div className="cd-edit-form">
+                        <div className="cd-form-row">
+                          <div className="cd-form-group">
+                            <label>Company Name</label>
+                            <input type="text" value={editData.companyName || ""} onChange={(e) => setEditData({ ...editData, companyName: e.target.value })} />
+                          </div>
+                          <div className="cd-form-group">
+                            <label>Phone Number</label>
+                            <input type="text" value={editData.phone || ""} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
+                          </div>
+                        </div>
+                        <div className="cd-form-row">
+                          <div className="cd-form-group">
+                            <label>Contact Email</label>
+                            <input type="email" value={editData.contactEmail || ""} onChange={(e) => setEditData({ ...editData, contactEmail: e.target.value })} />
+                          </div>
+                          <div className="cd-form-group">
+                            <label>Address</label>
+                            <input type="text" value={editData.address || ""} onChange={(e) => setEditData({ ...editData, address: e.target.value })} />
+                          </div>
+                        </div>
+                        <div className="cd-form-group">
+                          <label>Logo URL</label>
+                          <input type="text" value={editData.logo || ""} onChange={(e) => setEditData({ ...editData, logo: e.target.value })} />
+                        </div>
+                        <div className="cd-form-group">
+                          <label>Description</label>
+                          <textarea rows={3} value={editData.description || ""} onChange={(e) => setEditData({ ...editData, description: e.target.value })} placeholder="Describe your services..." />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="cd-info-grid">
+                        <div className="cd-info-item">
+                          <div className="cd-info-icon"><MapPin size={16} /></div>
+                          <div><span className="cd-info-label">Address</span><span className="cd-info-value">{company.address || "Not specified"}</span></div>
+                        </div>
+                        <div className="cd-info-item">
+                          <div className="cd-info-icon"><Phone size={16} /></div>
+                          <div><span className="cd-info-label">Phone</span><span className="cd-info-value">{company.phone || "Not specified"}</span></div>
+                        </div>
+                        <div className="cd-info-item">
+                          <div className="cd-info-icon"><Mail size={16} /></div>
+                          <div><span className="cd-info-label">Email</span><span className="cd-info-value">{company.contactEmail || "Not specified"}</span></div>
+                        </div>
+                        {company.description && (
+                          <div className="cd-info-item cd-info-full">
+                            <div><span className="cd-info-label">About</span><p className="cd-info-desc">{company.description}</p></div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </>
+            )}
 
-            {/* ── Vehicle Fleet Table ── */}
-            <section className="cd-card cd-fleet-card">
-              <div className="cd-card-head">
-                <div>
-                  <h2 className="cd-card-title">Vehicle Fleet</h2>
-                  <p className="cd-card-desc">You have {vehicles.length} vehicles active.</p>
+            {/* ── FLEET TAB ── */}
+            {activeTab === "Fleet" && (
+              <section className="cd-card cd-fleet-card" style={{ marginTop: 24 }}>
+                <div className="cd-card-head">
+                  <div>
+                    <h2 className="cd-card-title">Vehicle Fleet</h2>
+                    <p className="cd-card-desc">You have {vehicles.length} vehicles active.</p>
+                  </div>
+                  <Link to="/list-my-car" className="cd-btn-primary-sm"><Plus size={12} /> Add</Link>
                 </div>
-                <Link to="/list-my-car" className="cd-btn-primary-sm"><Plus size={12} /> Add</Link>
-              </div>
-              <div className="cd-card-body" style={{ padding: 0 }}>
-                {vehicles.length === 0 ? (
-                  <div className="cd-empty-state">
-                    <Car size={24} style={{ color: "#f97316" }} />
-                    <h3>Your fleet is empty</h3>
-                    <p>Start building your presence.</p>
-                    <Link to="/list-my-car" className="cd-add-vehicle-btn" style={{ marginTop: 8 }}>Add Vehicle</Link>
-                  </div>
-                ) : (
-                  <div className="cd-table-wrap">
-                    <table className="cd-table">
-                      <thead>
-                        <tr>
-                          <th>Vehicle Details</th>
-                          <th>Location</th>
-                          <th>Rate / Day</th>
-                          <th style={{ textAlign: "right" }}>Manage</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {vehicles.map((v) => (
-                          <tr key={v._id}>
-                            <td>
-                              <div className="cd-cell-vehicle">
-                                {v.images && v.images.length > 0 ? (
-                                  <img
-                                    src={formatVehicleImageUrl(v.images, v.vehicleType)}
-                                    alt={v.brand}
-                                    className="cd-vehicle-thumb"
-                                    onError={(e) => handleImageError(e, formatVehicleImageUrl(null, v.vehicleType))}
-                                  />
-                                ) : (
-                                  <div className="cd-vehicle-thumb-placeholder"><Car size={14} /></div>
-                                )}
-                                <div>
-                                  <span className="cd-vehicle-name">{v.brand} {v.model}</span>
-                                  <span className="cd-vehicle-year">{v.year}</span>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="cd-cell-muted">
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                <MapPin size={12} /> {v.location}
-                              </span>
-                            </td>
-                            <td className="cd-cell-price">LKR {v.pricePerDay?.toLocaleString()}</td>
-                            <td>
-                              <div className="cd-cell-actions">
-                                <Link to={`/vehicle/${v._id}`} className="cd-action-icon-btn cd-view-btn" title="View"><ChevronRight size={14} /></Link>
-                                <button className="cd-action-icon-btn cd-delete-btn" onClick={() => setDeleteConfirm(v._id)} title="Delete"><Trash2 size={14} /></button>
-                              </div>
-                            </td>
+                <div className="cd-card-body" style={{ padding: 0 }}>
+                  {vehicles.length === 0 ? (
+                    <div className="cd-empty-state">
+                      <Car size={24} style={{ color: "#f97316" }} />
+                      <h3>Your fleet is empty</h3>
+                      <p>Start building your presence.</p>
+                      <Link to="/list-my-car" className="cd-add-vehicle-btn" style={{ marginTop: 8 }}>Add Vehicle</Link>
+                    </div>
+                  ) : (
+                    <div className="cd-table-wrap">
+                      <table className="cd-table">
+                        <thead>
+                          <tr>
+                            <th>Vehicle Details</th>
+                            <th>Location</th>
+                            <th>Rate / Day</th>
+                            <th style={{ textAlign: "right" }}>Manage</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </section>
+                        </thead>
+                        <tbody>
+                          {vehicles.map((v) => (
+                            <tr key={v._id}>
+                              <td style={{ cursor: "pointer" }} onClick={() => handleOpenVehicleProfile(v)}>
+                                <div className="cd-cell-vehicle">
+                                  {v.images && v.images.length > 0 ? (
+                                    <img
+                                      src={formatVehicleImageUrl(v.images, v.vehicleType)}
+                                      alt={v.brand}
+                                      className="cd-vehicle-thumb"
+                                      onError={(e) => handleImageError(e, formatVehicleImageUrl(null, v.vehicleType))}
+                                    />
+                                  ) : (
+                                    <div className="cd-vehicle-thumb-placeholder"><Car size={14} /></div>
+                                  )}
+                                  <div>
+                                    <span className="cd-vehicle-name">{v.brand} {v.model}</span>
+                                    <span className="cd-vehicle-year">
+                                      {v.year} · <span style={{ color: (v.status || "active") === "active" ? "#10b981" : "#f97316", fontWeight: 600 }}>{(v.status || "active") === "active" ? "Active" : "Hidden"}</span>
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="cd-cell-muted">
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                  <MapPin size={12} /> {v.location}
+                                </span>
+                              </td>
+                              <td className="cd-cell-price">LKR {v.pricePerDay?.toLocaleString()}</td>
+                              <td>
+                                <div className="cd-cell-actions">
+                                  <button
+                                    type="button"
+                                    className="cd-action-icon-btn cd-view-btn"
+                                    onClick={() => handleOpenVehicleProfile(v)}
+                                    title="Edit Details & Availability"
+                                  >
+                                    <ChevronRight size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="cd-action-icon-btn cd-delete-btn"
+                                    onClick={() => setDeleteConfirm(v._id)}
+                                    title="Delete"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* ── OTHER TABS (Coming Soon) ── */}
+            {!["Overview", "Fleet"].includes(activeTab) && (
+              <section className="cd-card" style={{ marginTop: 24 }}>
+                <div className="cd-empty-state">
+                  <Settings size={32} style={{ color: "#f97316" }} />
+                  <h3>{activeTab}</h3>
+                  <p>This section is coming soon.</p>
+                </div>
+              </section>
+            )}
           </main>
         </div>
       </div>
+
+      {/* ── Vehicle Profile / Availability Modal ── */}
+      {selectedVehicle && (
+        <div className="cd-modal-overlay" onClick={() => setSelectedVehicle(null)}>
+          <div className="cd-vehicle-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cd-vehicle-modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {selectedVehicle.images && selectedVehicle.images.length > 0 ? (
+                  <img
+                    src={formatVehicleImageUrl(selectedVehicle.images, selectedVehicle.vehicleType)}
+                    alt={selectedVehicle.brand}
+                    className="cd-vehicle-thumb"
+                    style={{ width: 48, height: 38, borderRadius: 8, objectFit: "cover" }}
+                    onError={(e) => handleImageError(e, formatVehicleImageUrl(null, selectedVehicle.vehicleType))}
+                  />
+                ) : (
+                  <div className="cd-vehicle-thumb-placeholder" style={{ width: 48, height: 38, borderRadius: 8 }}>
+                    <Car size={18} />
+                  </div>
+                )}
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "#0f172a" }}>
+                    {selectedVehicle.brand} {selectedVehicle.model}
+                  </h3>
+                  <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#64748b" }}>
+                    {selectedVehicle.year} · Manage availability & vehicle details
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="cd-btn-text"
+                onClick={() => setSelectedVehicle(null)}
+                style={{ padding: 6, borderRadius: "50%", background: "transparent", border: "none", cursor: "pointer", color: "#64748b" }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveVehicleProfile} className="cd-vehicle-modal-body">
+              {/* Availability Section */}
+              <div className="cd-modal-section">
+                <div className="cd-section-badge-title">
+                  <CalendarCheck size={14} /> Rental Availability & Status
+                </div>
+                <div className="cd-form-row">
+                  <div className="cd-form-group">
+                    <label>Status</label>
+                    <select
+                      value={vehicleEditData.status || "active"}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, status: e.target.value })}
+                    >
+                      <option value="active">Active (Available for booking)</option>
+                      <option value="hidden">Hidden / Maintenance (Paused)</option>
+                    </select>
+                  </div>
+                  <div className="cd-form-group">
+                    <label>Available From</label>
+                    <input
+                      type="date"
+                      required
+                      value={vehicleEditData.availableFrom || ""}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, availableFrom: e.target.value })}
+                    />
+                  </div>
+                  <div className="cd-form-group">
+                    <label>Available To</label>
+                    <input
+                      type="date"
+                      required
+                      value={vehicleEditData.availableTo || ""}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, availableTo: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing Section */}
+              <div className="cd-modal-section">
+                <div className="cd-section-badge-title">
+                  <Wallet size={14} /> Pricing (LKR)
+                </div>
+                <div className="cd-form-row">
+                  <div className="cd-form-group">
+                    <label>Daily Rental Rate (LKR / day)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      placeholder="e.g. 5000"
+                      value={vehicleEditData.pricePerDay || ""}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, pricePerDay: e.target.value })}
+                    />
+                  </div>
+                  <div className="cd-form-group">
+                    <label>Extra Rate / Km (after 100km)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 35"
+                      value={vehicleEditData.pricePerKmAfter100km || ""}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, pricePerKmAfter100km: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Vehicle Specifications Section */}
+              <div className="cd-modal-section">
+                <div className="cd-section-badge-title">
+                  <CarFront size={14} /> Vehicle Details
+                </div>
+                <div className="cd-form-row">
+                  <div className="cd-form-group">
+                    <label>Brand</label>
+                    <input
+                      type="text"
+                      required
+                      value={vehicleEditData.brand || ""}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, brand: e.target.value })}
+                    />
+                  </div>
+                  <div className="cd-form-group">
+                    <label>Model</label>
+                    <input
+                      type="text"
+                      required
+                      value={vehicleEditData.model || ""}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, model: e.target.value })}
+                    />
+                  </div>
+                  <div className="cd-form-group">
+                    <label>Year</label>
+                    <input
+                      type="number"
+                      required
+                      value={vehicleEditData.year || ""}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, year: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="cd-form-row">
+                  <div className="cd-form-group">
+                    <label>Vehicle Type</label>
+                    <select
+                      value={vehicleEditData.vehicleType || "car"}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, vehicleType: e.target.value })}
+                    >
+                      <option value="car">Car (Sedan/Hatchback)</option>
+                      <option value="premium-car">Premium / Luxury Car</option>
+                      <option value="mini-car">Mini Car</option>
+                      <option value="threewheeler">Three-Wheeler (Tuk Tuk)</option>
+                      <option value="van">Van</option>
+                      <option value="mini-van">Mini Van</option>
+                      <option value="bicycle">Bicycle / Motorbike</option>
+                      <option value="others">Other Vehicles</option>
+                    </select>
+                  </div>
+                  <div className="cd-form-group">
+                    <label>Fuel Type</label>
+                    <select
+                      value={vehicleEditData.fuelType || "Petrol"}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, fuelType: e.target.value })}
+                    >
+                      <option value="Petrol">Petrol</option>
+                      <option value="Diesel">Diesel</option>
+                      <option value="Hybrid">Hybrid</option>
+                      <option value="Electric">Electric</option>
+                    </select>
+                  </div>
+                  <div className="cd-form-group">
+                    <label>Transmission</label>
+                    <select
+                      value={vehicleEditData.transmission || "Auto"}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, transmission: e.target.value })}
+                    >
+                      <option value="Auto">Automatic</option>
+                      <option value="Manual">Manual</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="cd-form-group">
+                  <label>Pickup Location / City</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 41 Edward Ln, Colombo 00300"
+                    value={vehicleEditData.location || ""}
+                    onChange={(e) => setVehicleEditData({ ...vehicleEditData, location: e.target.value })}
+                  />
+                </div>
+
+                <div className="cd-form-group">
+                  <label>Description</label>
+                  <textarea
+                    rows={3}
+                    value={vehicleEditData.description || ""}
+                    onChange={(e) => setVehicleEditData({ ...vehicleEditData, description: e.target.value })}
+                    placeholder="Describe condition, features, AC, etc."
+                  />
+                </div>
+              </div>
+
+              <div className="cd-vehicle-modal-footer">
+                <Link
+                  to={`/vehicle/${selectedVehicle._id}`}
+                  target="_blank"
+                  className="cd-btn-outline"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                >
+                  <ExternalLink size={14} /> Public View
+                </Link>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    className="cd-btn-text"
+                    onClick={() => setSelectedVehicle(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="cd-btn-primary-sm"
+                    disabled={savingVehicle}
+                    style={{ padding: "8px 20px" }}
+                  >
+                    {savingVehicle ? "Saving..." : "Save Vehicle Changes"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ── Delete Confirmation Modal ── */}
       {deleteConfirm && (
@@ -784,6 +1141,47 @@ const dashboardCSS = `
   .cd-delete-btn { color: #ef4444; }
   .cd-delete-btn:hover { background: #fee2e2; border-color: #ef4444; }
 
+  /* ── Vehicle Profile Modal ── */
+  .cd-vehicle-modal {
+    background: #fff; border-radius: 20px;
+    max-width: 620px; width: 92%; max-height: 88vh;
+    display: flex; flex-direction: column; overflow: hidden;
+    animation: cd-zoomIn 0.25s; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+  .cd-vehicle-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 24px; border-bottom: 1px solid #e2e8f0; background: #fafafa;
+  }
+  .cd-vehicle-modal-body {
+    padding: 20px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
+  }
+  .cd-modal-section {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .cd-section-badge-title {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem;
+    font-weight: 700; color: #0f766e; text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .cd-modal-section .cd-form-group {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .cd-modal-section label {
+    font-size: 0.78rem; font-weight: 600; color: #475569;
+  }
+  .cd-modal-section input, .cd-modal-section select, .cd-modal-section textarea {
+    padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px;
+    font-size: 0.88rem; color: #0f172a; background: #fff; width: 100%; box-sizing: border-box;
+    font-family: inherit;
+  }
+  .cd-modal-section input:focus, .cd-modal-section select:focus, .cd-modal-section textarea:focus {
+    outline: none; border-color: #f97316; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+  }
+  .cd-vehicle-modal-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; border-top: 1px solid #e2e8f0; background: #fafafa;
+  }
+
   /* ── Modal ── */
   .cd-modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.5);
@@ -810,11 +1208,79 @@ const dashboardCSS = `
     .cd-sidebar { display: none; }
     .cd-stats-grid { grid-template-columns: repeat(2, 1fr); }
     .cd-mid-row { grid-template-columns: 1fr; }
+    .cd-main { padding: 20px 16px 40px; }
+    .cd-title { font-size: 1.4rem; }
+    .cd-header { flex-wrap: wrap; gap: 12px; }
+    .cd-info-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  }
+  @media (max-width: 768px) {
+    .cd-main { padding: 16px 12px 40px; }
+    .cd-title { font-size: 1.25rem; }
+    .cd-subtitle { font-size: 0.8rem; }
+    .cd-stats-grid { gap: 10px; }
+    .cd-stat-card { padding: 16px; border-radius: 18px; }
+    .cd-stat-value { font-size: 1.1rem; }
+    .cd-stat-icon { width: 34px; height: 34px; border-radius: 12px; }
+    .cd-chart-wrap { height: 200px; }
+    .cd-card { border-radius: 18px; padding: 16px; }
+    .cd-card-body { padding: 12px 14px; }
+    .cd-card-head { flex-wrap: wrap; gap: 8px; }
+    .cd-info-grid { grid-template-columns: 1fr; }
+    .cd-form-row { grid-template-columns: 1fr; }
+    .cd-payment-row { padding: 8px 10px; }
+    .cd-payment-label { font-size: 0.8rem; }
+    .cd-payment-value { font-size: 0.8rem; }
+    .cd-action-btn { padding: 12px; border-radius: 12px; }
+    .cd-modal { padding: 24px 20px; border-radius: 18px; }
   }
   @media (max-width: 640px) {
+    .cd-main { padding: 12px 10px 80px; }
+    .cd-title { font-size: 1.15rem; }
+    .cd-stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .cd-stat-card { padding: 12px; border-radius: 14px; }
+    .cd-stat-top { gap: 8px; }
+    .cd-stat-icon { width: 30px; height: 30px; border-radius: 10px; }
+    .cd-stat-label { font-size: 0.65rem; }
+    .cd-stat-value { font-size: 0.95rem; margin: 8px 0 0; }
+    .cd-stat-delta { font-size: 0.65rem; }
+    .cd-chart-wrap { height: 170px; }
+    .cd-card { padding: 12px; border-radius: 14px; }
+    .cd-card-body { padding: 10px; }
+    .cd-card-title { font-size: 0.9rem; }
+    .cd-card-desc { font-size: 0.7rem; }
+    .cd-actions-grid { gap: 8px; }
+    .cd-action-btn { padding: 10px; gap: 6px; }
+    .cd-action-label { font-size: 0.7rem; }
+    .cd-action-icon { width: 16px; height: 16px; }
+    .cd-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .cd-btn-outline { padding: 5px 10px; font-size: 0.75rem; }
+    .cd-btn-primary-sm { padding: 5px 10px; font-size: 0.75rem; }
+    .cd-table { min-width: 500px; font-size: 0.8rem; }
+    .cd-table th { padding: 10px 12px; font-size: 0.65rem; }
+    .cd-table td { padding: 10px 12px; }
+    .cd-vehicle-thumb { width: 40px; height: 30px; border-radius: 6px; }
+    .cd-vehicle-thumb-placeholder { width: 40px; height: 30px; }
+    .cd-vehicle-name { font-size: 0.8rem; }
+    .cd-vehicle-year { font-size: 0.65rem; }
+    .cd-empty-state { padding: 24px 12px; }
+    .cd-info-item { padding: 10px; }
+    .cd-info-icon { width: 30px; height: 30px; border-radius: 8px; }
+    .cd-info-label { font-size: 0.6rem; }
+    .cd-info-value { font-size: 0.8rem; }
+    .cd-edit-actions { flex-wrap: wrap; }
+    .cd-modal { padding: 20px 16px; border-radius: 16px; }
+    .cd-modal h3 { font-size: 1rem; }
+    .cd-modal p { font-size: 0.8rem; }
+    .cd-modal-actions { flex-wrap: wrap; }
+    .cd-btn-danger { padding: 7px 16px; font-size: 0.8rem; }
+    .cd-profile-card { margin-top: 16px; }
+    .cd-fleet-card { margin-top: 16px; }
+    .cd-mid-row { gap: 14px; margin-top: 16px; }
+    .cd-payment-title { margin-top: 16px; font-size: 0.8rem; }
+  }
+  @media (max-width: 400px) {
     .cd-stats-grid { grid-template-columns: 1fr; }
-    .cd-main { padding: 16px 12px 80px; }
-    .cd-title { font-size: 1.375rem; }
-    .cd-form-row { grid-template-columns: 1fr; }
+    .cd-actions-grid { grid-template-columns: 1fr; }
+    .cd-table { min-width: 420px; }
   }
 `;

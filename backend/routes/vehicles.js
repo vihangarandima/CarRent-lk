@@ -21,11 +21,13 @@ const auth = (req, res, next) => {
 };
 
 // @route   GET api/vehicles
-// @desc    Get all vehicles with filters
+// @desc    Get all vehicles with filters (only active public listings by default)
 router.get("/", async (req, res) => {
   try {
-    const { brand, model, location, minPrice, maxPrice, companyId, vehicleType } = req.query;
-    let query = {};
+    const { brand, model, location, minPrice, maxPrice, companyId, vehicleType, status } = req.query;
+    let query = {
+      status: status || { $nin: ["hidden", "flagged"] },
+    };
     if (brand) query.brand = new RegExp(brand, "i");
     if (model) query.model = new RegExp(model, "i");
     if (location) query.location = new RegExp(location, "i");
@@ -146,6 +148,55 @@ router.get("/:id", async (req, res) => {
     res.json(vehicle);
   } catch (err) {
     res.status(500).send("Server Error");
+  }
+});
+
+// @route   PUT api/vehicles/:id
+// @desc    Update vehicle details and availability (owner or company)
+router.put("/:id", auth, async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findById(req.params.id);
+    if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
+    if (vehicle.owner.toString() !== req.user.id)
+      return res.status(401).json({ msg: "Not authorized to update this vehicle" });
+
+    const {
+      brand,
+      model,
+      year,
+      pricePerDay,
+      pricePerKmAfter100km,
+      vehicleType,
+      fuelType,
+      transmission,
+      description,
+      location,
+      availableFrom,
+      availableTo,
+      status,
+      images,
+    } = req.body;
+
+    if (brand !== undefined) vehicle.brand = brand;
+    if (model !== undefined) vehicle.model = model;
+    if (year !== undefined) vehicle.year = Number(year);
+    if (pricePerDay !== undefined) vehicle.pricePerDay = Number(pricePerDay);
+    if (pricePerKmAfter100km !== undefined) vehicle.pricePerKmAfter100km = Number(pricePerKmAfter100km);
+    if (vehicleType !== undefined) vehicle.vehicleType = vehicleType;
+    if (fuelType !== undefined) vehicle.fuelType = fuelType;
+    if (transmission !== undefined) vehicle.transmission = transmission;
+    if (description !== undefined) vehicle.description = description;
+    if (location !== undefined) vehicle.location = location;
+    if (availableFrom !== undefined) vehicle.availableFrom = availableFrom;
+    if (availableTo !== undefined) vehicle.availableTo = availableTo;
+    if (status !== undefined) vehicle.status = status;
+    if (Array.isArray(images) && images.length > 0) vehicle.images = images;
+
+    const updatedVehicle = await vehicle.save();
+    res.json(updatedVehicle);
+  } catch (err) {
+    console.error("Vehicle update error:", err);
+    res.status(500).json({ msg: err.message || "Server Error" });
   }
 });
 
