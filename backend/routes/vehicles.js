@@ -20,11 +20,13 @@ const cleanImages = (images) =>
     : [];
 
 // @route   GET api/vehicles
-// @desc    Get all vehicles with filters
+// @desc    Get all vehicles with filters (only active public listings by default)
 router.get("/", async (req, res) => {
   try {
-    const { brand, model, location, minPrice, maxPrice, companyId, vehicleType } = req.query;
-    let query = { ...PUBLIC_STATUS_FILTER };
+    const { brand, model, location, minPrice, maxPrice, companyId, vehicleType, status } = req.query;
+    let query = {
+      status: status || { $nin: ["hidden", "flagged", "rented"] },
+    };
     if (brand) query.brand = new RegExp(escapeRegex(brand), "i");
     if (model) query.model = new RegExp(escapeRegex(model), "i");
     if (location) query.location = new RegExp(escapeRegex(location), "i");
@@ -243,6 +245,71 @@ router.put("/:id", auth, async (req, res) => {
     res.status(500).json({ msg: "Server error while updating the listing" });
   }
 });
+
+// @route   PUT /api/vehicles/:id and PATCH /api/vehicles/:id
+// @desc    Update vehicle details and availability (owner or company)
+const handleVehicleUpdate = async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findById(req.params.id);
+    if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
+
+    let isAuthorized = vehicle.owner && vehicle.owner.toString() === req.user.id;
+    if (!isAuthorized && vehicle.company) {
+      const company = await Company.findOne({ user: req.user.id });
+      if (company && vehicle.company.toString() === company._id.toString()) {
+        isAuthorized = true;
+      }
+    }
+    const user = await User.findById(req.user.id);
+    if (user && user.role === "admin") isAuthorized = true;
+
+    if (!isAuthorized) {
+      return res.status(401).json({ msg: "Not authorized to update this vehicle" });
+    }
+
+    const {
+      brand,
+      model,
+      year,
+      pricePerDay,
+      pricePerKmAfter100km,
+      vehicleType,
+      fuelType,
+      transmission,
+      description,
+      location,
+      availableFrom,
+      availableTo,
+      status,
+      images,
+    } = req.body;
+
+    if (brand !== undefined) vehicle.brand = brand;
+    if (model !== undefined) vehicle.model = model;
+    if (year !== undefined && !isNaN(Number(year))) vehicle.year = Number(year);
+    if (pricePerDay !== undefined && !isNaN(Number(pricePerDay))) vehicle.pricePerDay = Number(pricePerDay);
+    if (pricePerKmAfter100km !== undefined && !isNaN(Number(pricePerKmAfter100km))) vehicle.pricePerKmAfter100km = Number(pricePerKmAfter100km);
+    if (vehicleType !== undefined) vehicle.vehicleType = vehicleType;
+    if (fuelType !== undefined) vehicle.fuelType = fuelType;
+    if (transmission !== undefined) vehicle.transmission = transmission;
+    if (description !== undefined) vehicle.description = description;
+    if (location !== undefined) vehicle.location = location;
+    if (availableFrom !== undefined) vehicle.availableFrom = availableFrom;
+    if (availableTo !== undefined) vehicle.availableTo = availableTo;
+    if (status !== undefined) vehicle.status = status;
+    if (Array.isArray(images) && images.length > 0) vehicle.images = images;
+
+    const updatedVehicle = await vehicle.save();
+    res.json(updatedVehicle);
+  } catch (err) {
+    console.error("Vehicle update error:", err);
+    res.status(500).json({ msg: err.message || "Server Error" });
+  }
+};
+
+router.put("/:id", auth, handleVehicleUpdate);
+router.patch("/:id", auth, handleVehicleUpdate);
+router.patch("/:id/availability", auth, handleVehicleUpdate);
 
 // @route   DELETE api/vehicles/:id
 // @desc    Delete a vehicle (owner/company must own it)

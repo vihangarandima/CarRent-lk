@@ -5,6 +5,23 @@ const Bid = require('../models/Bid');
 const Vehicle = require('../models/Vehicle');
 const { auth } = require('../middleware/auth');
 
+// @route   GET api/bids/my
+// @desc    Get all bids/inquiries for vehicles owned by the logged-in user/company
+router.get('/my', auth, async (req, res) => {
+    try {
+        const userVehicles = await Vehicle.find({ owner: req.user.id }).select('_id');
+        const vehicleIds = userVehicles.map((v) => v._id);
+        const bids = await Bid.find({ vehicle: { $in: vehicleIds } })
+            .populate('vehicle', 'brand model year pricePerDay images vehicleType')
+            .populate('renter', 'name email phone')
+            .sort({ createdAt: -1 });
+        res.json(bids);
+    } catch (err) {
+        console.error('Error fetching user bids:', err);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   POST api/bids
 // @desc    Tag a price (Create a bid)
 router.post('/', auth, async (req, res) => {

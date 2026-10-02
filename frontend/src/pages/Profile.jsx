@@ -58,6 +58,10 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [settingsStatus, setSettingsStatus] = useState("");
 
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [vehicleEditData, setVehicleEditData] = useState({});
+  const [savingVehicle, setSavingVehicle] = useState(false);
+
   const userId = user.id || user._id;
 
   const handleAvatarUpload = async (file) => {
@@ -194,6 +198,50 @@ const Profile = () => {
       toast.success("Vehicle listing removed successfully.");
     } catch (err) {
       toast.error("Failed to delete vehicle: " + (err.response?.data?.msg || err.message));
+    }
+  };
+
+  const handleOpenVehicleProfile = (v) => {
+    setSelectedVehicle(v);
+    setVehicleEditData({
+      brand: v.brand || "",
+      model: v.model || "",
+      year: v.year || new Date().getFullYear(),
+      pricePerDay: v.pricePerDay || "",
+      pricePerKmAfter100km: v.pricePerKmAfter100km || 0,
+      vehicleType: v.vehicleType || "car",
+      fuelType: v.fuelType || "Petrol",
+      transmission: v.transmission || "Auto",
+      location: v.location || "",
+      description: v.description || "",
+      status: v.status || "active",
+      availableFrom: v.availableFrom ? new Date(v.availableFrom).toISOString().split("T")[0] : "",
+      availableTo: v.availableTo ? new Date(v.availableTo).toISOString().split("T")[0] : "",
+    });
+  };
+
+  const handleSaveVehicleProfile = async (e) => {
+    if (e) e.preventDefault();
+    if (!selectedVehicle) return;
+    const vehicleId = selectedVehicle._id || selectedVehicle.id;
+    if (!vehicleId) {
+      toast.error("Vehicle ID is missing");
+      return;
+    }
+    setSavingVehicle(true);
+    try {
+      const currentToken = localStorage.getItem("token") || token;
+      const res = await axios.put(`${API_URL}/api/vehicles/${vehicleId}`, vehicleEditData, {
+        headers: { "x-auth-token": currentToken },
+      });
+      setMyVehicles(myVehicles.map((v) => ((v._id || v.id) === vehicleId ? res.data : v)));
+      setSelectedVehicle(null);
+      toast.success(`${res.data.brand} ${res.data.model} updated successfully!`);
+    } catch (err) {
+      console.error("Vehicle update error:", err);
+      toast.error("Failed to update vehicle: " + (err.response?.data?.msg || err.message));
+    } finally {
+      setSavingVehicle(false);
     }
   };
 
@@ -580,8 +628,17 @@ const Profile = () => {
                         </div>
 
                         <div className="listing-actions-row">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenVehicleProfile(item)}
+                            className="btn-edit-listing"
+                            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 14px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc", color: "#0f766e", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}
+                            title="Edit Vehicle & Availability"
+                          >
+                            <PenLine size={13} /> Edit
+                          </button>
                           <Link to={`/vehicle/${item._id}`} className="btn-view-listing">
-                            View Listing <ChevronRight size={14} />
+                            View <ChevronRight size={14} />
                           </Link>
                           <button
                             type="button"
@@ -908,6 +965,254 @@ const Profile = () => {
                 {loading ? "Saving..." : "Save Changes"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vehicle Profile / Availability Modal */}
+      {selectedVehicle && (
+        <div className="modal-overlay" onClick={() => setSelectedVehicle(null)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 620, width: "92%", maxHeight: "88vh", display: "flex", flexDirection: "column" }}
+          >
+            <div className="modal-header" style={{ padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {selectedVehicle.images && selectedVehicle.images.length > 0 ? (
+                  <img
+                    src={formatVehicleImageUrl(selectedVehicle.images, selectedVehicle.vehicleType)}
+                    alt={selectedVehicle.brand}
+                    style={{ width: 48, height: 38, borderRadius: 8, objectFit: "cover" }}
+                    onError={(e) => handleImageError(e, formatVehicleImageUrl(null, selectedVehicle.vehicleType))}
+                  />
+                ) : (
+                  <div style={{ width: 48, height: 38, borderRadius: 8, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", color: "#f97316" }}>
+                    <Car size={18} />
+                  </div>
+                )}
+                <div>
+                  <h2 style={{ margin: 0, fontSize: "1.1rem" }}>
+                    {selectedVehicle.brand} {selectedVehicle.model}
+                  </h2>
+                  <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#64748b" }}>
+                    {selectedVehicle.year} · Manage availability & details
+                  </p>
+                </div>
+              </div>
+              <button className="modal-close-btn" onClick={() => setSelectedVehicle(null)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveVehicleProfile} style={{ display: "flex", flexDirection: "column", overflow: "hidden", flex: 1 }}>
+              <div className="modal-body" style={{ padding: "16px 20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
+                {/* Availability Section */}
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#0f766e", textTransform: "uppercase" }}>
+                    Rental Availability & Status
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.78rem" }}>Status</label>
+                      <select
+                        value={vehicleEditData.status || "active"}
+                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, status: e.target.value })}
+                        className="input-field"
+                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                      >
+                        <option value="active">Active (Available)</option>
+                        <option value="hidden">Hidden (Paused)</option>
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.78rem" }}>Available From</label>
+                      <input
+                        type="date"
+                        required
+                        value={vehicleEditData.availableFrom || ""}
+                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, availableFrom: e.target.value })}
+                        className="input-field"
+                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.78rem" }}>Available To</label>
+                      <input
+                        type="date"
+                        required
+                        value={vehicleEditData.availableTo || ""}
+                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, availableTo: e.target.value })}
+                        className="input-field"
+                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pricing Section */}
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#0f766e", textTransform: "uppercase" }}>
+                    Rental Rates (LKR)
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.78rem" }}>Daily Rate (LKR)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        required
+                        value={vehicleEditData.pricePerDay || ""}
+                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, pricePerDay: e.target.value })}
+                        className="input-field"
+                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.78rem" }}>Extra / Km Rate</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={vehicleEditData.pricePerKmAfter100km || ""}
+                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, pricePerKmAfter100km: e.target.value })}
+                        className="input-field"
+                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vehicle Specs Section */}
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#0f766e", textTransform: "uppercase" }}>
+                    Vehicle Details
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.78rem" }}>Brand</label>
+                      <input
+                        type="text"
+                        required
+                        value={vehicleEditData.brand || ""}
+                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, brand: e.target.value })}
+                        className="input-field"
+                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.78rem" }}>Model</label>
+                      <input
+                        type="text"
+                        required
+                        value={vehicleEditData.model || ""}
+                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, model: e.target.value })}
+                        className="input-field"
+                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.78rem" }}>Year</label>
+                      <input
+                        type="number"
+                        required
+                        value={vehicleEditData.year || ""}
+                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, year: e.target.value })}
+                        className="input-field"
+                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.78rem" }}>Type</label>
+                      <select
+                        value={vehicleEditData.vehicleType || "car"}
+                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, vehicleType: e.target.value })}
+                        className="input-field"
+                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                      >
+                        <option value="car">Car</option>
+                        <option value="premium-car">Premium Car</option>
+                        <option value="mini-car">Mini Car</option>
+                        <option value="threewheeler">Three Wheeler</option>
+                        <option value="van">Van</option>
+                        <option value="mini-van">Mini Van</option>
+                        <option value="bicycle">Bicycle</option>
+                        <option value="others">Others</option>
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.78rem" }}>Fuel</label>
+                      <select
+                        value={vehicleEditData.fuelType || "Petrol"}
+                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, fuelType: e.target.value })}
+                        className="input-field"
+                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                      >
+                        <option value="Petrol">Petrol</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Hybrid">Hybrid</option>
+                        <option value="Electric">Electric</option>
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.78rem" }}>Transmission</label>
+                      <select
+                        value={vehicleEditData.transmission || "Auto"}
+                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, transmission: e.target.value })}
+                        className="input-field"
+                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                      >
+                        <option value="Auto">Automatic</option>
+                        <option value="Manual">Manual</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: "0.78rem" }}>Location</label>
+                    <input
+                      type="text"
+                      required
+                      value={vehicleEditData.location || ""}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, location: e.target.value })}
+                      className="input-field"
+                      style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: "0.78rem" }}>Description</label>
+                    <textarea
+                      rows={2}
+                      value={vehicleEditData.description || ""}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, description: e.target.value })}
+                      placeholder="Vehicle features, AC, condition..."
+                      className="input-field"
+                      style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-footer" style={{ padding: "14px 20px" }}>
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setSelectedVehicle(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-save"
+                  disabled={savingVehicle}
+                >
+                  {savingVehicle ? "Saving..." : "Save Vehicle Changes"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
