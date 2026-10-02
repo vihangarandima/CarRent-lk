@@ -26,7 +26,7 @@ router.get("/", async (req, res) => {
   try {
     const { brand, model, location, minPrice, maxPrice, companyId, vehicleType, status } = req.query;
     let query = {
-      status: status || { $nin: ["hidden", "flagged"] },
+      status: status || { $nin: ["hidden", "flagged", "rented"] },
     };
     if (brand) query.brand = new RegExp(brand, "i");
     if (model) query.model = new RegExp(model, "i");

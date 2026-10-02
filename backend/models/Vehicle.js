@@ -27,7 +27,7 @@ const VehicleSchema = new mongoose.Schema({
   availableFrom: { type: Date, required: true },
   availableTo: { type: Date, required: true },
   isFeatured: { type: Boolean, default: false },
-  status: { type: String, enum: ["active", "hidden", "flagged"], default: "active" },
+  status: { type: String, enum: ["active", "hidden", "flagged", "rented"], default: "active" },
   createdAt: { type: Date, default: Date.now },
 });
 

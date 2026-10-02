@@ -12,9 +12,11 @@ import {
   CarFront,
   CheckCircle,
   ChevronRight,
+  Clock,
   CreditCard,
   Edit3,
   ExternalLink,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -25,6 +27,7 @@ import {
   Save,
   TrendingUp,
   Trash2,
+  UserCheck,
   Users,
   Wallet,
   X,
@@ -59,6 +62,8 @@ export default function CompanyDashboard() {
   const [company, setCompany] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [bids, setBids] = useState([]);
+  const [rentals, setRentals] = useState([]);
+  const [rentalStats, setRentalStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
@@ -69,6 +74,20 @@ export default function CompanyDashboard() {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [vehicleEditData, setVehicleEditData] = useState({});
   const [savingVehicle, setSavingVehicle] = useState(false);
+
+  // Mark as Rented modal state
+  const [rentalModal, setRentalModal] = useState(null); // vehicle object or null
+  const [rentalForm, setRentalForm] = useState({
+    customerName: "",
+    customerPhone: "",
+    customerNIC: "",
+    pickupDate: new Date().toISOString().split("T")[0],
+    returnDate: "",
+    dailyRate: "",
+    notes: "",
+  });
+  const [savingRental, setSavingRental] = useState(false);
+  const [showRentalDetails, setShowRentalDetails] = useState(false);
 
   const [newCompanyName, setNewCompanyName] = useState(user?.name ? `${user.name} Rentals` : "");
   const [newPhone, setNewPhone] = useState("");
@@ -81,7 +100,7 @@ export default function CompanyDashboard() {
     }
     const fetchData = async () => {
       try {
-        const [companyRes, vehiclesRes, bidsRes] = await Promise.all([
+        const [companyRes, vehiclesRes, bidsRes, rentalsRes, rentalStatsRes] = await Promise.all([
           axios.get(`${API_URL}/api/companies/me`, {
             headers: { "x-auth-token": token },
           }),
@@ -91,6 +110,12 @@ export default function CompanyDashboard() {
           axios.get(`${API_URL}/api/bids/my`, {
             headers: { "x-auth-token": token },
           }).catch(() => ({ data: [] })),
+          axios.get(`${API_URL}/api/rentals/my`, {
+            headers: { "x-auth-token": token },
+          }).catch(() => ({ data: [] })),
+          axios.get(`${API_URL}/api/rentals/stats`, {
+            headers: { "x-auth-token": token },
+          }).catch(() => ({ data: null })),
         ]);
         if (companyRes.data) {
           setCompany(companyRes.data);
@@ -103,6 +128,8 @@ export default function CompanyDashboard() {
         }
         setVehicles(vehiclesRes.data || []);
         setBids(bidsRes.data || []);
+        setRentals(rentalsRes.data || []);
+        setRentalStats(rentalStatsRes.data || null);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
       } finally {
@@ -219,28 +246,144 @@ export default function CompanyDashboard() {
     navigate("/");
   };
 
-  // Calculations from real data
-  const totalVehicles = vehicles.length;
-  const activeVehicles = vehicles.filter((v) => (v.status || "active") === "active").length;
-  const utilisationRate = totalVehicles > 0 ? Math.round((activeVehicles / totalVehicles) * 100) : 0;
+  // ── Mark as Rented ──
+  const handleOpenRentalModal = (vehicle) => {
+    setRentalModal(vehicle);
+    // Default return date to 3 days from now for quick fill
+    const defaultReturn = new Date();
+    defaultReturn.setDate(defaultReturn.getDate() + 3);
+    setRentalForm({
+      customerName: "",
+      customerPhone: "",
+      customerNIC: "",
+      pickupDate: new Date().toISOString().split("T")[0],
+      returnDate: defaultReturn.toISOString().split("T")[0],
+      dailyRate: vehicle.pricePerDay || "",
+      notes: "",
+    });
+    setShowRentalDetails(false);
+  };
 
-  const clearedRevenue = bids
+  const handleSubmitRental = async (e) => {
+    e.preventDefault();
+    if (!rentalModal) return;
+    setSavingRental(true);
+    try {
+      const vehicleId = rentalModal._id || rentalModal.id;
+      const res = await axios.post(
+        `${API_URL}/api/rentals`,
+        { vehicleId, ...rentalForm },
+        { headers: { "x-auth-token": token } }
+      );
+      // Add rental to list
+      setRentals((prev) => [res.data, ...prev]);
+      // Update vehicle status locally to 'rented'
+      setVehicles((prev) =>
+        prev.map((v) => ((v._id || v.id) === vehicleId ? { ...v, status: "rented" } : v))
+      );
+      // Refresh rental stats
+      try {
+        const statsRes = await axios.get(`${API_URL}/api/rentals/stats`, {
+          headers: { "x-auth-token": token },
+        });
+        setRentalStats(statsRes.data);
+      } catch (_) {}
+      setRentalModal(null);
+      toast.success(`${rentalModal.brand} ${rentalModal.model} marked as rented!`);
+    } catch (err) {
+      toast.error("Failed to record rental: " + (err.response?.data?.msg || err.message));
+    } finally {
+      setSavingRental(false);
+    }
+  };
+
+  const handleCompleteRental = async (rentalId) => {
+    try {
+      const res = await axios.put(
+        `${API_URL}/api/rentals/${rentalId}`,
+        { status: "completed" },
+        { headers: { "x-auth-token": token } }
+      );
+      setRentals((prev) => prev.map((r) => (r._id === rentalId ? res.data : r)));
+      // Set vehicle back to active locally
+      if (res.data.vehicle) {
+        const vid = res.data.vehicle._id || res.data.vehicle;
+        setVehicles((prev) =>
+          prev.map((v) => ((v._id || v.id) === vid ? { ...v, status: "active" } : v))
+        );
+      }
+      // Refresh stats
+      try {
+        const statsRes = await axios.get(`${API_URL}/api/rentals/stats`, {
+          headers: { "x-auth-token": token },
+        });
+        setRentalStats(statsRes.data);
+      } catch (_) {}
+      toast.success("Rental marked as completed / returned!");
+    } catch (err) {
+      toast.error("Failed to update rental: " + (err.response?.data?.msg || err.message));
+    }
+  };
+
+  const handleCancelRental = async (rentalId) => {
+    try {
+      const res = await axios.put(
+        `${API_URL}/api/rentals/${rentalId}`,
+        { status: "cancelled" },
+        { headers: { "x-auth-token": token } }
+      );
+      setRentals((prev) => prev.map((r) => (r._id === rentalId ? res.data : r)));
+      if (res.data.vehicle) {
+        const vid = res.data.vehicle._id || res.data.vehicle;
+        setVehicles((prev) =>
+          prev.map((v) => ((v._id || v.id) === vid ? { ...v, status: "active" } : v))
+        );
+      }
+      try {
+        const statsRes = await axios.get(`${API_URL}/api/rentals/stats`, {
+          headers: { "x-auth-token": token },
+        });
+        setRentalStats(statsRes.data);
+      } catch (_) {}
+      toast.success("Rental cancelled.");
+    } catch (err) {
+      toast.error("Failed to cancel rental: " + (err.response?.data?.msg || err.message));
+    }
+  };
+
+  // Calculations from real data (rentals + bids combined)
+  const totalVehicles = vehicles.length;
+  const rentedVehicles = vehicles.filter((v) => v.status === "rented").length;
+  const activeVehicles = vehicles.filter((v) => (v.status || "active") === "active").length;
+  const utilisationRate = totalVehicles > 0 ? Math.round((rentedVehicles / totalVehicles) * 100) : 0;
+
+  // Revenue from rentals (primary source)
+  const rentalRevenue = rentalStats?.totalRevenue || 0;
+  const activeRentalRevenue = rentalStats?.activeRevenue || 0;
+  const completedRentalRevenue = rentalStats?.completedRevenue || 0;
+
+  // Revenue from bids (legacy/secondary)
+  const bidClearedRevenue = bids
     .filter((b) => b.status === "accepted")
     .reduce((sum, b) => sum + (Number(b.offerPrice) || 0), 0);
-
-  const pendingRevenue = bids
+  const bidPendingRevenue = bids
     .filter((b) => b.status === "pending")
     .reduce((sum, b) => sum + (Number(b.offerPrice) || 0), 0);
-
   const refundedRevenue = bids
     .filter((b) => b.status === "rejected")
     .reduce((sum, b) => sum + (Number(b.offerPrice) || 0), 0);
 
-  const activeBookings = bids.filter((b) => b.status === "accepted" || b.status === "pending").length;
-  const todayBookings = bids.filter((b) => new Date(b.createdAt).toDateString() === new Date().toDateString()).length;
+  // Combined totals
+  const clearedRevenue = rentalRevenue + bidClearedRevenue;
+  const pendingRevenue = bidPendingRevenue + activeRentalRevenue;
+
+  const activeRentalsCount = rentalStats?.activeRentals || 0;
+  const activeBookings = activeRentalsCount + bids.filter((b) => b.status === "accepted" || b.status === "pending").length;
+  const todayBookings = rentals.filter((r) => new Date(r.createdAt).toDateString() === new Date().toDateString()).length +
+    bids.filter((b) => new Date(b.createdAt).toDateString() === new Date().toDateString()).length;
   const dailyFleetRate = vehicles.reduce((sum, v) => sum + (Number(v.pricePerDay) || 0), 0);
 
-  // Generate real monthly chart data from real bids (past 7 months)
+  // Monthly chart data: merge rental stats + bid data
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const now = new Date();
   const revenueChartData = [];
@@ -249,14 +392,18 @@ export default function CompanyDashboard() {
     const mIdx = d.getMonth();
     const yr = d.getFullYear();
     const mLabel = monthNames[mIdx];
-    const rev = bids
+    // Bid revenue for this month
+    const bidRev = bids
       .filter((b) => {
         if (b.status !== "accepted") return false;
         const bd = new Date(b.createdAt);
         return bd.getFullYear() === yr && bd.getMonth() === mIdx;
       })
       .reduce((sum, b) => sum + (Number(b.offerPrice) || 0), 0);
-    revenueChartData.push({ month: mLabel, revenue: rev });
+    // Rental revenue for this month (from stats API)
+    const rentalChartEntry = rentalStats?.monthlyRevenue?.find((m) => m.month === mLabel);
+    const rentalRev = rentalChartEntry ? rentalChartEntry.revenue : 0;
+    revenueChartData.push({ month: mLabel, revenue: bidRev + rentalRev });
   }
 
   /* ── Loading state ── */
@@ -408,9 +555,9 @@ export default function CompanyDashboard() {
                 {/* ── Stat cards ── */}
                 <div className="cd-stats-grid">
                   <StatCard icon={Wallet} label="Revenue (7 months)" value={formatLKR(clearedRevenue)} delta={dailyFleetRate > 0 ? `${formatLKR(dailyFleetRate)}/day fleet rate` : "Rs. 0"} deltaColor={clearedRevenue > 0 ? "#10b981" : "#71717a"} />
-                  <StatCard icon={CalendarCheck} label="Active bookings" value={activeBookings} delta={todayBookings > 0 ? `+${todayBookings} today` : `${bids.length} total inquiries`} deltaColor={activeBookings > 0 ? "#10b981" : "#71717a"} />
-                  <StatCard icon={CarFront} label="Fleet size" value={`${totalVehicles} vehicle${totalVehicles === 1 ? "" : "s"}`} delta={`${activeVehicles} active listing${activeVehicles === 1 ? "" : "s"}`} deltaColor="#71717a" />
-                  <StatCard icon={TrendingUp} label="Utilisation" value={`${utilisationRate}%`} delta={totalVehicles > 0 ? `${activeVehicles} of ${totalVehicles} active` : "0 listed"} deltaColor={utilisationRate > 0 ? "#10b981" : "#71717a"} />
+                  <StatCard icon={CalendarCheck} label="Active rentals" value={activeRentalsCount} delta={todayBookings > 0 ? `+${todayBookings} today` : `${rentals.length} total rentals`} deltaColor={activeRentalsCount > 0 ? "#10b981" : "#71717a"} />
+                  <StatCard icon={CarFront} label="Fleet size" value={`${totalVehicles} vehicle${totalVehicles === 1 ? "" : "s"}`} delta={`${rentedVehicles} rented · ${activeVehicles} available`} deltaColor="#71717a" />
+                  <StatCard icon={TrendingUp} label="Utilisation" value={`${utilisationRate}%`} delta={totalVehicles > 0 ? `${rentedVehicles} of ${totalVehicles} rented` : "0 listed"} deltaColor={utilisationRate > 0 ? "#10b981" : "#71717a"} />
                 </div>
 
                 {/* ── Chart + Quick actions row ── */}
@@ -465,9 +612,9 @@ export default function CompanyDashboard() {
                     <h3 className="cd-payment-title">Payment status</h3>
                     <ul className="cd-payment-list">
                       {[
-                        { label: "Cleared", value: clearedRevenue, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-                        { label: "Pending payout", value: pendingRevenue, color: "#f97316", bg: "rgba(249,115,22,0.1)" },
-                        { label: "Refunded", value: refundedRevenue, color: "#ef4444", bg: "rgba(239,68,68,0.1)" },
+                        { label: "Completed rentals", value: completedRentalRevenue + bidClearedRevenue, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+                        { label: "Active rentals", value: activeRentalRevenue, color: "#f97316", bg: "rgba(249,115,22,0.1)" },
+                        { label: "Pending bids", value: bidPendingRevenue, color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
                       ].map((p) => (
                         <li key={p.label} className="cd-payment-row" style={{ background: p.bg }}>
                           <span className="cd-payment-label">{p.label}</span>
@@ -603,7 +750,7 @@ export default function CompanyDashboard() {
                                   <div>
                                     <span className="cd-vehicle-name">{v.brand} {v.model}</span>
                                     <span className="cd-vehicle-year">
-                                      {v.year} · <span style={{ color: (v.status || "active") === "active" ? "#10b981" : "#f97316", fontWeight: 600 }}>{(v.status || "active") === "active" ? "Active" : "Hidden"}</span>
+                                      {v.year} · <span style={{ color: v.status === "rented" ? "#ef4444" : (v.status || "active") === "active" ? "#10b981" : "#f97316", fontWeight: 600 }}>{v.status === "rented" ? "🔑 Rented" : (v.status || "active") === "active" ? "Active" : "Hidden"}</span>
                                     </span>
                                   </div>
                                 </div>
@@ -616,6 +763,16 @@ export default function CompanyDashboard() {
                               <td className="cd-cell-price">LKR {v.pricePerDay?.toLocaleString()}</td>
                               <td>
                                 <div className="cd-cell-actions">
+                                  {(v.status || "active") !== "rented" && (
+                                    <button
+                                      type="button"
+                                      className="cd-action-icon-btn cd-rent-btn"
+                                      onClick={() => handleOpenRentalModal(v)}
+                                      title="Mark as Rented"
+                                    >
+                                      <KeyRound size={14} />
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
                                     className="cd-action-icon-btn cd-view-btn"
@@ -644,8 +801,106 @@ export default function CompanyDashboard() {
               </section>
             )}
 
+            {/* ── BOOKINGS / RENTALS TAB ── */}
+            {activeTab === "Bookings" && (
+              <section className="cd-card" style={{ marginTop: 24 }}>
+                <div className="cd-card-head">
+                  <div>
+                    <h2 className="cd-card-title">Rental Records</h2>
+                    <p className="cd-card-desc">{rentals.length} total rental records · {activeRentalsCount} currently active</p>
+                  </div>
+                </div>
+                <div className="cd-card-body" style={{ padding: 0 }}>
+                  {rentals.length === 0 ? (
+                    <div className="cd-empty-state">
+                      <KeyRound size={24} style={{ color: "#f97316" }} />
+                      <h3>No rentals yet</h3>
+                      <p>When you mark a vehicle as rented, it will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="cd-table-wrap">
+                      <table className="cd-table">
+                        <thead>
+                          <tr>
+                            <th>Vehicle</th>
+                            <th>Customer</th>
+                            <th>Period</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th style={{ textAlign: "right" }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rentals.map((r) => {
+                            const veh = r.vehicle;
+                            const statusColors = { active: "#ef4444", completed: "#10b981", cancelled: "#94a3b8" };
+                            const statusLabels = { active: "Rented", completed: "Returned", cancelled: "Cancelled" };
+                            return (
+                              <tr key={r._id}>
+                                <td>
+                                  <div className="cd-cell-vehicle">
+                                    <div>
+                                      <span className="cd-vehicle-name">{veh?.brand || "—"} {veh?.model || ""}</span>
+                                      <span className="cd-vehicle-year">{veh?.year || ""}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div>
+                                    <span style={{ fontWeight: 600, display: "block", color: "#09090b" }}>{r.customerName}</span>
+                                    <span style={{ fontSize: "0.75rem", color: "#71717a" }}>{r.customerPhone || r.customerNIC || ""}</span>
+                                  </div>
+                                </td>
+                                <td className="cd-cell-muted">
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                    <span style={{ fontSize: "0.78rem" }}>{new Date(r.pickupDate).toLocaleDateString()}</span>
+                                    <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>→ {new Date(r.returnDate).toLocaleDateString()}</span>
+                                    <span style={{ fontSize: "0.7rem", color: "#64748b" }}>{r.totalDays} day{r.totalDays > 1 ? "s" : ""}</span>
+                                  </div>
+                                </td>
+                                <td className="cd-cell-price">{formatLKR(r.totalAmount)}</td>
+                                <td>
+                                  <span className="cd-rental-status-badge" style={{ background: `${statusColors[r.status]}15`, color: statusColors[r.status] }}>
+                                    {statusLabels[r.status] || r.status}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div className="cd-cell-actions">
+                                    {r.status === "active" && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          className="cd-action-icon-btn cd-view-btn"
+                                          onClick={() => handleCompleteRental(r._id)}
+                                          title="Mark as Returned"
+                                        >
+                                          <CheckCircle size={14} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="cd-action-icon-btn cd-delete-btn"
+                                          onClick={() => handleCancelRental(r._id)}
+                                          title="Cancel Rental"
+                                        >
+                                          <X size={14} />
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
             {/* ── OTHER TABS (Coming Soon) ── */}
-            {!["Overview", "Fleet"].includes(activeTab) && (
+            {!["Overview", "Fleet", "Bookings"].includes(activeTab) && (
               <section className="cd-card" style={{ marginTop: 24 }}>
                 <div className="cd-empty-state">
                   <Settings size={32} style={{ color: "#f97316" }} />
@@ -711,6 +966,7 @@ export default function CompanyDashboard() {
                     >
                       <option value="active">Active (Available for booking)</option>
                       <option value="hidden">Hidden / Maintenance (Paused)</option>
+                      <option value="rented" disabled>🔑 Currently Rented</option>
                     </select>
                   </div>
                   <div className="cd-form-group">
@@ -905,6 +1161,172 @@ export default function CompanyDashboard() {
               <button className="cd-btn-outline" onClick={() => setDeleteConfirm(null)}>Cancel</button>
               <button className="cd-btn-danger" onClick={() => handleDelete(deleteConfirm)}>Delete</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mark as Rented Modal (Quick Recording) ── */}
+      {rentalModal && (
+        <div className="cd-modal-overlay" onClick={() => setRentalModal(null)}>
+          <div className="cd-vehicle-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="cd-vehicle-modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div className="cd-rental-modal-icon">
+                  <KeyRound size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "#0f172a" }}>
+                    Mark as Rented
+                  </h3>
+                  <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#64748b" }}>
+                    {rentalModal.brand} {rentalModal.model} ({rentalModal.year}) · Vehicle will be hidden from listings
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRentalModal(null)}
+                style={{ padding: 6, borderRadius: "50%", background: "transparent", border: "none", cursor: "pointer", color: "#64748b" }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitRental} className="cd-vehicle-modal-body">
+              {/* Quick Rental Period — the only required section */}
+              <div className="cd-modal-section">
+                <div className="cd-section-badge-title">
+                  <Clock size={14} /> Rental Period
+                </div>
+                <div className="cd-form-row">
+                  <div className="cd-form-group">
+                    <label>Pickup Date</label>
+                    <input
+                      type="date"
+                      required
+                      value={rentalForm.pickupDate}
+                      onChange={(e) => setRentalForm({ ...rentalForm, pickupDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="cd-form-group">
+                    <label>Return Date</label>
+                    <input
+                      type="date"
+                      required
+                      value={rentalForm.returnDate}
+                      onChange={(e) => setRentalForm({ ...rentalForm, returnDate: e.target.value })}
+                    />
+                  </div>
+                </div>
+                {rentalForm.pickupDate && rentalForm.returnDate && (() => {
+                  const days = Math.max(1, Math.ceil((new Date(rentalForm.returnDate) - new Date(rentalForm.pickupDate)) / (1000 * 60 * 60 * 24)));
+                  const total = days * Number(rentalForm.dailyRate || 0);
+                  return (
+                    <div className="cd-quick-summary">
+                      <span>📅 {days} day{days > 1 ? "s" : ""}</span>
+                      <span>💰 {formatLKR(Number(rentalForm.dailyRate || 0))}/day</span>
+                      {total > 0 && <span style={{ color: "#0f766e", fontWeight: 700 }}>Total: {formatLKR(total)}</span>}
+                    </div>
+                  );
+                })()}
+                <p style={{ fontSize: "0.72rem", color: "#94a3b8", margin: "4px 0 0" }}>
+                  ⏰ Vehicle auto-returns to listings when return date passes
+                </p>
+              </div>
+
+              {/* Rate — pre-filled from vehicle */}
+              <div className="cd-form-row">
+                <div className="cd-form-group">
+                  <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Daily Rate (LKR)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Auto-filled from vehicle"
+                    value={rentalForm.dailyRate}
+                    onChange={(e) => setRentalForm({ ...rentalForm, dailyRate: e.target.value })}
+                    style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
+                  />
+                </div>
+                <div className="cd-form-group">
+                  <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Customer Name</label>
+                  <input
+                    type="text"
+                    placeholder="Optional"
+                    value={rentalForm.customerName}
+                    onChange={(e) => setRentalForm({ ...rentalForm, customerName: e.target.value })}
+                    style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
+                  />
+                </div>
+              </div>
+
+              {/* Collapsible extra details */}
+              <button
+                type="button"
+                onClick={() => setShowRentalDetails(!showRentalDetails)}
+                style={{ background: "none", border: "none", color: "#64748b", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}
+              >
+                <ChevronRight size={14} style={{ transform: showRentalDetails ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+                {showRentalDetails ? "Hide" : "More"} details (optional)
+              </button>
+
+              {showRentalDetails && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, animation: "cd-fadeIn 0.2s" }}>
+                  <div className="cd-form-row">
+                    <div className="cd-form-group">
+                      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Phone</label>
+                      <input
+                        type="text"
+                        placeholder="Customer phone"
+                        value={rentalForm.customerPhone}
+                        onChange={(e) => setRentalForm({ ...rentalForm, customerPhone: e.target.value })}
+                        style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
+                      />
+                    </div>
+                    <div className="cd-form-group">
+                      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>NIC / Passport</label>
+                      <input
+                        type="text"
+                        placeholder="ID number"
+                        value={rentalForm.customerNIC}
+                        onChange={(e) => setRentalForm({ ...rentalForm, customerNIC: e.target.value })}
+                        style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
+                      />
+                    </div>
+                  </div>
+                  <div className="cd-form-group">
+                    <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Notes</label>
+                    <textarea
+                      rows={2}
+                      placeholder="Any special notes..."
+                      value={rentalForm.notes}
+                      style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
+                      onChange={(e) => setRentalForm({ ...rentalForm, notes: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="cd-vehicle-modal-footer" style={{ padding: "14px 0 0", borderTop: "1px solid #e2e8f0", margin: "0 -24px", paddingLeft: 24, paddingRight: 24 }}>
+                <div />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    className="cd-btn-text"
+                    onClick={() => setRentalModal(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="cd-btn-primary-sm cd-btn-rent-confirm"
+                    disabled={savingRental}
+                    style={{ padding: "8px 20px" }}
+                  >
+                    {savingRental ? "Recording..." : "🔑 Confirm Rental"}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -1145,9 +1567,28 @@ const dashboardCSS = `
   }
   .cd-view-btn { color: #0f766e; }
   .cd-view-btn:hover { background: #ccfbf1; border-color: #0f766e; }
+  .cd-rent-btn { color: #f97316; }
+  .cd-rent-btn:hover { background: #fff7ed; border-color: #f97316; }
   .cd-delete-btn { color: #ef4444; }
   .cd-delete-btn:hover { background: #fee2e2; border-color: #ef4444; }
 
+  .cd-rental-modal-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: linear-gradient(135deg, #F97316, #EA580C); color: #fff;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .cd-btn-rent-confirm {
+    background: linear-gradient(135deg, #F97316 0%, #EA580C 100%) !important;
+  }
+  .cd-rental-status-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 100px;
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .cd-quick-summary {
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    font-size: 0.78rem; font-weight: 600; color: #334155;
+    padding: 6px 10px; background: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0;
+  }
   /* ── Vehicle Profile Modal ── */
   .cd-vehicle-modal {
     background: #fff; border-radius: 20px;
