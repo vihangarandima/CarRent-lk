@@ -18,6 +18,11 @@ import {
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { API_URL } from "../config";
+import { getStoredUser, homePathFor, saveSession } from "../utils/session";
+
+// Only allow in-app redirects (no "//evil.com" or absolute URLs)
+const safeRedirect = (value) =>
+  value && value.startsWith("/") && !value.startsWith("//") ? value : null;
 
 const Register = () => {
   const navigate = useNavigate();
@@ -26,7 +31,7 @@ const Register = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      navigate("/home");
+      navigate(homePathFor(getStoredUser()), { replace: true });
     }
   }, [navigate]);
 
@@ -64,6 +69,52 @@ const Register = () => {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCode, setOtpCode] = useState(["", "", "", "", "", ""]);
   const [sendingOtp, setSendingOtp] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+
+  // Countdown before the "Resend code" button unlocks
+  useEffect(() => {
+    if (resendIn <= 0) return undefined;
+    const t = setTimeout(() => setResendIn((n) => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
+
+  // Accepts typing or pasting; spreads digits across the 6 boxes
+  const fillOtpFrom = (startIdx, rawValue) => {
+    const digits = String(rawValue).replace(/\D/g, "");
+    const newOtp = [...otpCode];
+    if (!digits) {
+      newOtp[startIdx] = "";
+      setOtpCode(newOtp);
+      return;
+    }
+    let idx = startIdx;
+    for (const d of digits) {
+      if (idx > 5) break;
+      newOtp[idx] = d;
+      idx += 1;
+    }
+    setOtpCode(newOtp);
+    document.getElementById(`otp-${Math.min(idx, 5)}`)?.focus();
+  };
+
+  const sendOtp = async () => {
+    setSendingOtp(true);
+    setError("");
+    try {
+      await axios.post(`${API_URL}/api/auth/send-otp`, {
+        email: formData.email,
+      });
+      setOtpCode(["", "", "", "", "", ""]);
+      setShowOtpModal(true);
+      setResendIn(30);
+      return true;
+    } catch (err) {
+      setError(err.response?.data?.msg || "Failed to send OTP code. Please check your connection and try again.");
+      return false;
+    } finally {
+      setSendingOtp(false);
+    }
+  };
 
   // Sync role with primaryGoal and listerType
   useEffect(() => {
@@ -124,16 +175,7 @@ const Register = () => {
         ...formData,
         otp: enteredOtp,
       });
-      if (res.data.company) {
-        res.data.user.companyId = res.data.company.id;
-        localStorage.setItem("company", JSON.stringify(res.data.company));
-      }
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      const redirectParam = queryParams.get("redirect");
-      const targetPath = redirectParam || "/home";
-      navigate(targetPath);
-      window.location.reload();
+      finishSignUp(res.data);
     } catch (err) {
       setError(err.response?.data?.msg || "OTP validation failed. Try again.");
     } finally {
@@ -141,11 +183,23 @@ const Register = () => {
     }
   };
 
+  // Listers go straight to their dashboard, renters to the marketplace
+  const finishSignUp = (data) => {
+    const user = saveSession(data);
+    window.location.href = safeRedirect(queryParams.get("redirect")) || homePathFor(user);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.phone.trim()) {
       setError("Mobile phone number is required to create an account.");
+      return;
+    }
+
+    const phoneDigits = formData.phone.replace(/\D/g, "");
+    if (phoneDigits.length < 9 || phoneDigits.length > 12) {
+      setError("Please enter a valid mobile number, e.g. 077 123 4567.");
       return;
     }
 
@@ -164,19 +218,9 @@ const Register = () => {
       return;
     }
 
-    // Trigger Send OTP
-    setSendingOtp(true);
-    setError("");
-    try {
-      await axios.post(`${API_URL}/api/auth/send-otp`, {
-        email: formData.email,
-      });
-      setShowOtpModal(true);
-    } catch (err) {
-      setError(err.response?.data?.msg || "Failed to send OTP code.");
-    } finally {
-      setSendingOtp(false);
-    }
+    // Trigger Send OTP (guard against double taps, which would invalidate the first code)
+    if (sendingOtp) return;
+    await sendOtp();
   };
 
   const handleGoogleSignIn = async () => {
@@ -186,29 +230,20 @@ const Register = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
+      const idToken = await user.getIdToken();
       const res = await axios.post(`${API_URL}/api/auth/firebase-login`, {
+        idToken,
         name: user.displayName,
-        email: user.email,
-        firebaseId: user.uid,
         role: formData.role,
         companyName: formData.companyName,
         phone: formData.phone,
         address: formData.address,
       });
 
-      if (res.data.company) {
-        res.data.user.companyId = res.data.company.id;
-        localStorage.setItem("company", JSON.stringify(res.data.company));
-      }
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      const redirectParam = queryParams.get("redirect");
-      const targetPath = redirectParam || "/home";
-      navigate(targetPath);
-      window.location.reload();
+      finishSignUp(res.data);
     } catch (err) {
       if (err.code !== "auth/popup-closed-by-user") {
-        setError("Google sign-up failed: " + err.message);
+        setError(err.response?.data?.msg || "Google sign-up failed: " + err.message);
       }
     } finally {
       setLoading(false);
@@ -244,7 +279,7 @@ const Register = () => {
 
           {step === 1 && (
             <div>
-              <span className="step-indicator-pill">Step 1 of 2</span>
+              <span className="step-indicator-pill">Step 1 of 3</span>
               <h1>What do you want to do today?</h1>
               <p>Tick the card below to get started on Yamu Car Rentals</p>
             </div>
@@ -614,19 +649,6 @@ const Register = () => {
                   </div>
 
                   <div className="input-group">
-                    <label>BUSINESS PHONE NUMBER</label>
-                    <div className="input-wrapper">
-                      <input
-                        type="text"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="+94 77 XXX XXXX"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="input-group">
                     <label>OPERATING ADDRESS / CITY</label>
                     <div className="input-wrapper">
                       <input
@@ -641,13 +663,13 @@ const Register = () => {
                 </div>
               )}
 
-              <button className="btn-register" type="submit" disabled={loading}>
+              <button className="btn-register" type="submit" disabled={loading || sendingOtp}>
                 {loading
                   ? "Processing..."
                   : sendingOtp
                   ? "Sending Code..."
                   : "Verify & Create Account"}
-                {!loading && <span className="arrow">→</span>}
+                {!loading && !sendingOtp && <span className="arrow">→</span>}
               </button>
             </form>
           </div>
@@ -674,17 +696,19 @@ const Register = () => {
                       key={idx}
                       id={`otp-${idx}`}
                       type="text"
-                      maxLength="1"
+                      inputMode="numeric"
+                      autoComplete={idx === 0 ? "one-time-code" : "off"}
+                      autoFocus={idx === 0}
+                      maxLength={idx === 0 ? 6 : 1}
                       value={digit}
                       onChange={(e) => {
                         const val = e.target.value;
-                        if (isNaN(val)) return;
-                        const newOtp = [...otpCode];
-                        newOtp[idx] = val.substring(val.length - 1);
-                        setOtpCode(newOtp);
-                        if (val && idx < 5) {
-                          document.getElementById(`otp-${idx + 1}`).focus();
-                        }
+                        // keep only the newly typed digit(s); a 6-digit autofill lands here too
+                        fillOtpFrom(idx, val.length > 1 && digit ? val.replace(digit, "") : val);
+                      }}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        fillOtpFrom(idx, e.clipboardData.getData("text"));
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Backspace" && !otpCode[idx] && idx > 0) {
@@ -695,6 +719,17 @@ const Register = () => {
                   ))}
                 </div>
                 {error && <p className="otp-error-msg">⚠️ {error}</p>}
+                <p style={{ fontSize: "0.8rem", color: "#64748b", textAlign: "center", margin: "8px 0 0" }}>
+                  Didn't get it? Check your Spam folder.{" "}
+                  <button
+                    type="button"
+                    onClick={sendOtp}
+                    disabled={resendIn > 0 || sendingOtp}
+                    style={{ background: "none", border: "none", padding: 0, color: resendIn > 0 ? "#94a3b8" : "#ea580c", fontWeight: 700, cursor: resendIn > 0 ? "default" : "pointer" }}
+                  >
+                    {sendingOtp ? "Sending..." : resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                  </button>
+                </p>
                 <div className="otp-actions">
                   <button
                     type="submit"

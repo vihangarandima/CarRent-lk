@@ -148,7 +148,10 @@ const Profile = () => {
 
   // Fetch real listed vehicles if user is host/owner
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      navigate("/login?redirect=/profile", { replace: true });
+      return;
+    }
     const fetchUserData = async () => {
       setLoadingVehicles(true);
       setLoadingReviews(true);
@@ -269,16 +272,16 @@ const Profile = () => {
 
   const stats = isRenter ? [
     {
-      icon: <Calendar size={20} />,
-      label: "My Trips",
-      value: "1",
-      colorClass: "icon-blue",
-    },
-    {
       icon: <Star size={20} />,
       label: "Reviews Given",
-      value: "1",
+      value: String(myReviews.length),
       colorClass: "icon-amber",
+    },
+    {
+      icon: <CheckCircle2 size={20} />,
+      label: "Email",
+      value: "Verified",
+      colorClass: "icon-green",
     }
   ] : [
     {

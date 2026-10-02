@@ -2,18 +2,27 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
+const { auth } = require("../middleware/auth");
 
-// Cloudinary credentials with verified project defaults so uploads NEVER fail
-const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "gjjnq5g0";
-const apiKey = process.env.CLOUDINARY_API_KEY || "719527795383164";
-const apiSecret = process.env.CLOUDINARY_API_SECRET || "5-qhsQBo_a62SzTyQDBpod-zjrc";
+// Credentials must come from the environment (never commit secrets to git)
+const cloudinaryConfigured = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET
+);
 
-cloudinary.config({
-  cloud_name: cloudName,
-  api_key: apiKey,
-  api_secret: apiSecret,
-  secure: true,
-});
+if (cloudinaryConfigured) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+  });
+} else {
+  console.error(
+    "Cloudinary is not configured: set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET."
+  );
+}
 
 // Use RAM memory buffer before direct stream to Cloudinary CDN
 const storage = multer.memoryStorage();
@@ -38,7 +47,12 @@ const upload = multer({
 
 // @route   POST api/upload
 // @desc    Upload an image directly to Cloudinary and return permanent CDN URL
-router.post("/", (req, res) => {
+router.post("/", auth, (req, res) => {
+  if (!cloudinaryConfigured) {
+    return res
+      .status(503)
+      .json({ msg: "Image storage is not configured on the server. Please contact support." });
+  }
   upload.single("image")(req, res, async (err) => {
     if (err) {
       if (err.code === "LIMIT_FILE_SIZE") {

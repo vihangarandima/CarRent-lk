@@ -31,4 +31,10 @@ const VehicleSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// Indexes for the queries the site runs on every page load
+VehicleSchema.index({ status: 1, isFeatured: -1, createdAt: -1 });
+VehicleSchema.index({ owner: 1, createdAt: -1 });
+VehicleSchema.index({ company: 1 });
+VehicleSchema.index({ vehicleType: 1, pricePerDay: 1 });
+
 module.exports = mongoose.model("Vehicle", VehicleSchema);

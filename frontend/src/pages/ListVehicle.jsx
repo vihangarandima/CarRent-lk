@@ -501,6 +501,15 @@ const ListVehicle = () => {
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
+  // Listing needs an account: send guests to sign in first instead of after filling the whole form
+  useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      toast.info("Please sign in or create a lister account to list your vehicle.");
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
@@ -578,7 +587,26 @@ const ListVehicle = () => {
 
   const nextStep = (e) => {
     e.preventDefault();
+    if (step === 1 && !formData.vehicleType) {
+      toast.warning("Please choose a vehicle type first.", "Vehicle Type Required");
+      return;
+    }
+    if (step === 2 && !(Number(formData.pricePerDay) > 0)) {
+      toast.warning("Please enter a valid daily price.", "Price Required");
+      return;
+    }
+    if (step === 3) {
+      if (Object.values(uploadingSlots).some(Boolean)) {
+        toast.warning("Please wait for all vehicle photos to finish uploading.", "Upload in Progress");
+        return;
+      }
+      if (!formData.images.some((img) => typeof img === "string" && img.trim() !== "")) {
+        toast.warning("Please upload at least 1 photo of your vehicle.", "Photos Required");
+        return;
+      }
+    }
     setStep(step + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const prevStep = (e) => {
@@ -963,11 +991,17 @@ const ListVehicle = () => {
         availableTo: endDate.toISOString(),
       };
 
-      await axios.post(`${API_URL}/api/vehicles`, payload, {
+      const res = await axios.post(`${API_URL}/api/vehicles`, payload, {
         headers: { "Content-Type": "application/json", "x-auth-token": token },
       });
-      const currentUser = JSON.parse(localStorage.getItem("user") || "null");
-      const targetUrl = currentUser?.role === "company" ? "/company-dashboard" : "/profile";
+      // Listing a car turns a renter account into a host account
+      let currentUser = JSON.parse(localStorage.getItem("user") || "null");
+      if (res.data?.listerRole && currentUser && currentUser.role !== res.data.listerRole) {
+        currentUser = { ...currentUser, role: res.data.listerRole };
+        localStorage.setItem("user", JSON.stringify(currentUser));
+        window.dispatchEvent(new Event("user-updated"));
+      }
+      const targetUrl = "/dashboard";
 
       showSuccessModal({
         title: "Vehicle Listed Successfully! 🎉",
@@ -979,7 +1013,7 @@ const ListVehicle = () => {
           location: formData.district || formData.location || "Sri Lanka",
           pricePerDay: formData.pricePerDay,
         },
-        primaryText: currentUser?.role === "company" ? "Go to Company Dashboard" : "View in My Profile",
+        primaryText: "Go to My Dashboard",
         onPrimary: () => {
           navigate(targetUrl);
         },
@@ -1093,7 +1127,7 @@ const ListVehicle = () => {
 
                   <div className="form-group">
                     <label>Year *</label>
-                    <input type="number" name="year" value={formData.year} onChange={handleChange} required placeholder="2020" min="1950" max="2026" />
+                    <input type="number" name="year" value={formData.year} onChange={handleChange} required placeholder="2020" min="1950" max={new Date().getFullYear() + 1} />
                   </div>
                 </div>
 
@@ -1144,14 +1178,14 @@ const ListVehicle = () => {
                     <label>Price Per Day (LKR) *</label>
                     <div className="input-with-prefix">
                       <span className="prefix">LKR</span>
-                      <input type="number" name="pricePerDay" value={formData.pricePerDay} onChange={handleChange} required placeholder="8000" />
+                      <input type="number" name="pricePerDay" value={formData.pricePerDay} onChange={handleChange} required min="1" placeholder="8000" />
                     </div>
                   </div>
                   <div className="form-group flex-1">
                     <label>Price Per Km After 100km (LKR) *</label>
                     <div className="input-with-prefix">
                       <span className="prefix">LKR</span>
-                      <input type="number" name="pricePerKmAfter100km" value={formData.pricePerKmAfter100km} onChange={handleChange} required placeholder="50" />
+                      <input type="number" name="pricePerKmAfter100km" value={formData.pricePerKmAfter100km} onChange={handleChange} required min="0" placeholder="50" />
                     </div>
                   </div>
                 </div>

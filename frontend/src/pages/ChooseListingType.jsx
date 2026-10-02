@@ -26,7 +26,7 @@ const ChooseListingType = () => {
       if (listerType === 'personal') {
         navigate('/list-my-car');
       } else {
-        navigate('/company-dashboard');
+        navigate('/dashboard?setup=company');
       }
       return;
     }
