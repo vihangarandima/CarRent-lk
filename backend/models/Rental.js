@@ -43,4 +43,7 @@ const RentalSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+RentalSchema.index({ owner: 1, createdAt: -1 });
+RentalSchema.index({ status: 1, returnDate: 1 });
+
 module.exports = mongoose.model("Rental", RentalSchema);

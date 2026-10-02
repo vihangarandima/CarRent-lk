@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config";
 import { useToast } from "../context/ToastContext";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
+import {
+  DASHBOARD_PATH,
+  logout,
+  setBrowsingAsCustomer,
+  updateStoredUser,
+} from "../utils/session";
 import {
   BarChart3,
   Building2,
@@ -16,6 +22,7 @@ import {
   CreditCard,
   Edit3,
   ExternalLink,
+  Eye,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -44,20 +51,35 @@ import {
 import { formatLKR } from "../data/mock";
 
 const navItems = [
-
   { label: "Overview", icon: LayoutDashboard },
   { label: "Fleet", icon: CarFront },
   { label: "Bookings", icon: CalendarCheck },
-  { label: "Payments", icon: CreditCard },
-  { label: "Customers", icon: Users },
-  { label: "Settings", icon: Settings },
 ];
+
+const greeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+};
+
+// Short Y-axis labels: 0, 500, 2k, 1.5M
+const formatAxis = (v) => {
+  if (v >= 1000000) return `${+(v / 1000000).toFixed(1)}M`;
+  if (v >= 1000) return `${+(v / 1000).toFixed(1)}k`;
+  return `${v}`;
+};
 
 export default function CompanyDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "null"));
+  // Personal hosts ("owner") use their own account details instead of a company profile
+  const isCompany = user?.role === "company";
+  const wantsCompanySetup = new URLSearchParams(location.search).get("setup") === "company";
+  const addVehiclePath = isCompany ? "/company-list-vehicle" : "/list-my-car";
 
   const [company, setCompany] = useState(null);
   const [vehicles, setVehicles] = useState([]);
@@ -95,15 +117,38 @@ export default function CompanyDashboard() {
 
   useEffect(() => {
     if (!token || !user) {
-      navigate("/login");
+      navigate(`/login?redirect=${encodeURIComponent(DASHBOARD_PATH)}`, { replace: true });
       return;
     }
+    if (user.role === "admin") {
+      navigate("/admin", { replace: true });
+      return;
+    }
+    if (user.role === "renter" && !wantsCompanySetup) {
+      navigate("/choose-listing-type", { replace: true });
+      return;
+    }
+    // Being on the dashboard means working as a lister, not browsing as a customer
+    setBrowsingAsCustomer(false);
+
+    const personalProfile = {
+      companyName: user.name,
+      phone: user.phone || "",
+      contactEmail: user.email || "",
+      isPersonal: true,
+    };
+
     const fetchData = async () => {
       try {
+        const companyReq =
+          user.role === "owner"
+            ? Promise.resolve({ data: personalProfile })
+            : axios.get(`${API_URL}/api/companies/me`).catch((err) => {
+                if (err.response?.status === 404) return { data: null };
+                throw err;
+              });
         const [companyRes, vehiclesRes, bidsRes, rentalsRes, rentalStatsRes] = await Promise.all([
-          axios.get(`${API_URL}/api/companies/me`, {
-            headers: { "x-auth-token": token },
-          }),
+          companyReq,
           axios.get(`${API_URL}/api/vehicles/my`, {
             headers: { "x-auth-token": token },
           }),
@@ -120,11 +165,6 @@ export default function CompanyDashboard() {
         if (companyRes.data) {
           setCompany(companyRes.data);
           setEditData(companyRes.data);
-          // Sync updated role in local storage
-          if (user && user.role !== "company") {
-            const updatedUser = { ...user, role: "company" };
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-          }
         }
         setVehicles(vehiclesRes.data || []);
         setBids(bidsRes.data || []);
@@ -132,11 +172,13 @@ export default function CompanyDashboard() {
         setRentalStats(rentalStatsRes.data || null);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
+        toast.error(err.response?.data?.msg || "Could not load your dashboard. Please refresh the page.");
       } finally {
         setLoading(false);
       }
     };
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleQuickCreate = async (e) => {
@@ -155,13 +197,15 @@ export default function CompanyDashboard() {
       );
       setCompany(res.data);
       setEditData(res.data);
-      if (user && user.role !== "company") {
-        const updatedUser = { ...user, role: "company" };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-      }
+      setUser(updateStoredUser({ role: "company", companyId: res.data._id }));
+      localStorage.setItem(
+        "company",
+        JSON.stringify({ id: res.data._id, companyName: res.data.companyName, logo: res.data.logo })
+      );
+      navigate(DASHBOARD_PATH, { replace: true });
       toast.success("Company profile created successfully!");
     } catch (err) {
-      toast.error("Failed to initialize company profile. Please try again.");
+      toast.error(err.response?.data?.msg || "Failed to initialize company profile. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -170,14 +214,25 @@ export default function CompanyDashboard() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await axios.put(`${API_URL}/api/companies/me`, editData, {
-        headers: { "x-auth-token": token },
-      });
-      setCompany(res.data);
+      if (company?.isPersonal) {
+        const res = await axios.post(`${API_URL}/api/auth/update-profile`, {
+          name: editData.companyName,
+          phone: editData.phone,
+        });
+        const saved = res.data.user;
+        setUser(updateStoredUser({ name: saved.name, phone: saved.phone }));
+        setCompany({ ...company, companyName: saved.name, phone: saved.phone });
+      } else {
+        const { companyName, phone, contactEmail, address, logo, description } = editData;
+        const res = await axios.put(`${API_URL}/api/companies/me`, {
+          companyName, phone, contactEmail, address, logo, description,
+        });
+        setCompany(res.data);
+      }
       setEditMode(false);
-      toast.success("Company profile updated successfully!");
+      toast.success("Profile updated successfully!");
     } catch (err) {
-      toast.error("Failed to save profile. Please try again.");
+      toast.error(err.response?.data?.msg || "Failed to save profile. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -240,10 +295,18 @@ export default function CompanyDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  const handleLogout = logout;
+
+  const browseAsCustomer = () => {
+    setBrowsingAsCustomer(true);
     navigate("/");
+  };
+
+  const startEditProfile = () => {
+    setEditData(company);
+    setEditMode(true);
+    setActiveTab("Overview");
+    setTimeout(() => document.getElementById("cd-profile")?.scrollIntoView({ behavior: "smooth" }), 50);
   };
 
   // ── Mark as Rented ──
@@ -486,10 +549,10 @@ export default function CompanyDashboard() {
         <div className="cd-layout">
           {/* ── Sidebar ── */}
           <aside className="cd-sidebar">
-            <Link to="/" className="cd-logo">
+            <Link to={DASHBOARD_PATH} className="cd-logo">
               <span className="cd-logo-icon"><CarFront size={18} /></span>
               <span className="cd-logo-text">
-                CarRents<span className="cd-logo-accent">.lk</span>
+                Yamu<span className="cd-logo-accent"> Car Rentals</span>
               </span>
             </Link>
 
@@ -505,10 +568,16 @@ export default function CompanyDashboard() {
 
               <div className="cd-nav-divider" />
 
-              <Link to={`/companies/${company._id}`} className="cd-nav-item" target="_blank">
-                <ExternalLink size={16} />
-                View Public Page
-              </Link>
+              <button type="button" className="cd-nav-item" onClick={browseAsCustomer}>
+                <Eye size={16} />
+                View site as customer
+              </button>
+              {!company.isPersonal && company._id && (
+                <Link to={`/companies/${company._id}`} className="cd-nav-item" target="_blank" rel="noopener noreferrer">
+                  <ExternalLink size={16} />
+                  View Public Page
+                </Link>
+              )}
 
               <div className="cd-nav-divider" />
 
@@ -521,9 +590,11 @@ export default function CompanyDashboard() {
             <div className="cd-sidebar-card">
               <p className="cd-sidebar-card-name">{company.companyName}</p>
               <p className="cd-sidebar-card-sub">
-                <CheckCircle size={10} style={{ color: "#10b981" }} /> Verified company · Colombo
+                <CheckCircle size={10} style={{ color: "#10b981" }} />{" "}
+                {company.isPersonal ? "Personal host" : "Rent-a-car company"}
+                {company.address ? ` · ${company.address}` : ""}
               </p>
-              <Link to="/list-my-car" className="cd-add-vehicle-btn">
+              <Link to={addVehiclePath} className="cd-add-vehicle-btn">
                 <Plus size={14} /> Add vehicle
               </Link>
             </div>
@@ -531,23 +602,54 @@ export default function CompanyDashboard() {
 
           {/* ── Main content ── */}
           <main className="cd-main">
-            <header className="cd-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <header className="cd-header">
               <div>
                 <h1 className="cd-title">
-                  Good morning, <span style={{ color: "#f97316" }}>{company.companyName}</span>
+                  {greeting()}, <span style={{ color: "#f97316" }}>{company.companyName}</span>
                 </h1>
-                <p className="cd-subtitle">Here's how your fleet performed this month.</p>
+                <p className="cd-subtitle">
+                  {company.isPersonal ? "Manage your vehicles and rentals." : "Manage your fleet, rentals and company profile."}
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="cd-btn-outline"
-                style={{ color: "#EF4444", borderColor: "rgba(239,68,68,0.3)", display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <LogOut size={14} />
-                <span>Log Out</span>
-              </button>
+              <div className="cd-header-actions">
+                <Link to={addVehiclePath} className="cd-btn-primary-sm cd-header-btn">
+                  <Plus size={14} /> Add vehicle
+                </Link>
+                <button type="button" onClick={browseAsCustomer} className="cd-btn-outline cd-header-btn">
+                  <Eye size={14} /> View site as customer
+                </button>
+                <button type="button" onClick={handleLogout} className="cd-btn-outline cd-header-btn cd-btn-logout">
+                  <LogOut size={14} /> Log out
+                </button>
+              </div>
             </header>
+
+            {/* Tabs for phones and tablets, where the sidebar is hidden */}
+            <nav className="cd-mobile-tabs" aria-label="Dashboard sections">
+              {navItems.map(({ label, icon: Icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`cd-mobile-tab ${activeTab === label ? "cd-mobile-tab-active" : ""}`}
+                  onClick={() => setActiveTab(label)}
+                >
+                  <Icon size={15} /> {label === "Bookings" ? "Rentals" : label}
+                </button>
+              ))}
+            </nav>
+
+            {!company.phone && (
+              <div className="cd-alert">
+                <Phone size={18} />
+                <div>
+                  <strong>Add your phone number</strong>
+                  <p>Customers contact you on WhatsApp from your listings. Without a number they can't reach you.</p>
+                </div>
+                <button type="button" className="cd-btn-primary-sm" onClick={startEditProfile}>
+                  Add number
+                </button>
+              </div>
+            )}
 
             {/* ── OVERVIEW TAB ── */}
             {activeTab === "Overview" && (
@@ -578,7 +680,7 @@ export default function CompanyDashboard() {
                           </defs>
                           <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" />
                           <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
-                          <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}k`} />
+                          <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatAxis} allowDecimals={false} domain={[0, (max) => Math.max(max, 10000)]} />
                           <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid #e5e7eb", background: "#fff", color: "#111827" }} formatter={(v) => formatLKR(v)} />
                           <Area type="monotone" dataKey="revenue" stroke="#0f766e" strokeWidth={3} fill="url(#rev)" />
                         </AreaChart>
@@ -590,18 +692,25 @@ export default function CompanyDashboard() {
                     <h2 className="cd-card-title">Quick actions</h2>
                     <div className="cd-actions-grid">
                       {[
-                        { label: "Add vehicle", icon: Plus, to: "/list-my-car" },
-                        { label: "New booking", icon: CalendarCheck },
-                        { label: "Withdraw", icon: Wallet },
-                        { label: "Reports", icon: BarChart3 },
-                      ].map(({ label, icon: Icon, to }) => (
+                        { label: "Add vehicle", icon: Plus, to: addVehiclePath },
+                        {
+                          label: "Record a rental",
+                          icon: KeyRound,
+                          onClick: () => {
+                            setActiveTab("Fleet");
+                            toast.info("Tap the key icon next to a vehicle to record a rental.");
+                          },
+                        },
+                        { label: "Rental records", icon: CalendarCheck, onClick: () => setActiveTab("Bookings") },
+                        { label: "View site as customer", icon: Eye, onClick: browseAsCustomer },
+                      ].map(({ label, icon: Icon, to, onClick }) => (
                         to ? (
                           <Link key={label} to={to} className="cd-action-btn">
                             <Icon size={20} className="cd-action-icon" />
                             <span className="cd-action-label">{label}</span>
                           </Link>
                         ) : (
-                          <button key={label} type="button" className="cd-action-btn">
+                          <button key={label} type="button" className="cd-action-btn" onClick={onClick}>
                             <Icon size={20} className="cd-action-icon" />
                             <span className="cd-action-label">{label}</span>
                           </button>
@@ -626,14 +735,14 @@ export default function CompanyDashboard() {
                 </div>
 
                 {/* ── Company Profile Card ── */}
-                <section className="cd-card cd-profile-card">
+                <section className="cd-card cd-profile-card" id="cd-profile">
                   <div className="cd-card-head">
                     <div>
-                      <h2 className="cd-card-title">Company Information</h2>
-                      <p className="cd-card-desc">Manage your public contact details.</p>
+                      <h2 className="cd-card-title">{company.isPersonal ? "My Contact Details" : "Company Information"}</h2>
+                      <p className="cd-card-desc">Customers use these details to contact you.</p>
                     </div>
                     {!editMode ? (
-                      <button className="cd-btn-outline" onClick={() => setEditMode(true)}>
+                      <button className="cd-btn-outline" onClick={startEditProfile}>
                         <Edit3 size={12} /> Edit
                       </button>
                     ) : (
@@ -646,7 +755,20 @@ export default function CompanyDashboard() {
                     )}
                   </div>
                   <div className="cd-card-body">
-                    {editMode ? (
+                    {editMode && company.isPersonal ? (
+                      <div className="cd-edit-form">
+                        <div className="cd-form-row">
+                          <div className="cd-form-group">
+                            <label>Full Name</label>
+                            <input type="text" value={editData.companyName || ""} onChange={(e) => setEditData({ ...editData, companyName: e.target.value })} />
+                          </div>
+                          <div className="cd-form-group">
+                            <label>Phone Number (WhatsApp)</label>
+                            <input type="tel" value={editData.phone || ""} placeholder="077 123 4567" onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
+                          </div>
+                        </div>
+                      </div>
+                    ) : editMode ? (
                       <div className="cd-edit-form">
                         <div className="cd-form-row">
                           <div className="cd-form-group">
@@ -654,8 +776,8 @@ export default function CompanyDashboard() {
                             <input type="text" value={editData.companyName || ""} onChange={(e) => setEditData({ ...editData, companyName: e.target.value })} />
                           </div>
                           <div className="cd-form-group">
-                            <label>Phone Number</label>
-                            <input type="text" value={editData.phone || ""} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
+                            <label>Phone Number (WhatsApp)</label>
+                            <input type="tel" value={editData.phone || ""} placeholder="077 123 4567" onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
                           </div>
                         </div>
                         <div className="cd-form-row">
@@ -679,10 +801,12 @@ export default function CompanyDashboard() {
                       </div>
                     ) : (
                       <div className="cd-info-grid">
-                        <div className="cd-info-item">
-                          <div className="cd-info-icon"><MapPin size={16} /></div>
-                          <div><span className="cd-info-label">Address</span><span className="cd-info-value">{company.address || "Not specified"}</span></div>
-                        </div>
+                        {!company.isPersonal && (
+                          <div className="cd-info-item">
+                            <div className="cd-info-icon"><MapPin size={16} /></div>
+                            <div><span className="cd-info-label">Address</span><span className="cd-info-value">{company.address || "Not specified"}</span></div>
+                          </div>
+                        )}
                         <div className="cd-info-item">
                           <div className="cd-info-icon"><Phone size={16} /></div>
                           <div><span className="cd-info-label">Phone</span><span className="cd-info-value">{company.phone || "Not specified"}</span></div>
@@ -709,9 +833,11 @@ export default function CompanyDashboard() {
                 <div className="cd-card-head">
                   <div>
                     <h2 className="cd-card-title">Vehicle Fleet</h2>
-                    <p className="cd-card-desc">You have {vehicles.length} vehicles active.</p>
+                    <p className="cd-card-desc">
+                      {totalVehicles} vehicle{totalVehicles === 1 ? "" : "s"} · {activeVehicles} available · {rentedVehicles} rented
+                    </p>
                   </div>
-                  <Link to="/list-my-car" className="cd-btn-primary-sm"><Plus size={12} /> Add</Link>
+                  <Link to={addVehiclePath} className="cd-btn-primary-sm"><Plus size={12} /> Add</Link>
                 </div>
                 <div className="cd-card-body" style={{ padding: 0 }}>
                   {vehicles.length === 0 ? (
@@ -719,7 +845,7 @@ export default function CompanyDashboard() {
                       <Car size={24} style={{ color: "#f97316" }} />
                       <h3>Your fleet is empty</h3>
                       <p>Start building your presence.</p>
-                      <Link to="/list-my-car" className="cd-add-vehicle-btn" style={{ marginTop: 8 }}>Add Vehicle</Link>
+                      <Link to={addVehiclePath} className="cd-add-vehicle-btn" style={{ marginTop: 8 }}>Add Vehicle</Link>
                     </div>
                   ) : (
                     <div className="cd-table-wrap">
@@ -899,16 +1025,6 @@ export default function CompanyDashboard() {
               </section>
             )}
 
-            {/* ── OTHER TABS (Coming Soon) ── */}
-            {!["Overview", "Fleet", "Bookings"].includes(activeTab) && (
-              <section className="cd-card" style={{ marginTop: 24 }}>
-                <div className="cd-empty-state">
-                  <Settings size={32} style={{ color: "#f97316" }} />
-                  <h3>{activeTab}</h3>
-                  <p>This section is coming soon.</p>
-                </div>
-              </section>
-            )}
           </main>
         </div>
       </div>
@@ -1379,6 +1495,37 @@ const dashboardCSS = `
   .cd-layout { display: flex; max-width: 1500px; margin: 0 auto; }
 
   /* ── Sidebar ── */
+  .cd-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cd-header-btn { padding: 8px 14px !important; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .cd-btn-logout { color: #EF4444 !important; border-color: rgba(239,68,68,0.3) !important; }
+  .cd-mobile-tabs { display: none; }
+  .cd-mobile-tab {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 8px; border: none; border-radius: 999px; background: transparent;
+    color: #71717a; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit;
+  }
+  .cd-mobile-tab-active { background: #0f766e; color: #fff; }
+  .cd-alert {
+    display: flex; align-items: center; gap: 14px; margin-top: 20px; padding: 14px 18px;
+    background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; color: #9a3412;
+  }
+  .cd-alert > div { flex: 1; min-width: 0; }
+  .cd-alert strong { display: block; font-size: 0.9rem; }
+  .cd-alert p { margin: 2px 0 0; font-size: 0.8rem; color: #9a3412; }
+  #cd-profile { scroll-margin-top: 16px; }
+  @media (max-width: 1024px) {
+    .cd-mobile-tabs {
+      display: flex; gap: 4px; margin-top: 16px; padding: 4px; background: #fff;
+      border: 1px solid rgba(228,228,231,0.8); border-radius: 999px;
+      position: sticky; top: 8px; z-index: 20; box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+    }
+  }
+  @media (max-width: 640px) {
+    .cd-header-actions { width: 100%; }
+    .cd-header-btn { flex: 1 1 auto; justify-content: center; }
+    .cd-alert { flex-wrap: wrap; }
+  }
+
   .cd-sidebar {
     position: sticky; top: 0; width: 250px; flex-shrink: 0;
     height: 100vh; overflow-y: auto; padding: 24px 20px;

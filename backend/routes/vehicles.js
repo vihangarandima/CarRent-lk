@@ -23,10 +23,9 @@ const cleanImages = (images) =>
 // @desc    Get all vehicles with filters (only active public listings by default)
 router.get("/", async (req, res) => {
   try {
-    const { brand, model, location, minPrice, maxPrice, companyId, vehicleType, status } = req.query;
-    let query = {
-      status: status || { $nin: ["hidden", "flagged", "rented"] },
-    };
+    const { brand, model, location, minPrice, maxPrice, companyId, vehicleType } = req.query;
+    // Paused, flagged and currently-rented vehicles are never listed publicly
+    let query = { status: { $nin: ["hidden", "flagged", "rented"] } };
     if (brand) query.brand = new RegExp(escapeRegex(brand), "i");
     if (model) query.model = new RegExp(escapeRegex(model), "i");
     if (location) query.location = new RegExp(escapeRegex(location), "i");
@@ -187,22 +186,29 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// @route   PUT api/vehicles/:id
-// @desc    Update a listing (only the lister who owns it)
-router.put("/:id", auth, async (req, res) => {
+// @route   PUT / PATCH api/vehicles/:id  (and PATCH api/vehicles/:id/availability)
+// @desc    Update a listing: its owner, the company it belongs to, or an admin
+const handleVehicleUpdate = async (req, res) => {
   try {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Vehicle not found" });
     const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
-    if (vehicle.owner.toString() !== req.user.id)
-      return res.status(403).json({ msg: "Not authorized" });
+
+    const user = await User.findById(req.user.id).select("role");
+    const isAdmin = user?.role === "admin";
+    let isAuthorized = isAdmin || vehicle.owner.toString() === req.user.id;
+    if (!isAuthorized && vehicle.company) {
+      const company = await Company.findOne({ user: req.user.id }).select("_id");
+      isAuthorized = Boolean(company && vehicle.company.toString() === company._id.toString());
+    }
+    if (!isAuthorized) return res.status(403).json({ msg: "Not authorized" });
 
     const editable = [
       "brand", "model", "year", "pricePerDay", "pricePerKmAfter100km", "fuelType",
       "transmission", "description", "location", "lat", "lng", "availableFrom", "availableTo",
     ];
     for (const key of editable) {
-      if (req.body[key] !== undefined) vehicle[key] = req.body[key];
+      if (req.body[key] !== undefined && req.body[key] !== "") vehicle[key] = req.body[key];
     }
 
     if (req.body.vehicleType !== undefined) {
@@ -220,15 +226,21 @@ router.put("/:id", auth, async (req, res) => {
       vehicle.images = validImages;
     }
 
-    // Owners can pause/resume a listing, but cannot clear an admin flag
-    if (req.body.status !== undefined) {
-      if (!["active", "hidden"].includes(req.body.status)) {
+    // Status: listers may pause/resume. "rented" is managed by the rentals flow,
+    // and only an admin can clear a "flagged" listing.
+    const nextStatus = req.body.status;
+    if (nextStatus !== undefined && nextStatus !== vehicle.status) {
+      if (isAdmin) {
+        vehicle.status = nextStatus;
+      } else if (!["active", "hidden"].includes(nextStatus)) {
         return res.status(400).json({ msg: "Invalid status" });
-      }
-      if (vehicle.status === "flagged") {
+      } else if (vehicle.status === "flagged") {
         return res.status(403).json({ msg: "This listing was flagged by an admin. Please contact support." });
+      } else if (vehicle.status === "rented") {
+        return res.status(400).json({ msg: "This vehicle is currently rented. Mark the rental as returned first." });
+      } else {
+        vehicle.status = nextStatus;
       }
-      vehicle.status = req.body.status;
     }
 
     if (!(Number(vehicle.pricePerDay) > 0)) {
@@ -243,67 +255,6 @@ router.put("/:id", auth, async (req, res) => {
       return res.status(400).json({ msg: err.message });
     }
     res.status(500).json({ msg: "Server error while updating the listing" });
-  }
-});
-
-// @route   PUT /api/vehicles/:id and PATCH /api/vehicles/:id
-// @desc    Update vehicle details and availability (owner or company)
-const handleVehicleUpdate = async (req, res) => {
-  try {
-    const vehicle = await Vehicle.findById(req.params.id);
-    if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
-
-    let isAuthorized = vehicle.owner && vehicle.owner.toString() === req.user.id;
-    if (!isAuthorized && vehicle.company) {
-      const company = await Company.findOne({ user: req.user.id });
-      if (company && vehicle.company.toString() === company._id.toString()) {
-        isAuthorized = true;
-      }
-    }
-    const user = await User.findById(req.user.id);
-    if (user && user.role === "admin") isAuthorized = true;
-
-    if (!isAuthorized) {
-      return res.status(401).json({ msg: "Not authorized to update this vehicle" });
-    }
-
-    const {
-      brand,
-      model,
-      year,
-      pricePerDay,
-      pricePerKmAfter100km,
-      vehicleType,
-      fuelType,
-      transmission,
-      description,
-      location,
-      availableFrom,
-      availableTo,
-      status,
-      images,
-    } = req.body;
-
-    if (brand !== undefined) vehicle.brand = brand;
-    if (model !== undefined) vehicle.model = model;
-    if (year !== undefined && !isNaN(Number(year))) vehicle.year = Number(year);
-    if (pricePerDay !== undefined && !isNaN(Number(pricePerDay))) vehicle.pricePerDay = Number(pricePerDay);
-    if (pricePerKmAfter100km !== undefined && !isNaN(Number(pricePerKmAfter100km))) vehicle.pricePerKmAfter100km = Number(pricePerKmAfter100km);
-    if (vehicleType !== undefined) vehicle.vehicleType = vehicleType;
-    if (fuelType !== undefined) vehicle.fuelType = fuelType;
-    if (transmission !== undefined) vehicle.transmission = transmission;
-    if (description !== undefined) vehicle.description = description;
-    if (location !== undefined) vehicle.location = location;
-    if (availableFrom !== undefined) vehicle.availableFrom = availableFrom;
-    if (availableTo !== undefined) vehicle.availableTo = availableTo;
-    if (status !== undefined) vehicle.status = status;
-    if (Array.isArray(images) && images.length > 0) vehicle.images = images;
-
-    const updatedVehicle = await vehicle.save();
-    res.json(updatedVehicle);
-  } catch (err) {
-    console.error("Vehicle update error:", err);
-    res.status(500).json({ msg: err.message || "Server Error" });
   }
 };
 

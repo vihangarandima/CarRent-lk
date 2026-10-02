@@ -3,21 +3,10 @@ const router = express.Router();
 const Rental = require("../models/Rental");
 const Vehicle = require("../models/Vehicle");
 const Company = require("../models/Company");
-const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
+const { auth } = require("../middleware/auth");
 
-// Middleware to verify JWT
-const auth = (req, res, next) => {
-  const token = req.header("x-auth-token");
-  if (!token)
-    return res.status(401).json({ msg: "No token, authorization denied" });
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ msg: "Token is not valid" });
-  }
-};
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // ── Auto-expire helper ──
 // Checks all active rentals for this owner where returnDate has passed,
@@ -63,7 +52,7 @@ router.get("/my", auth, async (req, res) => {
     res.json(rentals);
   } catch (err) {
     console.error("Error fetching rentals:", err);
-    res.status(500).send("Server Error");
+    res.status(500).json({ msg: "Server Error" });
   }
 });
 
@@ -115,7 +104,7 @@ router.get("/stats", auth, async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching rental stats:", err);
-    res.status(500).send("Server Error");
+    res.status(500).json({ msg: "Server Error" });
   }
 });
 
@@ -142,18 +131,31 @@ router.post("/", auth, async (req, res) => {
     }
 
     // Verify vehicle belongs to user
+    if (!isValidId(vehicleId)) return res.status(404).json({ msg: "Vehicle not found" });
     const vehicle = await Vehicle.findById(vehicleId);
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
     if (vehicle.owner.toString() !== req.user.id) {
-      return res.status(401).json({ msg: "Not authorized - vehicle doesn't belong to you" });
+      return res.status(403).json({ msg: "Not authorized - vehicle doesn't belong to you" });
+    }
+    if (vehicle.status === "rented") {
+      return res.status(400).json({ msg: "This vehicle is already rented. Mark that rental as returned first." });
     }
 
     // Calculate total days and amount
     const pickup = new Date(pickupDate);
     const returnD = new Date(returnDate);
+    if (Number.isNaN(pickup.getTime()) || Number.isNaN(returnD.getTime())) {
+      return res.status(400).json({ msg: "Please enter valid pickup and return dates." });
+    }
+    if (returnD < pickup) {
+      return res.status(400).json({ msg: "Return date must be on or after the pickup date." });
+    }
     const diffMs = returnD - pickup;
     const totalDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
     const rate = Number(dailyRate) || vehicle.pricePerDay || 0;
+    if (!(rate > 0)) {
+      return res.status(400).json({ msg: "Please enter a valid daily rate." });
+    }
     const totalAmount = totalDays * rate + (Number(extraKmCharge) || 0);
 
     // Find company if exists
@@ -185,9 +187,11 @@ router.post("/", auth, async (req, res) => {
 
     const rental = await newRental.save();
 
-    // Mark the vehicle as "rented" status (hides from public listings)
-    vehicle.status = "rented";
-    await vehicle.save();
+    // Mark the vehicle as "rented" (hides it from public listings) unless an admin flagged it
+    if (vehicle.status !== "flagged") {
+      vehicle.status = "rented";
+      await vehicle.save();
+    }
 
     // Populate vehicle data before returning
     const populatedRental = await Rental.findById(rental._id).populate(
@@ -198,7 +202,7 @@ router.post("/", auth, async (req, res) => {
     res.json(populatedRental);
   } catch (err) {
     console.error("Rental creation error:", err);
-    res.status(500).json({ msg: err.message || "Server Error" });
+    res.status(500).json({ msg: "Server error while recording the rental" });
   }
 });
 
@@ -206,29 +210,32 @@ router.post("/", auth, async (req, res) => {
 // @desc    Update rental (e.g., mark as completed/returned)
 router.put("/:id", auth, async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Rental not found" });
     const rental = await Rental.findById(req.params.id);
     if (!rental) return res.status(404).json({ msg: "Rental not found" });
     if (rental.owner.toString() !== req.user.id) {
-      return res.status(401).json({ msg: "Not authorized" });
+      return res.status(403).json({ msg: "Not authorized" });
     }
 
     const { status, extraKmCharge, notes } = req.body;
 
-    if (status !== undefined) {
+    if (status !== undefined && status !== rental.status) {
+      if (!["completed", "cancelled"].includes(status) || rental.status !== "active") {
+        return res.status(400).json({ msg: "Only an active rental can be marked returned or cancelled." });
+      }
       rental.status = status;
 
-      // When rental is completed or cancelled, set vehicle back to active
-      if (status === "completed" || status === "cancelled") {
-        const vehicle = await Vehicle.findById(rental.vehicle);
-        if (vehicle) {
-          vehicle.status = "active";
-          await vehicle.save();
-        }
+      // The vehicle is free again — but don't undo a pause or an admin flag
+      const vehicle = await Vehicle.findById(rental.vehicle);
+      if (vehicle && vehicle.status === "rented") {
+        vehicle.status = "active";
+        await vehicle.save();
       }
     }
     if (extraKmCharge !== undefined) {
-      rental.extraKmCharge = Number(extraKmCharge);
-      rental.totalAmount = rental.totalDays * rental.dailyRate + Number(extraKmCharge);
+      const extra = Math.max(0, Number(extraKmCharge) || 0);
+      rental.extraKmCharge = extra;
+      rental.totalAmount = rental.totalDays * rental.dailyRate + extra;
     }
     if (notes !== undefined) rental.notes = notes;
 
@@ -240,7 +247,7 @@ router.put("/:id", auth, async (req, res) => {
     res.json(populated);
   } catch (err) {
     console.error("Rental update error:", err);
-    res.status(500).json({ msg: err.message || "Server Error" });
+    res.status(500).json({ msg: "Server error while updating the rental" });
   }
 });
 
@@ -248,10 +255,11 @@ router.put("/:id", auth, async (req, res) => {
 // @desc    Delete a rental record
 router.delete("/:id", auth, async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Rental not found" });
     const rental = await Rental.findById(req.params.id);
     if (!rental) return res.status(404).json({ msg: "Rental not found" });
     if (rental.owner.toString() !== req.user.id) {
-      return res.status(401).json({ msg: "Not authorized" });
+      return res.status(403).json({ msg: "Not authorized" });
     }
 
     // If was active, set vehicle back to active
@@ -267,7 +275,7 @@ router.delete("/:id", auth, async (req, res) => {
     res.json({ msg: "Rental record removed" });
   } catch (err) {
     console.error("Rental delete error:", err);
-    res.status(500).send("Server Error");
+    res.status(500).json({ msg: "Server Error" });
   }
 });
 

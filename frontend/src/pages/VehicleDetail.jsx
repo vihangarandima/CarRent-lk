@@ -170,7 +170,7 @@ const VehicleDetail = () => {
   const directPhone = vehicle.company?.phone || vehicle.owner?.phone || "";
   const viewer = getStoredUser();
   const isOwnListing = Boolean(viewer && vehicle.owner?._id && (viewer.id || viewer._id) === vehicle.owner._id);
-  const isUnavailable = vehicle.status === "hidden" || vehicle.status === "flagged";
+  const isUnavailable = ["hidden", "flagged", "rented"].includes(vehicle.status);
 
   const rawImages = Array.isArray(vehicle.images) && vehicle.images.length > 0
     ? vehicle.images.filter(img => typeof img === "string" && img.trim() !== "")
@@ -422,8 +422,12 @@ const VehicleDetail = () => {
 
               {isUnavailable && !isOwnListing ? (
                 <div className="sent-msg">
-                  <h3>Currently unavailable</h3>
-                  <p>This vehicle is not taking bookings right now. Browse similar vehicles instead.</p>
+                  <h3>{vehicle.status === "rented" ? "Currently rented" : "Currently unavailable"}</h3>
+                  <p>
+                    {vehicle.status === "rented"
+                      ? "This vehicle is out on a rental right now. Browse similar vehicles instead."
+                      : "This vehicle is not taking bookings right now. Browse similar vehicles instead."}
+                  </p>
                   <Link to="/vehicles" className="btn-primary" style={{ marginTop: 12, padding: "8px 16px", fontSize: "0.88rem", display: "inline-block" }}>
                     Browse vehicles
                   </Link>
