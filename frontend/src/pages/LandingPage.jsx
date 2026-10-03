@@ -152,6 +152,7 @@ const resolveTestimonialAvatar = (t) => {
 const LandingPage = () => {
   const { config } = useSiteConfig();
   const [featuredCars, setFeaturedCars] = useState([]);
+  const [totalListed, setTotalListed] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const activeCategories = config?.home?.categories || categories;
@@ -167,7 +168,7 @@ const LandingPage = () => {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const listTarget =
     user?.role === "company"
-      ? "/company-list-vehicle"
+      ? "/fleet/quick-add"
       : user?.role === "owner"
       ? "/list-my-car"
       : "/choose-listing-type";
@@ -185,6 +186,7 @@ const LandingPage = () => {
         });
         // Display top 8 vehicles on Home Page
         setFeaturedCars(sorted.slice(0, 8));
+        setTotalListed(allCars.length);
       } catch (error) {
         console.error("Error fetching cars:", error);
       } finally {
@@ -324,16 +326,16 @@ const LandingPage = () => {
 
                 <div className="hiw-glass-stats">
                   <div className="hiw-stat">
-                    <span className="hiw-stat-val">200+</span>
-                    <span className="hiw-stat-label">CARS</span>
+                    <span className="hiw-stat-val">{totalListed ?? "—"}</span>
+                    <span className="hiw-stat-label">{totalListed === 1 ? "VEHICLE" : "VEHICLES"}</span>
                   </div>
                   <div className="hiw-stat">
                     <span className="hiw-stat-val">2</span>
                     <span className="hiw-stat-label">MINS</span>
                   </div>
                   <div className="hiw-stat">
-                    <span className="hiw-stat-val">24/7</span>
-                    <span className="hiw-stat-label">SUPPORT</span>
+                    <span className="hiw-stat-val">Rs. 0</span>
+                    <span className="hiw-stat-label">BOOKING FEES</span>
                   </div>
                 </div>
               </div>
@@ -382,7 +384,7 @@ const LandingPage = () => {
             >
               <span className="section-badge">Why Yamu Car Rentals?</span>
               <h2 className="section-title">
-                The most trusted car sharing marketplace in{" "}
+                The simple way to rent a vehicle in{" "}
                 <span className="text-gradient">Sri Lanka</span>
               </h2>
 
@@ -390,18 +392,18 @@ const LandingPage = () => {
                 {[
                   {
                     icon: ShieldCheck,
-                    title: "Fully Insured",
-                    desc: "Every trip covered by comprehensive insurance.",
+                    title: "Deal directly with owners",
+                    desc: "Message the owner on WhatsApp and agree everything before you pay.",
                   },
                   {
                     icon: HeartHandshake,
-                    title: "Verified Hosts",
-                    desc: "Every host and vehicle manually verified.",
+                    title: "Verified contacts",
+                    desc: "Every lister confirms their email and mobile number when signing up.",
                   },
                   {
                     icon: Clock,
-                    title: "24/7 Support",
-                    desc: "Dedicated support team always here to help.",
+                    title: "WhatsApp support",
+                    desc: "Questions? Tap the WhatsApp button and talk to the Yamu team.",
                   },
                 ].map((b, i) => (
                   <li key={i}>
@@ -434,18 +436,18 @@ const LandingPage = () => {
               />
               <div className="trust-card">
                 <div className="trust-stat">
-                  <span className="stat-number">5,000+</span>
-                  <span className="stat-label">Happy Renters</span>
+                  <span className="stat-number">{totalListed ?? "—"}</span>
+                  <span className="stat-label">Vehicles Listed</span>
                 </div>
                 <div className="trust-divider" />
                 <div className="trust-stat">
-                  <span className="stat-number">4.9/5</span>
-                  <span className="stat-label">Avg. Rating</span>
+                  <span className="stat-number">Rs. 0</span>
+                  <span className="stat-label">Booking Fees</span>
                 </div>
                 <div className="trust-divider" />
                 <div className="trust-stat">
-                  <span className="stat-number">500+</span>
-                  <span className="stat-label">Verified Hosts</span>
+                  <span className="stat-number">Direct</span>
+                  <span className="stat-label">Owner Contact</span>
                 </div>
               </div>
             </motion.div>

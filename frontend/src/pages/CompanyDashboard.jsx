@@ -4,6 +4,8 @@ import axios from "axios";
 import { API_URL } from "../config";
 import { useToast } from "../context/ToastContext";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
+import logo from "../assets/images/logo.png";
+import { uploadVehicleImage } from "../utils/uploadImage";
 import {
   DASHBOARD_PATH,
   logout,
@@ -23,6 +25,9 @@ import {
   Edit3,
   ExternalLink,
   Eye,
+  Camera,
+  Loader2,
+  Search,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -79,7 +84,8 @@ export default function CompanyDashboard() {
   // Personal hosts ("owner") use their own account details instead of a company profile
   const isCompany = user?.role === "company";
   const wantsCompanySetup = new URLSearchParams(location.search).get("setup") === "company";
-  const addVehiclePath = isCompany ? "/company-list-vehicle" : "/list-my-car";
+  // Companies add vehicles in bulk; personal hosts use the step-by-step form
+  const addVehiclePath = isCompany ? "/fleet/quick-add" : "/list-my-car";
 
   const [company, setCompany] = useState(null);
   const [vehicles, setVehicles] = useState([]);
@@ -296,6 +302,61 @@ export default function CompanyDashboard() {
   };
 
   const handleLogout = logout;
+
+  // ── One-line fleet management ──
+  const [fleetSearch, setFleetSearch] = useState("");
+  const [rowBusy, setRowBusy] = useState({});
+  const [priceDrafts, setPriceDrafts] = useState({});
+
+  const patchVehicle = async (v, changes, successMsg) => {
+    setRowBusy((b) => ({ ...b, [v._id]: true }));
+    try {
+      const res = await axios.put(`${API_URL}/api/vehicles/${v._id}`, changes);
+      setVehicles((prev) => prev.map((x) => (x._id === v._id ? { ...x, ...res.data } : x)));
+      if (successMsg) toast.success(successMsg);
+      return true;
+    } catch (err) {
+      toast.error(err.response?.data?.msg || "Could not update this vehicle.");
+      return false;
+    } finally {
+      setRowBusy((b) => ({ ...b, [v._id]: false }));
+    }
+  };
+
+  const commitPrice = async (v) => {
+    const draft = priceDrafts[v._id];
+    if (draft === undefined) return;
+    const price = Number(draft);
+    if (!(price > 0)) {
+      toast.warning("Enter a valid daily price.");
+      setPriceDrafts((d) => ({ ...d, [v._id]: undefined }));
+      return;
+    }
+    if (price !== Number(v.pricePerDay)) {
+      await patchVehicle(v, { pricePerDay: price }, `${v.brand} ${v.model}: price updated.`);
+    }
+    setPriceDrafts((d) => ({ ...d, [v._id]: undefined }));
+  };
+
+  const toggleLive = (v) =>
+    patchVehicle(
+      v,
+      { status: v.status === "hidden" ? "active" : "hidden" },
+      v.status === "hidden" ? `${v.brand} ${v.model} is live again.` : `${v.brand} ${v.model} is paused and hidden from customers.`
+    );
+
+  const addRowPhoto = async (v, file) => {
+    if (!file) return;
+    setRowBusy((b) => ({ ...b, [v._id]: true }));
+    try {
+      const url = await uploadVehicleImage(file);
+      await patchVehicle(v, { images: [url, ...(v.images || [])].slice(0, 5) }, "Photo added.");
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setRowBusy((b) => ({ ...b, [v._id]: false }));
+    }
+  };
 
   const browseAsCustomer = () => {
     setBrowsingAsCustomer(true);
@@ -550,7 +611,7 @@ export default function CompanyDashboard() {
           {/* ── Sidebar ── */}
           <aside className="cd-sidebar">
             <Link to={DASHBOARD_PATH} className="cd-logo">
-              <span className="cd-logo-icon"><CarFront size={18} /></span>
+              <img src={logo} alt="" className="cd-logo-img" />
               <span className="cd-logo-text">
                 Yamu<span className="cd-logo-accent"> Car Rentals</span>
               </span>
@@ -674,15 +735,15 @@ export default function CompanyDashboard() {
                         <AreaChart data={revenueChartData}>
                           <defs>
                             <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#0f766e" stopOpacity={0.55} />
-                              <stop offset="100%" stopColor="#0f766e" stopOpacity={0} />
+                              <stop offset="0%" stopColor="#ea580c" stopOpacity={0.55} />
+                              <stop offset="100%" stopColor="#ea580c" stopOpacity={0} />
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" />
                           <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
                           <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatAxis} allowDecimals={false} domain={[0, (max) => Math.max(max, 10000)]} />
                           <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid #e5e7eb", background: "#fff", color: "#111827" }} formatter={(v) => formatLKR(v)} />
-                          <Area type="monotone" dataKey="revenue" stroke="#0f766e" strokeWidth={3} fill="url(#rev)" />
+                          <Area type="monotone" dataKey="revenue" stroke="#ea580c" strokeWidth={3} fill="url(#rev)" />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
@@ -848,80 +909,101 @@ export default function CompanyDashboard() {
                       <Link to={addVehiclePath} className="cd-add-vehicle-btn" style={{ marginTop: 8 }}>Add Vehicle</Link>
                     </div>
                   ) : (
-                    <div className="cd-table-wrap">
-                      <table className="cd-table">
-                        <thead>
-                          <tr>
-                            <th>Vehicle Details</th>
-                            <th>Location</th>
-                            <th>Rate / Day</th>
-                            <th style={{ textAlign: "right" }}>Manage</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {vehicles.map((v) => (
-                            <tr key={v._id}>
-                              <td style={{ cursor: "pointer" }} onClick={() => handleOpenVehicleProfile(v)}>
-                                <div className="cd-cell-vehicle">
-                                  {v.images && v.images.length > 0 ? (
-                                    <img
-                                      src={formatVehicleImageUrl(v.images, v.vehicleType)}
-                                      alt={v.brand}
-                                      className="cd-vehicle-thumb"
-                                      onError={(e) => handleImageError(e, formatVehicleImageUrl(null, v.vehicleType))}
-                                    />
-                                  ) : (
-                                    <div className="cd-vehicle-thumb-placeholder"><Car size={14} /></div>
-                                  )}
-                                  <div>
-                                    <span className="cd-vehicle-name">{v.brand} {v.model}</span>
-                                    <span className="cd-vehicle-year">
-                                      {v.year} · <span style={{ color: v.status === "rented" ? "#ef4444" : (v.status || "active") === "active" ? "#10b981" : "#f97316", fontWeight: 600 }}>{v.status === "rented" ? "🔑 Rented" : (v.status || "active") === "active" ? "Active" : "Hidden"}</span>
-                                    </span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="cd-cell-muted">
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                  <MapPin size={12} /> {v.location}
-                                </span>
-                              </td>
-                              <td className="cd-cell-price">LKR {v.pricePerDay?.toLocaleString()}</td>
-                              <td>
+                    <>
+                      {vehicles.length > 5 && (
+                        <div className="cd-fleet-search">
+                          <Search size={16} />
+                          <input
+                            value={fleetSearch}
+                            onChange={(e) => setFleetSearch(e.target.value)}
+                            placeholder="Search your fleet by brand, model or location..."
+                            aria-label="Search fleet"
+                          />
+                        </div>
+                      )}
+                      <div className="cd-fleet-list">
+                        {vehicles
+                          .filter((v) => {
+                            const q = fleetSearch.trim().toLowerCase();
+                            return !q || `${v.brand} ${v.model} ${v.location} ${v.year}`.toLowerCase().includes(q);
+                          })
+                          .map((v) => {
+                            const status = v.status || "active";
+                            const hasPhoto = Array.isArray(v.images) && v.images.length > 0;
+                            const busy = rowBusy[v._id];
+                            return (
+                              <div key={v._id} className="cd-fleet-row">
+                                <label className="cd-fleet-photo" title={hasPhoto ? "Add another photo" : "Add a photo"}>
+                                  <input type="file" accept="image/*" hidden disabled={busy}
+                                    onChange={(e) => { addRowPhoto(v, e.target.files?.[0]); e.target.value = ""; }} />
+                                  <img
+                                    src={formatVehicleImageUrl(v.images, v.vehicleType)}
+                                    alt={`${v.brand} ${v.model}`}
+                                    onError={(e) => handleImageError(e, formatVehicleImageUrl(null, v.vehicleType))}
+                                  />
+                                  <span className={`cd-fleet-photo-badge ${hasPhoto ? "" : "cd-fleet-photo-missing"}`}>
+                                    {busy ? <Loader2 size={12} className="cd-spin" /> : <Camera size={12} />}
+                                  </span>
+                                </label>
+
+                                <button type="button" className="cd-fleet-info" onClick={() => handleOpenVehicleProfile(v)} title="Edit all details">
+                                  <span className="cd-vehicle-name">{v.brand} {v.model}</span>
+                                  <span className="cd-vehicle-year">
+                                    {v.year} · {v.location}{!hasPhoto && <span className="cd-fleet-nophoto"> · No photo yet</span>}
+                                  </span>
+                                </button>
+
+                                <label className="cd-fleet-price" title="Price per day">
+                                  <span>LKR</span>
+                                  <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    min="1"
+                                    value={priceDrafts[v._id] ?? v.pricePerDay ?? ""}
+                                    disabled={busy}
+                                    onChange={(e) => setPriceDrafts((d) => ({ ...d, [v._id]: e.target.value }))}
+                                    onBlur={() => commitPrice(v)}
+                                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                                    aria-label={`Price per day for ${v.brand} ${v.model}`}
+                                  />
+                                  <span>/day</span>
+                                </label>
+
+                                {status === "rented" ? (
+                                  <span className="cd-fleet-status cd-fleet-rented">🔑 Rented</span>
+                                ) : status === "flagged" ? (
+                                  <span className="cd-fleet-status cd-fleet-flagged">Under review</span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className={`cd-fleet-toggle ${status === "active" ? "on" : ""}`}
+                                    onClick={() => toggleLive(v)}
+                                    disabled={busy}
+                                    title={status === "active" ? "Pause (hide from customers)" : "Make live"}
+                                  >
+                                    <span className="cd-fleet-knob" />
+                                    {status === "active" ? "Live" : "Paused"}
+                                  </button>
+                                )}
+
                                 <div className="cd-cell-actions">
-                                  {(v.status || "active") !== "rented" && (
-                                    <button
-                                      type="button"
-                                      className="cd-action-icon-btn cd-rent-btn"
-                                      onClick={() => handleOpenRentalModal(v)}
-                                      title="Mark as Rented"
-                                    >
+                                  {status === "active" && (
+                                    <button type="button" className="cd-action-icon-btn cd-rent-btn" onClick={() => handleOpenRentalModal(v)} title="Record a rental">
                                       <KeyRound size={14} />
                                     </button>
                                   )}
-                                  <button
-                                    type="button"
-                                    className="cd-action-icon-btn cd-view-btn"
-                                    onClick={() => handleOpenVehicleProfile(v)}
-                                    title="Edit Details & Availability"
-                                  >
-                                    <ChevronRight size={14} />
+                                  <button type="button" className="cd-action-icon-btn cd-view-btn" onClick={() => handleOpenVehicleProfile(v)} title="Edit all details">
+                                    <Edit3 size={14} />
                                   </button>
-                                  <button
-                                    type="button"
-                                    className="cd-action-icon-btn cd-delete-btn"
-                                    onClick={() => setDeleteConfirm(v._id)}
-                                    title="Delete"
-                                  >
+                                  <button type="button" className="cd-action-icon-btn cd-delete-btn" onClick={() => setDeleteConfirm(v._id)} title="Delete">
                                     <Trash2 size={14} />
                                   </button>
                                 </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </>
                   )}
                 </div>
               </section>
@@ -1341,7 +1423,7 @@ export default function CompanyDashboard() {
                     <div className="cd-quick-summary">
                       <span>📅 {days} day{days > 1 ? "s" : ""}</span>
                       <span>💰 {formatLKR(Number(rentalForm.dailyRate || 0))}/day</span>
-                      {total > 0 && <span style={{ color: "#0f766e", fontWeight: 700 }}>Total: {formatLKR(total)}</span>}
+                      {total > 0 && <span style={{ color: "#ea580c", fontWeight: 700 }}>Total: {formatLKR(total)}</span>}
                     </div>
                   );
                 })()}
@@ -1488,7 +1570,7 @@ const loadingCSS = `
 const dashboardCSS = `
   .cd-wrapper {
     min-height: 100vh;
-    background: #fafafa;
+    background: var(--bg);
     font-family: var(--font-body, "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif);
     color: #09090b;
   }
@@ -1496,6 +1578,61 @@ const dashboardCSS = `
 
   /* ── Sidebar ── */
   .cd-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cd-fleet-search {
+    display: flex; align-items: center; gap: 8px; margin: 12px 0 4px; padding: 0 12px;
+    border: 1.5px solid #e2e8f0; border-radius: 12px; color: #94a3b8; background: #fff;
+  }
+  .cd-fleet-search input { flex: 1; border: none; outline: none; padding: 10px 0; font: inherit; font-size: 15px; background: transparent; }
+  .cd-fleet-list { display: flex; flex-direction: column; margin-top: 8px; }
+  .cd-fleet-row {
+    display: grid; grid-template-columns: 64px minmax(0, 1fr) 190px 112px auto;
+    align-items: center; gap: 14px; padding: 12px 4px; border-top: 1px solid #f1f5f9;
+  }
+  .cd-fleet-photo { position: relative; width: 64px; height: 48px; cursor: pointer; display: block; }
+  .cd-fleet-photo img { width: 64px; height: 48px; border-radius: 10px; object-fit: cover; background: #f1f5f9; }
+  .cd-fleet-photo-badge {
+    position: absolute; right: -6px; bottom: -6px; width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center; background: #fff; color: #475569; border: 1px solid #e2e8f0;
+  }
+  .cd-fleet-photo-missing { background: #f97316; color: #fff; border-color: #f97316; }
+  .cd-fleet-info { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; background: none; border: none; padding: 0; text-align: left; cursor: pointer; font: inherit; }
+  .cd-fleet-info .cd-vehicle-name, .cd-fleet-info .cd-vehicle-year { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cd-fleet-nophoto { color: #ea580c; font-weight: 600; }
+  .cd-fleet-price {
+    display: flex; align-items: center; gap: 6px; padding: 0 10px; height: 40px;
+    border: 1.5px solid #e2e8f0; border-radius: 10px; background: #fff; color: #94a3b8; font-size: 0.8rem; font-weight: 600;
+  }
+  .cd-fleet-price:focus-within { border-color: #f97316; box-shadow: 0 0 0 3px rgba(249,115,22,0.12); }
+  .cd-fleet-price input {
+    flex: 1; min-width: 0; width: 100%; border: none; outline: none; background: transparent;
+    font: inherit; font-size: 15px; font-weight: 700; color: #ea580c;
+  }
+  .cd-fleet-toggle {
+    display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 4px;
+    border-radius: 999px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #475569;
+    font: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;
+  }
+  .cd-fleet-knob { width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .cd-fleet-toggle.on { background: #dcfce7; border-color: #86efac; color: #15803d; flex-direction: row-reverse; padding: 0 4px 0 12px; }
+  .cd-fleet-toggle.on .cd-fleet-knob { background: #16a34a; }
+  .cd-fleet-status { justify-self: start; padding: 6px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+  .cd-fleet-rented { background: #fff7ed; color: #c2410c; }
+  .cd-fleet-flagged { background: #fee2e2; color: #b91c1c; }
+  .cd-spin { animation: cd-spin 0.8s linear infinite; }
+  @keyframes cd-spin { to { transform: rotate(360deg); } }
+  @media (max-width: 760px) {
+    .cd-fleet-row {
+      grid-template-columns: 64px minmax(0, 1fr);
+      grid-template-areas: "photo info" "price price" "status actions";
+      row-gap: 10px; padding: 14px 2px;
+    }
+    .cd-fleet-photo { grid-area: photo; }
+    .cd-fleet-info { grid-area: info; }
+    .cd-fleet-price { grid-area: price; }
+    .cd-fleet-toggle, .cd-fleet-status { grid-area: status; justify-self: start; }
+    .cd-fleet-row .cd-cell-actions { grid-area: actions; justify-content: flex-end; }
+    .cd-action-icon-btn { width: 40px; height: 40px; }
+  }
   .cd-header-btn { padding: 8px 14px !important; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
   .cd-btn-logout { color: #EF4444 !important; border-color: rgba(239,68,68,0.3) !important; }
   .cd-mobile-tabs { display: none; }
@@ -1504,7 +1641,7 @@ const dashboardCSS = `
     padding: 10px 8px; border: none; border-radius: 999px; background: transparent;
     color: #71717a; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit;
   }
-  .cd-mobile-tab-active { background: #0f766e; color: #fff; }
+  .cd-mobile-tab-active { background: var(--grad-primary); color: #fff; }
   .cd-alert {
     display: flex; align-items: center; gap: 14px; margin-top: 20px; padding: 14px 18px;
     background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; color: #9a3412;
@@ -1533,9 +1670,11 @@ const dashboardCSS = `
     display: flex; flex-direction: column;
   }
   .cd-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+  .cd-logo-img { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; }
+  .cd-logo-text { white-space: nowrap; font-size: 1rem !important; }
   .cd-logo-icon {
     width: 36px; height: 36px; display: grid; place-items: center;
-    border-radius: 12px; background: #0f766e; color: #fff;
+    border-radius: 12px; background: #ea580c; color: #fff;
   }
   .cd-logo-text { font-size: 1.125rem; font-weight: 800; font-family: var(--font-display, 'Poppins', sans-serif); }
   .cd-logo-accent { color: #f97316; }
@@ -1548,7 +1687,7 @@ const dashboardCSS = `
     text-align: left; font-family: inherit; text-decoration: none;
   }
   .cd-nav-item:hover { background: #f4f4f5; color: #18181b; }
-  .cd-nav-active { background: #0f766e !important; color: #fff !important; }
+  .cd-nav-active { background: var(--grad-primary) !important; color: #fff !important; box-shadow: 0 6px 16px -6px rgba(249,115,22,0.6); }
   .cd-nav-divider { height: 1px; background: rgba(226,232,240,0.6); margin: 12px 8px; }
   .cd-nav-logout { color: #ef4444 !important; }
   .cd-nav-logout:hover { background: #fef2f2 !important; }
@@ -1586,7 +1725,7 @@ const dashboardCSS = `
   .cd-stat-top { display: flex; align-items: center; gap: 12px; }
   .cd-stat-icon {
     width: 40px; height: 40px; display: grid; place-items: center;
-    border-radius: 16px; background: #ccfbf1; color: #0f766e; flex-shrink: 0;
+    border-radius: 16px; background: #fff7ed; color: #ea580c; flex-shrink: 0;
   }
   .cd-stat-label { font-size: 0.75rem; color: #71717a; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cd-stat-value { font-size: 1.25rem; font-weight: 800; margin: 12px 0 0; color: #09090b; font-family: var(--font-display, 'Poppins', sans-serif); }
@@ -1614,8 +1753,8 @@ const dashboardCSS = `
     background: #fafafa; cursor: pointer; transition: all 0.2s; font-family: inherit;
     text-decoration: none; color: inherit;
   }
-  .cd-action-btn:hover { border-color: rgba(15,118,110,0.3); box-shadow: 0 6px 16px rgba(0,0,0,0.04); transform: translateY(-1px); }
-  .cd-action-icon { color: #0f766e; }
+  .cd-action-btn:hover { border-color: rgba(249,115,22,0.3); box-shadow: 0 6px 16px rgba(0,0,0,0.04); transform: translateY(-1px); }
+  .cd-action-icon { color: #ea580c; }
   .cd-action-label { font-size: 0.75rem; font-weight: 700; color: #09090b; }
 
   .cd-payment-title { font-size: 0.875rem; font-weight: 700; margin: 24px 0 0; color: #09090b; }
@@ -1705,15 +1844,15 @@ const dashboardCSS = `
   .cd-vehicle-name { font-weight: 600; color: #09090b; display: block; }
   .cd-vehicle-year { font-size: 0.75rem; color: #94a3b8; }
   .cd-cell-muted { color: #71717a; }
-  .cd-cell-price { font-weight: 600; color: #0f766e; }
+  .cd-cell-price { font-weight: 600; color: #ea580c; }
   .cd-cell-actions { display: flex; gap: 8px; justify-content: flex-end; }
   .cd-action-icon-btn {
     width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: all 0.2s; background: #fff;
   }
-  .cd-view-btn { color: #0f766e; }
-  .cd-view-btn:hover { background: #ccfbf1; border-color: #0f766e; }
+  .cd-view-btn { color: #ea580c; }
+  .cd-view-btn:hover { background: #fff7ed; border-color: #ea580c; }
   .cd-rent-btn { color: #f97316; }
   .cd-rent-btn:hover { background: #fff7ed; border-color: #f97316; }
   .cd-delete-btn { color: #ef4444; }
@@ -1756,7 +1895,7 @@ const dashboardCSS = `
   }
   .cd-section-badge-title {
     display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem;
-    font-weight: 700; color: #0f766e; text-transform: uppercase; letter-spacing: 0.03em;
+    font-weight: 700; color: #ea580c; text-transform: uppercase; letter-spacing: 0.03em;
   }
   .cd-modal-section .cd-form-group {
     display: flex; flex-direction: column; gap: 4px;

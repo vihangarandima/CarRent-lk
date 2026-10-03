@@ -1,9 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
-import { Building2, MapPin, Phone, Mail, Car, ArrowLeft, Star } from "lucide-react";
+import { Building2, MapPin, Phone, Mail, Car, ArrowLeft, Star, MessageCircle } from "lucide-react";
 import VehicleCard from "../components/VehicleCard";
 import { API_URL } from "../config";
+
+// Normalise a Sri Lankan phone number to the international digits wa.me / tel: expect
+const toIntlNumber = (phone) => {
+  const digits = String(phone || "").replace(/[^0-9]/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("0")) return "94" + digits.slice(1);
+  if (digits.length === 9) return "94" + digits;
+  return digits;
+};
 
 const CompanyDetail = () => {
   const { id } = useParams();
@@ -14,12 +23,10 @@ const CompanyDetail = () => {
   useEffect(() => {
     const fetchCompany = async () => {
       try {
-        const res = await axios.get(
-          `${API_URL}/api/companies/${id}`,
-        );
+        const res = await axios.get(`${API_URL}/api/companies/${id}`);
         setData(res.data);
       } catch (err) {
-        setError("Company not found.");
+        setError(err.response?.status === 404 ? "This company could not be found." : "Couldn't load this company. Please check your connection.");
       } finally {
         setLoading(false);
       }
@@ -27,212 +34,133 @@ const CompanyDetail = () => {
     fetchCompany();
   }, [id]);
 
-  if (loading)
+  if (loading || error || !data) {
     return (
-      <div className="company-detail-loading">
-        <div className="spinner" />
+      <div className="cdp-page">
+        <section className="y-hero y-hero-compact">
+          <div className="container y-hero-inner">
+            {loading ? <div className="cdp-spinner" /> : <h1 className="y-hero-title" style={{ fontSize: "1.75rem" }}>{error || "Something went wrong."}</h1>}
+            {!loading && (
+              <Link to="/companies" className="y-btn y-btn-white">
+                <ArrowLeft size={16} /> All companies
+              </Link>
+            )}
+          </div>
+        </section>
+        <style>{styles}</style>
       </div>
     );
-  if (error || !data)
-    return (
-      <div className="company-detail-error">
-        <p>{error || "Something went wrong."}</p>
-        <Link to="/companies">← Back to Companies</Link>
-      </div>
-    );
+  }
 
   const { vehicles = [], ...company } = data;
+  const phone = toIntlNumber(company.phone);
+  const waText = encodeURIComponent(`Hello ${company.companyName}! I found you on Yamu Car Rentals and would like to rent a vehicle.`);
 
   return (
-    <div className="company-detail-page">
-      {/* Back link */}
-      <div className="company-detail-nav">
-        <Link to="/companies" className="back-link">
-          <ArrowLeft size={16} /> All Companies
-        </Link>
-      </div>
+    <div className="cdp-page">
+      <section className="y-hero cdp-hero">
+        <div className="container cdp-hero-inner">
+          <Link to="/companies" className="cdp-back">
+            <ArrowLeft size={16} /> All companies
+          </Link>
 
-      {/* Header */}
-      <div className="company-detail-header">
-        <div className="company-detail-header-inner">
-          <div className="company-detail-logo">
-            {company.logo ? (
-              <img src={company.logo} alt={company.companyName} />
-            ) : (
-              <div className="company-logo-placeholder-lg">
+          <div className="cdp-head">
+            <div className="cdp-logo">
+              {company.logo ? (
+                <img src={company.logo} alt={company.companyName} />
+              ) : (
                 <Building2 size={40} color="#f97316" />
-              </div>
-            )}
-          </div>
-          <div className="company-detail-info">
-            <div className="company-verified-pill">✓ Verified Partner</div>
-            <h1>{company.companyName}</h1>
-            {company.rating !== undefined && (
-              <div className="company-detail-rating">
-                <Star size={16} fill="#f97316" color="#f97316" />
-                <span className="rating-value">{company.rating > 0 ? company.rating.toFixed(1) : "New"}</span>
-                <span className="review-count">({company.reviewCount || 0} reviews)</span>
-              </div>
-            )}
-            <div className="company-metadata">
-              {company.address && (
-                <span>
-                  <MapPin size={14} /> {company.address}
-                </span>
-              )}
-              {company.phone && (
-                <span>
-                  <Phone size={14} /> {company.phone}
-                </span>
-              )}
-              {company.contactEmail && (
-                <span>
-                  <Mail size={14} /> {company.contactEmail}
-                </span>
               )}
             </div>
-            {company.description && (
-              <p className="company-detail-desc">{company.description}</p>
-            )}
+            <div className="cdp-info">
+              <span className="y-badge y-badge-light">Rent-a-car company</span>
+              <h1>{company.companyName}</h1>
+              <div className="cdp-meta">
+                <span>
+                  <Star size={15} fill="#fde68a" color="#fde68a" />
+                  {company.rating > 0 ? `${company.rating.toFixed(1)} (${company.reviewCount} reviews)` : "No reviews yet"}
+                </span>
+                {company.address && <span><MapPin size={15} /> {company.address}</span>}
+                {company.contactEmail && <span><Mail size={15} /> {company.contactEmail}</span>}
+              </div>
+              {company.description && <p className="cdp-desc">{company.description}</p>}
+              {phone && (
+                <div className="cdp-actions">
+                  <a className="y-btn y-btn-white" href={`https://wa.me/${phone}?text=${waText}`} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle size={18} /> WhatsApp
+                  </a>
+                  <a className="y-btn y-btn-ghost-light" href={`tel:+${phone}`}>
+                    <Phone size={18} /> {company.phone}
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Fleet */}
-      <div className="company-detail-fleet">
-        <div className="company-fleet-inner">
-          <div className="fleet-heading">
-            <h2>
-              <Car size={22} /> Fleet <span>({vehicles.length} vehicles)</span>
-            </h2>
-          </div>
-          {vehicles.length === 0 ? (
-            <div className="fleet-empty">
-              <Car size={40} color="#f97316" />
-              <p>This company hasn't listed any vehicles yet.</p>
-            </div>
-          ) : (
-            <div className="fleet-grid">
-              {vehicles.map((v, i) => (
-                <VehicleCard key={v._id} vehicle={v} index={i} />
-              ))}
-            </div>
-          )}
+      <section className="container cdp-fleet">
+        <div className="cdp-fleet-head">
+          <h2><Car size={22} /> Fleet</h2>
+          <span>{vehicles.length} {vehicles.length === 1 ? "vehicle" : "vehicles"}</span>
         </div>
-      </div>
+        {vehicles.length === 0 ? (
+          <div className="y-card cdp-empty">
+            <Car size={36} color="#f97316" />
+            <p>This company hasn't listed any vehicles yet.</p>
+            <Link to="/vehicles" className="y-btn y-btn-soft">Browse all vehicles</Link>
+          </div>
+        ) : (
+          <div className="cdp-grid">
+            {vehicles.map((v, i) => (
+              <VehicleCard key={v._id} vehicle={v} index={i} />
+            ))}
+          </div>
+        )}
+      </section>
 
-      <style>{`
-        .company-detail-page { 
-          min-height: 100vh; 
-          font-family: var(--font-body, 'Plus Jakarta Sans', 'Poppins', sans-serif); 
-          background: #f8fafc;
-          transition: background-color 0.3s ease;
-        }
-
-        .company-detail-loading {
-          min-height: 60vh; display: flex; align-items: center; justify-content: center;
-        }
-         .spinner {
-          width: 40px; height: 40px; border: 3px solid #ffedd5;
-          border-top-color: #f97316; border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .company-detail-error {
-          min-height: 50vh; display: flex; flex-direction: column;
-          align-items: center; justify-content: center; gap: 1rem;
-        }
-        .company-detail-error a { color: #f97316; font-weight: 600; text-decoration: none; }
-
-        .company-detail-nav { max-width: 1280px; margin: 0 auto; padding: 120px 2rem 0; }
-        .back-link {
-          display: inline-flex; align-items: center; gap: 6px;
-          color: #6B7280; font-weight: 600; font-size: 0.9rem;
-          text-decoration: none; transition: color 0.2s;
-        }
-        .back-link:hover { color: #f97316; }
-
-        .company-detail-header {
-          background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-          padding: 2.5rem 2rem 3rem;
-          border-bottom: 1px solid #fed7aa;
-        }
-        .company-detail-header-inner {
-          max-width: 1280px; margin: 0 auto;
-          display: flex; gap: 2rem; align-items: flex-start;
-          flex-wrap: wrap;
-        }
-
-        .company-detail-logo {
-          width: 100px; height: 100px; border-radius: 20px;
-          overflow: hidden; background: white;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.1); flex-shrink: 0;
-        }
-        .company-detail-logo img { width: 100%; height: 100%; object-fit: cover; }
-        .company-logo-placeholder-lg {
-          width: 100px; height: 100px; border-radius: 20px;
-          background: white; display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-        }
-
-        .company-detail-info { flex: 1; min-width: 200px; }
-
-        .company-verified-pill {
-          display: inline-block; background: #DCFCE7; color: #16A34A;
-          font-size: 0.75rem; font-weight: 700;
-          padding: 4px 12px; border-radius: 100px; margin-bottom: 0.6rem;
-        }
-
-        .company-detail-info h1 {
-          font-size: clamp(1.5rem, 4vw, 2.25rem); font-weight: 900;
-          color: #1F2937; margin-bottom: 0.25rem; letter-spacing: -0.5px;
-        }
-
-        .company-detail-rating {
-          display: flex; align-items: center; gap: 6px; margin-bottom: 1rem;
-        }
-        .company-detail-rating .rating-value {
-          font-weight: 700; color: #1F2937; font-size: 1.05rem;
-        }
-        .company-detail-rating .review-count {
-          color: #6B7280; font-size: 0.9rem;
-        }
-
-        .company-metadata {
-          display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;
-        }
-        .company-metadata span {
-          display: inline-flex; align-items: center; gap: 5px;
-          color: #6B7280; font-size: 0.875rem;
-        }
-
-        .company-detail-desc { color: #374151; font-size: 0.95rem; line-height: 1.6; max-width: 600px; }
-
-        .company-detail-fleet { padding: 3rem 2rem 5rem; }
-        .company-fleet-inner { max-width: 1280px; margin: 0 auto; }
-
-        .fleet-heading { margin-bottom: 1.75rem; }
-        .fleet-heading h2 {
-          display: flex; align-items: center; gap: 10px;
-          font-size: 1.5rem; font-weight: 800; color: #1F2937;
-        }
-        .fleet-heading h2 span { color: #9CA3AF; font-weight: 600; font-size: 1.1rem; }
-
-        .fleet-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 1.5rem;
-        }
-
-        .fleet-empty {
-          text-align: center; padding: 4rem;
-          display: flex; flex-direction: column; align-items: center; gap: 1rem;
-          color: #9CA3AF;
-        }
-      `}</style>
+      <style>{styles}</style>
     </div>
   );
 };
+
+const styles = `
+  .cdp-page { min-height: 100vh; background: var(--bg); }
+  .cdp-hero { text-align: left; padding-bottom: 3rem; }
+  .cdp-hero-inner { position: relative; z-index: 1; }
+  .cdp-back {
+    display: inline-flex; align-items: center; gap: 6px; margin-bottom: 1.5rem;
+    color: rgba(255,255,255,0.9); font-weight: 600; font-size: 0.9rem;
+  }
+  .cdp-back:hover { color: #fff; }
+  .cdp-head { display: flex; gap: 1.75rem; align-items: flex-start; flex-wrap: wrap; }
+  .cdp-logo {
+    width: 104px; height: 104px; border-radius: 24px; flex-shrink: 0; overflow: hidden;
+    background: #fff; display: grid; place-items: center; box-shadow: 0 12px 30px -8px rgba(124,45,18,0.45);
+  }
+  .cdp-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .cdp-info { flex: 1; min-width: 240px; display: flex; flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+  .cdp-info h1 { color: #fff; font-size: clamp(1.75rem, 4vw, 2.6rem); font-weight: 800; }
+  .cdp-meta { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
+  .cdp-meta span { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.92); font-size: 0.9rem; }
+  .cdp-desc { color: rgba(255,255,255,0.92); max-width: 640px; line-height: 1.65; }
+  .cdp-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem; }
+  .cdp-fleet { padding-top: 3rem; padding-bottom: 5rem; }
+  .cdp-fleet-head { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1.5rem; }
+  .cdp-fleet-head h2 { display: flex; align-items: center; gap: 0.6rem; font-size: 1.6rem; font-weight: 800; }
+  .cdp-fleet-head span { color: var(--text-muted); font-weight: 600; }
+  .cdp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+  .cdp-empty { display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; padding: 3.5rem 1.5rem; }
+  .cdp-spinner {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.35); border-top-color: #fff; animation: cdp-spin 0.8s linear infinite;
+  }
+  @keyframes cdp-spin { to { transform: rotate(360deg); } }
+  @media (max-width: 640px) {
+    .cdp-logo { width: 80px; height: 80px; border-radius: 18px; }
+    .cdp-actions { width: 100%; }
+    .cdp-actions .y-btn { flex: 1 1 auto; }
+  }
+`;
 
 export default CompanyDetail;

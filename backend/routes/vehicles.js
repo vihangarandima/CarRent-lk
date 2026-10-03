@@ -169,6 +169,84 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
+// @route   POST api/vehicles/bulk
+// @desc    Quick-add several vehicles in one go (fleet companies). Each row is validated on
+//          its own, so one bad row doesn't block the rest. Photos are optional here and can
+//          be added later from the dashboard.
+const MAX_BULK = 50;
+router.post("/bulk", auth, async (req, res) => {
+  try {
+    const rows = Array.isArray(req.body.vehicles) ? req.body.vehicles : [];
+    if (rows.length === 0) return res.status(400).json({ msg: "Add at least one vehicle." });
+    if (rows.length > MAX_BULK) {
+      return res.status(400).json({ msg: `You can add up to ${MAX_BULK} vehicles at a time.` });
+    }
+
+    const lister = await User.findById(req.user.id).select("role");
+    if (!lister) return res.status(401).json({ msg: "Account not found. Please sign in again." });
+    if (lister.role === "renter") {
+      lister.role = "owner";
+      await lister.save();
+    }
+    let companyId = null;
+    if (lister.role === "company") {
+      const company = await Company.findOne({ user: req.user.id }).select("_id");
+      if (company) companyId = company._id;
+    }
+
+    const now = new Date();
+    const oneYear = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    const results = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i] || {};
+      const brand = String(row.brand || "").trim();
+      const model = String(row.model || "").trim();
+      const location = String(row.location || "").trim();
+      const price = Number(row.pricePerDay);
+      const year = Number(row.year);
+
+      let error = null;
+      if (!VEHICLE_TYPES.includes(row.vehicleType)) error = "Choose a vehicle type";
+      else if (!brand || !model) error = "Brand and model are required";
+      else if (!(price > 0)) error = "Enter a daily price";
+      else if (!(year >= 1950 && year <= now.getFullYear() + 1)) error = "Enter a valid year";
+      else if (!location) error = "Location is required";
+      if (error) {
+        results.push({ index: i, ok: false, msg: error });
+        continue;
+      }
+
+      try {
+        const vehicle = await new Vehicle({
+          owner: req.user.id,
+          company: companyId,
+          brand,
+          model,
+          year,
+          pricePerDay: price,
+          pricePerKmAfter100km: Number(row.pricePerKmAfter100km) || 0,
+          vehicleType: row.vehicleType,
+          fuelType: row.fuelType || undefined,
+          transmission: row.transmission || undefined,
+          location,
+          images: cleanImages(row.images),
+          availableFrom: now,
+          availableTo: oneYear,
+        }).save();
+        results.push({ index: i, ok: true, vehicle });
+      } catch (rowErr) {
+        results.push({ index: i, ok: false, msg: rowErr.name === "ValidationError" ? rowErr.message : "Could not save this row" });
+      }
+    }
+
+    const saved = results.filter((r) => r.ok).length;
+    res.status(saved > 0 ? 200 : 400).json({ saved, failed: results.length - saved, results, listerRole: lister.role });
+  } catch (err) {
+    console.error("Bulk listing error:", err);
+    res.status(500).json({ msg: "Server error while saving vehicles" });
+  }
+});
+
 // @route   GET api/vehicles/:id
 // @desc    Get a single vehicle by ID
 router.get("/:id", async (req, res) => {

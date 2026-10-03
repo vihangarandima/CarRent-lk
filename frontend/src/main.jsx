@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 import { installAuthInterceptors } from './utils/session'
-import '@fontsource/momo-trust-display'
 import '@fontsource/changa-one'
 
 installAuthInterceptors()

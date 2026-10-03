@@ -1,3 +1,4 @@
+import PageHero from "../components/PageHero";
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -225,80 +226,43 @@ const ReviewsPortal = () => {
 
   return (
     <div className="reviews-page">
-      {/* 1. Hero & Community Header */}
-      <section className="reviews-hero">
-        <div className="hero-backdrop-glow" />
-        <div className="container reviews-hero-content">
-          <div className="hero-pill">
-            <Sparkles size={14} />
-            <span>Real Traveler Stories & Ratings</span>
-          </div>
-          <h1 className="hero-title">
-            Sri Lanka’s Most Trusted <br />
-            <span className="gradient-text">Car Rental Reviews Portal</span>
-          </h1>
-          <p className="hero-subtitle">
-            Explore authentic, verified experiences from fellow travelers across
-            the island, or share your own road trip journey with Yamu Car Rentals.
-          </p>
-
-          <div className="hero-actions">
+      <PageHero
+        badge="Customer reviews"
+        title="What renters say about"
+        highlight="Yamu Car Rentals"
+        subtitle="Read honest experiences from people who rented through Yamu, or share your own trip."
+        actions={
+          <>
             <button
-              className="btn-primary write-review-btn"
+              type="button"
+              className="y-btn y-btn-white"
               onClick={() => {
                 if (!token) {
                   toast.info("Please log in to submit a review.");
-                  navigate("/login");
+                  navigate("/login?redirect=/reviews");
                 } else {
                   setIsModalOpen(true);
                 }
               }}
             >
-              <Plus size={18} />
-              <span>Write a Review</span>
+              <Plus size={18} /> Write a review
             </button>
-            <a href="#reviews-feed" className="btn-secondary">
-              <span>Read All Stories ({stats.totalReviews})</span>
+            <a href="#reviews-feed" className="y-btn y-btn-ghost-light">
+              Read all reviews ({stats.totalReviews})
             </a>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="hero-metrics-strip">
-            <div className="metric-box">
-              <div className="metric-score">
-                <Star size={24} className="star-icon-gold" fill="#f59e0b" />
-                <span>{stats.averageRating.toFixed(1)}</span>
-                <small>/ 5.0</small>
-              </div>
-              <p className="metric-label">Overall Customer Score</p>
-            </div>
-
-            <div className="metric-divider" />
-
-            <div className="metric-box">
-              <div className="metric-number">{stats.totalReviews}</div>
-              <p className="metric-label">Verified Trip Reviews</p>
-            </div>
-
-            <div className="metric-divider" />
-
-            <div className="metric-box">
-              <div className="metric-number">{stats.recommendRate}%</div>
-              <p className="metric-label">Recommended by Drivers</p>
-            </div>
-
-            <div className="metric-divider" />
-
-            <div className="metric-box">
-              <div className="metric-badge">
-                <ShieldCheck size={20} />
-                <span>100% Genuine</span>
-              </div>
-              <p className="metric-label">Verified Bookings Only</p>
-            </div>
-          </div>
+          </>
+        }
+      >
+        <div className="y-fleet-stats">
+          <span>
+            <Star size={16} fill="#fde68a" color="#fde68a" />
+            <strong>{stats.totalReviews > 0 ? stats.averageRating.toFixed(1) : "—"}</strong>
+            {stats.totalReviews > 0 ? "average rating" : "No reviews yet"}
+          </span>
+          <span><strong>{stats.totalReviews}</strong> reviews</span>
+          {stats.totalReviews > 0 && <span><strong>{stats.recommendRate}%</strong> would recommend</span>}
         </div>
-      </section>
+      </PageHero>
 
       {/* 2. Rating Breakdown & Detailed Category Metrics */}
       <section className="container score-breakdown-section">
@@ -876,6 +840,13 @@ const ReviewsPortal = () => {
 
       {/* Modern Stylesheet */}
       <style>{`
+        .y-fleet-stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.5rem; }
+        .y-fleet-stats span {
+          display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem;
+          border-radius: 999px; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.3);
+          color: #fff; font-size: 0.85rem;
+        }
+
         .reviews-page {
           min-height: 100vh;
           background: #f8fafc;
@@ -1291,8 +1262,11 @@ const ReviewsPortal = () => {
 
         .filter-dropdowns {
           display: flex;
+          flex-wrap: wrap;
           gap: 10px;
+          min-width: 0;
         }
+        .filter-dropdowns .custom-select { flex: 1 1 140px; min-width: 0; max-width: 100%; }
 
         .custom-select {
           background: #ffffff;

@@ -102,8 +102,9 @@ router.get("/", async (req, res) => {
     // Calculate aggregated stats across all DB reviews
     const allDbReviews = await Review.find();
     const totalCount = allDbReviews.length;
-    let avgRating = 5.0;
-    let recommendPercentage = 100;
+    // With no reviews yet, report zeros rather than a fake perfect score
+    let avgRating = 0;
+    let recommendPercentage = 0;
     let distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     let subRatingSums = {
       cleanliness: 0,
@@ -148,16 +149,16 @@ router.get("/", async (req, res) => {
     const subRatingAverages = {
       cleanliness: totalCount
         ? Number((subRatingSums.cleanliness / totalCount).toFixed(1))
-        : 5.0,
+        : 0,
       communication: totalCount
         ? Number((subRatingSums.communication / totalCount).toFixed(1))
-        : 5.0,
+        : 0,
       valueForMoney: totalCount
         ? Number((subRatingSums.valueForMoney / totalCount).toFixed(1))
-        : 5.0,
+        : 0,
       vehicleCondition: totalCount
         ? Number((subRatingSums.vehicleCondition / totalCount).toFixed(1))
-        : 5.0,
+        : 0,
     };
 
     // Apply pagination
