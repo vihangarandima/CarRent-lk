@@ -1,59 +1,96 @@
 const express = require("express");
 const router = express.Router();
+const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Company = require("../models/Company");
 const nodemailer = require("nodemailer");
 const OTP = require("../models/OTP");
+const { auth, escapeRegex } = require("../middleware/auth");
+const verifyFirebaseToken = require("../utils/verifyFirebaseToken");
+
+// Roles a user may pick for themselves. "admin" is only granted by an existing admin.
+const SELF_ASSIGNABLE_ROLES = ["renter", "owner", "company"];
+const MAX_OTP_ATTEMPTS = 5;
+
+const normalizeEmail = (email) =>
+  typeof email === "string" ? email.trim().toLowerCase() : "";
+
+// Case-insensitive lookup so accounts created before emails were normalised still match
+const findUserByEmail = (email) =>
+  User.findOne({ email: new RegExp(`^${escapeRegex(email)}$`, "i") });
+
+const signToken = (user) =>
+  jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+const publicUser = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  phone: user.phone || "",
+  profileImage: user.profileImage || "",
+});
+
+const companySummary = (company) =>
+  company
+    ? { id: company._id, companyName: company.companyName, logo: company.logo }
+    : null;
 
 // Register
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, role, companyName, phone, address, otp } =
-      req.body;
+    const { name, password, role, companyName, phone, address, otp } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const resolvedRole = SELF_ASSIGNABLE_ROLES.includes(role) ? role : "renter";
 
-    // Verify OTP code
-    const record = await OTP.findOne({ email });
-    if (!record || record.otp !== otp) {
-      return res.status(400).json({ msg: "Invalid or expired OTP code!" });
+    if (!name || !name.trim() || !email || !password) {
+      return res.status(400).json({ msg: "Name, email and password are required." });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ msg: "Password must be at least 6 characters." });
+    }
+    if (resolvedRole === "company" && !(companyName || "").trim()) {
+      return res
+        .status(400)
+        .json({ msg: "Company name is required for company accounts" });
     }
 
-    let user = await User.findOne({ email });
+    // Verify OTP code (limited attempts to stop brute forcing)
+    const otpError = await checkOtp(email, otp);
+    if (otpError) return res.status(400).json({ msg: otpError });
+
+    let user = await findUserByEmail(email);
     if (user) return res.status(400).json({ msg: "User already exists" });
 
-    user = new User({ name, email, password, role: role || "renter" });
     const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
+    user = new User({
+      name: name.trim(),
+      email,
+      password: await bcrypt.hash(password, salt),
+      phone: (phone || "").trim(),
+      role: resolvedRole,
+    });
     await user.save();
 
     // If registering as a company, create the Company profile too
-    let companyData = null;
-    if (role === "company") {
-      if (!companyName) {
-        await User.findByIdAndDelete(user._id);
-        return res
-          .status(400)
-          .json({ msg: "Company name is required for company accounts" });
-      }
-      const company = new Company({
+    let company = null;
+    if (resolvedRole === "company") {
+      company = new Company({
         user: user._id,
-        companyName,
+        companyName: companyName.trim(),
         contactEmail: email,
         phone: phone || "",
         address: address || "",
       });
       await company.save();
-      companyData = { id: company._id, companyName: company.companyName };
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
     res.json({
-      token,
-      user: { id: user._id, name, email, role: user.role },
-      company: companyData,
+      token: signToken(user),
+      user: publicUser(user),
+      company: companySummary(company),
     });
 
     // Remove OTP record after successful registration
@@ -64,7 +101,7 @@ router.post("/register", async (req, res) => {
     }
   } catch (err) {
     console.error("Register error:", err);
-    res.status(500).send("Server Error");
+    res.status(500).json({ msg: "Server error during registration" });
   }
 });
 
@@ -114,227 +151,280 @@ const createTransporter = () => {
   });
 };
 
-// Send Verification OTP
-router.post("/send-otp", async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ msg: "Email is required" });
-
-    // Check if email already registered
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ msg: "An account with this email already exists. Please log in instead." });
-    }
-
-    // Verify SMTP config exists
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.error("Missing EMAIL_USER or EMAIL_PASS in environment variables.");
-      return res.status(500).json({
-        msg: "Email service is not configured on this server. Please add EMAIL_USER and EMAIL_PASS to environment variables.",
-      });
-    }
-
-    // Generate a cryptographically secure 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Save or update existing OTP in database
-    await OTP.findOneAndUpdate(
-      { email },
-      { otp, createdAt: Date.now() },
-      { upsert: true, new: true },
-    );
-
-    // Send Email
-    const transporter = createTransporter();
-    const mailOptions = {
-      from: `"Yamu Car Rentals" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Your Yamu Car Rentals Verification Code",
-      html: `
+const otpEmailHtml = (otp, heading, intro) => `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffff;">
           <div style="text-align: center; margin-bottom: 24px;">
             <h1 style="color: #ea580c; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">Yamu <span style="color: #0f172a;">Car Rentals</span></h1>
             <p style="color: #64748b; font-size: 14px; margin-top: 6px;">Sri Lanka's Premier Car Sharing Marketplace</p>
           </div>
-          <h2 style="color: #0f172a; font-size: 18px; font-weight: 700; margin-bottom: 8px;">Verify Your Email</h2>
-          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px;">Use the 6-digit verification code below to complete your registration. This code will expire in <strong>5 minutes</strong>:</p>
+          <h2 style="color: #0f172a; font-size: 18px; font-weight: 700; margin-bottom: 8px;">${heading}</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px;">${intro} This code will expire in <strong>5 minutes</strong>:</p>
           <div style="background: #fff7ed; border: 2px dashed #f97316; padding: 18px; border-radius: 12px; text-align: center; margin: 24px 0;">
             <span style="font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #ea580c; font-family: monospace;">${otp}</span>
           </div>
-          <p style="color: #94a3b8; font-size: 13px; line-height: 1.5; margin-top: 24px;">If you did not request this verification code, you can safely ignore this email.</p>
+          <p style="color: #94a3b8; font-size: 13px; line-height: 1.5; margin-top: 24px;">If you did not request this code, you can safely ignore this email.</p>
           <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
           <p style="color: #cbd5e1; font-size: 12px; text-align: center; margin: 0;">&copy; ${new Date().getFullYear()} Yamu Car Rentals LK. All rights reserved.</p>
         </div>
-      `,
-    };
+      `;
 
-    await transporter.sendMail(mailOptions);
+// Generates a fresh code for this email, stores it and emails it
+const issueOtp = async (email, subject, heading, intro) => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    const err = new Error(
+      "Email service is not configured on this server. Please add EMAIL_USER and EMAIL_PASS to environment variables."
+    );
+    err.code = "NO_SMTP";
+    throw err;
+  }
+
+  // One code per email every 30 seconds (stops double-taps from invalidating a code just sent)
+  const recent = await OTP.findOne({ email }).select("createdAt");
+  if (recent && Date.now() - new Date(recent.createdAt).getTime() < 30 * 1000) {
+    const err = new Error("A code was just sent to this email. Please wait 30 seconds before requesting another.");
+    err.code = "OTP_COOLDOWN";
+    throw err;
+  }
+
+  const otp = crypto.randomInt(100000, 1000000).toString();
+
+  // Save or update existing OTP in database (resets the attempt counter)
+  await OTP.findOneAndUpdate(
+    { email },
+    { otp, attempts: 0, createdAt: Date.now() },
+    { upsert: true, new: true },
+  );
+
+  await createTransporter().sendMail({
+    from: `"Yamu Car Rentals" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject,
+    html: otpEmailHtml(otp, heading, intro),
+  });
+};
+
+// Returns null when the code is right, otherwise an error message
+const checkOtp = async (email, otp) => {
+  const record = await OTP.findOne({ email });
+  if (!record) return "Invalid or expired OTP code!";
+  if (record.otp !== String(otp || "").trim()) {
+    record.attempts = (record.attempts || 0) + 1;
+    if (record.attempts >= MAX_OTP_ATTEMPTS) {
+      await OTP.deleteOne({ _id: record._id });
+      return "Too many incorrect codes. Please request a new verification code.";
+    }
+    await record.save();
+    return "Invalid or expired OTP code!";
+  }
+  return null;
+};
+
+const otpErrorMessage = (err) => {
+  if (err.code === "NO_SMTP" || err.code === "OTP_COOLDOWN") return err.message;
+  const isAuthErr = err && (err.code === "EAUTH" || err.responseCode === 535);
+  return isAuthErr
+    ? "SMTP authentication failed. Please check EMAIL_USER and EMAIL_PASS (Gmail App Password) in your hosting dashboard."
+    : `Failed to send verification email: ${err.message || "Unknown error"}`;
+};
+
+// Send Verification OTP
+router.post("/send-otp", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ msg: "Please enter a valid email address" });
+    }
+
+    // Check if email already registered
+    const existingUser = await findUserByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({ msg: "An account with this email already exists. Please log in instead." });
+    }
+
+    await issueOtp(
+      email,
+      "Your Yamu Car Rentals Verification Code",
+      "Verify Your Email",
+      "Use the 6-digit verification code below to complete your registration."
+    );
     res.json({ msg: "Verification OTP sent to your email." });
   } catch (err) {
-    console.error("OTP Send Error:", err);
-    const isAuthErr = err && (err.code === "EAUTH" || err.responseCode === 535);
-    const message = isAuthErr
-      ? "SMTP authentication failed. Please check EMAIL_USER and EMAIL_PASS (Gmail App Password) in your hosting dashboard."
-      : `Failed to send verification email: ${err.message || "Unknown error"}`;
-    res.status(500).json({ msg: message });
+    console.error("OTP Send Error:", err.message);
+    res.status(err.code === "OTP_COOLDOWN" ? 429 : 500).json({ msg: otpErrorMessage(err) });
+  }
+});
+
+// Forgot password: email a reset code to an existing account
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    if (!email) return res.status(400).json({ msg: "Please enter your email address" });
+
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ msg: "No account found with this email address." });
+    }
+
+    await issueOtp(
+      email,
+      "Reset your Yamu Car Rentals password",
+      "Reset Your Password",
+      "Use the 6-digit code below to set a new password for your account."
+    );
+    res.json({ msg: "A password reset code has been sent to your email." });
+  } catch (err) {
+    console.error("Forgot password error:", err.message);
+    res.status(err.code === "OTP_COOLDOWN" ? 429 : 500).json({ msg: otpErrorMessage(err) });
+  }
+});
+
+// Reset password with the emailed code
+router.post("/reset-password", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const { otp, password } = req.body;
+    if (!email || !otp || !password) {
+      return res.status(400).json({ msg: "Email, code and new password are required" });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ msg: "Password must be at least 6 characters." });
+    }
+
+    const otpError = await checkOtp(email, otp);
+    if (otpError) return res.status(400).json({ msg: otpError });
+
+    const user = await findUserByEmail(email);
+    if (!user) return res.status(404).json({ msg: "Account not found" });
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    await user.save();
+    await OTP.deleteOne({ email });
+
+    res.json({ msg: "Password updated. You can now sign in." });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ msg: "Server error resetting password" });
   }
 });
 
 // Login
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const email = normalizeEmail(req.body.email);
+    const { password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ msg: "Please enter your email and password" });
+    }
+
+    const user = await findUserByEmail(email);
     if (!user) return res.status(400).json({ msg: "Invalid Credentials" });
+
+    // Accounts created through Google have no usable password
+    if (!user.password || !user.password.startsWith("$2")) {
+      return res.status(400).json({
+        msg: "This account was created with Google. Please use 'Continue with Google' to sign in.",
+      });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: "Invalid Credentials" });
 
     // If company, fetch company id too
-    let companyData = null;
+    let company = null;
     if (user.role === "company") {
-      const company = await Company.findOne({ user: user._id }).select(
-        "_id companyName logo",
-      );
-      if (company)
-        companyData = {
-          id: company._id,
-          companyName: company.companyName,
-          logo: company.logo,
-        };
+      company = await Company.findOne({ user: user._id }).select("_id companyName logo");
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
     res.json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone || "",
-        profileImage: user.profileImage || "",
-      },
-      company: companyData,
+      token: signToken(user),
+      user: publicUser(user),
+      company: companySummary(company),
     });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).send("Server Error");
+    res.status(500).json({ msg: "Server error during login" });
   }
 });
 
-// Firebase Login Route
+// Firebase (Google) Login Route
+// The client must send the Firebase ID token; identity is taken from the verified token,
+// never from client-supplied email fields.
 router.post("/firebase-login", async (req, res) => {
   try {
-    const { name, email, firebaseId, role, companyName, phone, address } =
-      req.body;
+    const { idToken, name, role, companyName, phone, address } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ msg: "Email is required for authentication" });
+    let claims;
+    try {
+      claims = await verifyFirebaseToken(idToken);
+    } catch (verifyErr) {
+      console.warn("Firebase token rejected:", verifyErr.message);
+      return res
+        .status(401)
+        .json({ msg: "Google sign-in could not be verified. Please try again." });
     }
 
-    // Check if user exists
-    let user = await User.findOne({ email });
-    let companyData = null;
+    const email = normalizeEmail(claims.email);
+    const firebaseId = claims.sub;
+    const requestedRole = SELF_ASSIGNABLE_ROLES.includes(role) ? role : null;
+
+    let user = await findUserByEmail(email);
+    let company = null;
 
     if (!user) {
-      // Create new user with selected role
-      const initialRole = role && ["owner", "renter", "company", "admin"].includes(role) ? role : "renter";
       user = new User({
-        name: name || email.split("@")[0],
+        name: (name || claims.name || email.split("@")[0]).trim(),
         email,
         firebaseId,
-        role: initialRole,
-        password: "firebase_user",
+        phone: (phone || "").trim(),
+        role: requestedRole || "renter",
       });
       await user.save();
+    } else {
+      if (!user.firebaseId) {
+        user.firebaseId = firebaseId;
+      }
+      // A renter who signs up again as a lister gets upgraded (never touches admins)
+      if (
+        requestedRole &&
+        requestedRole !== "renter" &&
+        (user.role === "renter" || (user.role === "owner" && requestedRole === "company"))
+      ) {
+        user.role = requestedRole;
+      }
+      await user.save();
+    }
 
-      // If registered as company, create company profile
-      if (initialRole === "company") {
-        const company = new Company({
+    if (user.role === "company") {
+      company = await Company.findOne({ user: user._id }).select("_id companyName logo");
+      if (!company) {
+        company = new Company({
           user: user._id,
-          companyName: companyName || (name ? `${name} Rentals` : "My Rental Fleet"),
+          companyName: (companyName || "").trim() || `${user.name} Rentals`,
           contactEmail: email,
           phone: phone || "",
-          address: address || "Colombo, Sri Lanka",
-          isVerified: true,
+          address: address || "",
         });
         await company.save();
-        companyData = {
-          id: company._id,
-          companyName: company.companyName,
-          logo: company.logo,
-        };
-      }
-    } else {
-      // Update firebaseId if not set
-      if (!user.firebaseId && firebaseId) {
-        user.firebaseId = firebaseId;
-        await user.save();
-      }
-
-      // If user requested role upgrade to company or is already company
-      if (role === "company" && user.role !== "company" && user.role !== "admin") {
-        user.role = "company";
-        await user.save();
-      }
-
-      if (user.role === "company") {
-        let company = await Company.findOne({ user: user._id }).select(
-          "_id companyName logo phone address contactEmail"
-        );
-        if (!company) {
-          company = new Company({
-            user: user._id,
-            companyName: companyName || `${user.name} Rentals`,
-            contactEmail: email,
-            phone: phone || "",
-            address: address || "Colombo, Sri Lanka",
-            isVerified: true,
-          });
-          await company.save();
-        }
-        companyData = {
-          id: company._id,
-          companyName: company.companyName,
-          logo: company.logo,
-        };
       }
     }
 
-    // Generate JWT
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
-
     res.json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone || "",
-        profileImage: user.profileImage || "",
-      },
-      company: companyData,
+      token: signToken(user),
+      user: publicUser(user),
+      company: companySummary(company),
     });
   } catch (err) {
     console.error("Firebase login error:", err);
-    res.status(500).json({ msg: "Firebase authentication failed" });
+    res.status(500).json({ msg: "Google authentication failed" });
   }
 });
 
 // @route   GET /api/auth/me
 // @desc    Get current user profile data
-router.get("/me", async (req, res) => {
+router.get("/me", auth, async (req, res) => {
   try {
-    const token = req.header("x-auth-token");
-    if (!token) return res.status(401).json({ msg: "No token provided" });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select("-password");
+    const user = await User.findById(req.user.id).select("-password");
     if (!user) return res.status(404).json({ msg: "User not found" });
 
     let companyData = null;
@@ -363,23 +453,22 @@ router.get("/me", async (req, res) => {
       company: companyData,
     });
   } catch (err) {
-    res.status(401).json({ msg: "Invalid token" });
+    console.error("Get me error:", err);
+    res.status(500).json({ msg: "Server error" });
   }
 });
 
 // Update User Profile
-router.post("/update-profile", async (req, res) => {
+// Users can only ever update their own profile (identity comes from the JWT)
+router.post("/update-profile", auth, async (req, res) => {
   try {
-    const { userId, name, phone, address, profileImage } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ msg: "User ID is required" });
-    }
+    const { name, phone, address, profileImage } = req.body;
+    const userId = req.user.id;
 
     const updateFields = {};
-    if (name !== undefined && name.trim()) updateFields.name = name.trim();
-    if (phone !== undefined) updateFields.phone = phone.trim();
-    if (profileImage !== undefined) updateFields.profileImage = profileImage;
+    if (typeof name === "string" && name.trim()) updateFields.name = name.trim();
+    if (typeof phone === "string") updateFields.phone = phone.trim();
+    if (typeof profileImage === "string") updateFields.profileImage = profileImage;
 
     // Find user and update
     const user = await User.findByIdAndUpdate(userId, updateFields, {

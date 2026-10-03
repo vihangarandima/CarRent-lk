@@ -21,8 +21,9 @@ import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import { GoogleMap, useJsApiLoader, MarkerF } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { addDays } from "date-fns";
 import { useToast } from "../context/ToastContext";
+import { useSiteConfig } from "../context/SiteConfigContext";
+import { getStoredUser } from "../utils/session";
 import ReviewSection from "../components/ReviewSection";
 
 const detailMapContainerStyle = {
@@ -31,26 +32,31 @@ const detailMapContainerStyle = {
   borderRadius: "1rem",
 };
 
+// Normalise a Sri Lankan phone number to the international digits wa.me expects
+const toWhatsAppNumber = (phone) => {
+  const digits = String(phone || "").replace(/[^0-9]/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("0")) return "94" + digits.slice(1);
+  if (digits.length === 9) return "94" + digits;
+  return digits;
+};
+
 const VehicleDetail = () => {
   const { id } = useParams();
   const { toast } = useToast();
+  const { config } = useSiteConfig();
   
   // Booking State
   const [dateRange, setDateRange] = useState([null, null]);
   const [startDate, endDate] = dateRange;
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   
-  // Booked dates for demo
-  const bookedDates = [
-    addDays(new Date(), 2),
-    addDays(new Date(), 3),
-    addDays(new Date(), 7),
-  ];
 
   const [sent, setSent] = useState(false);
   const [vehicle, setVehicle] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -67,6 +73,8 @@ const VehicleDetail = () => {
         setReviews(reviewsRes.data);
       } catch (err) {
         console.error("Error fetching vehicle data:", err);
+        // A 404 means the listing is gone; anything else is a connection problem
+        if (err.response?.status !== 404) setLoadFailed(true);
       } finally {
         setLoading(false);
       }
@@ -80,7 +88,7 @@ const VehicleDetail = () => {
 
   const avgRating = reviews.length > 0 
     ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
-    : "5.0";
+    : "New";
   const numReviews = reviews.length;
 
   const handleContact = (e) => {
@@ -90,11 +98,16 @@ const VehicleDetail = () => {
       return;
     }
 
-    const hostPhone = vehicle.company?.phone || "+94770000000";
-    const cleanPhone = hostPhone.replace(/[^0-9]/g, "");
+    if (!waNumber) {
+      toast.error(
+        "This host has not added a contact number yet. Please use the WhatsApp support button and we will connect you.",
+        "Contact Unavailable"
+      );
+      return;
+    }
     const dateStr = `${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
-    const msg = `Hello! I would like to book the ${vehicle.brand} ${vehicle.model} (${vehicle.year}) listed on Yamu Car Rentals for dates ${dateStr}. Is it available?`;
-    const waUrl = `https://wa.me/${cleanPhone.startsWith("0") ? "94" + cleanPhone.slice(1) : cleanPhone}?text=${encodeURIComponent(msg)}`;
+    const msg = `Hello! I would like to book the ${vehicle.brand} ${vehicle.model} (${vehicle.year}) listed on Yamu Car Rentals for dates ${dateStr}. Is it available?\n${window.location.href}`;
+    const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
 
     // Try posting bid/inquiry if logged in
     const token = localStorage.getItem("token");
@@ -132,12 +145,32 @@ const VehicleDetail = () => {
     return (
       <div className="detail-wrap">
         <div className="container" style={{ textAlign: "center", padding: "8rem 0" }}>
-          <h2 style={{ color: "#111827" }}>Vehicle not found</h2>
+          <h2 style={{ color: "#111827" }}>{loadFailed ? "Couldn't load this vehicle" : "Vehicle not found"}</h2>
+          {loadFailed && (
+            <p style={{ color: "#6b7280", marginBottom: 16 }}>
+              Please check your internet connection.{" "}
+              <button type="button" onClick={() => window.location.reload()} style={{ background: "none", border: "none", color: "#f97316", fontWeight: 700, cursor: "pointer", padding: 0 }}>
+                Try again
+              </button>
+            </p>
+          )}
           <Link to="/vehicles" style={{ color: "#f97316", fontWeight: 700 }}>← Back to Listings</Link>
         </div>
       </div>
     );
   }
+
+  // Host's own number first (company, then personal owner), else the site's support line
+  const hostPhone =
+    vehicle.company?.phone ||
+    vehicle.owner?.phone ||
+    config?.global?.whatsAppSupport?.phoneNumber ||
+    "";
+  const waNumber = toWhatsAppNumber(hostPhone);
+  const directPhone = vehicle.company?.phone || vehicle.owner?.phone || "";
+  const viewer = getStoredUser();
+  const isOwnListing = Boolean(viewer && vehicle.owner?._id && (viewer.id || viewer._id) === vehicle.owner._id);
+  const isUnavailable = vehicle.status === "hidden" || vehicle.status === "flagged";
 
   const rawImages = Array.isArray(vehicle.images) && vehicle.images.length > 0
     ? vehicle.images.filter(img => typeof img === "string" && img.trim() !== "")
@@ -253,28 +286,28 @@ const VehicleDetail = () => {
                 <Fuel size={18} color="#ea580c" />
                 <div>
                   <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>FUEL</div>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{vehicle.fuelType || "Petrol"}</div>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{vehicle.fuelType || "Ask host"}</div>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Settings2 size={18} color="#ea580c" />
                 <div>
                   <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>TRANSMISSION</div>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{vehicle.transmission || "Automatic"}</div>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{vehicle.transmission || "Ask host"}</div>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Users size={18} color="#ea580c" />
                 <div>
-                  <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>SEATING</div>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{vehicle.seats || 5} Seats</div>
+                  <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>YEAR</div>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{vehicle.year || "—"}</div>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Gauge size={18} color="#ea580c" />
                 <div>
                   <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>AFTER 100KM</div>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>LKR {vehicle.pricePerKmAfter100km || 0}/km</div>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{Number(vehicle.pricePerKmAfter100km) > 0 ? `LKR ${Number(vehicle.pricePerKmAfter100km).toLocaleString("en-LK")}/km` : "No extra charge"}</div>
                 </div>
               </div>
             </div>
@@ -387,7 +420,15 @@ const VehicleDetail = () => {
               </div>
               <hr className="divider" />
 
-              {sent ? (
+              {isUnavailable && !isOwnListing ? (
+                <div className="sent-msg">
+                  <h3>Currently unavailable</h3>
+                  <p>This vehicle is not taking bookings right now. Browse similar vehicles instead.</p>
+                  <Link to="/vehicles" className="btn-primary" style={{ marginTop: 12, padding: "8px 16px", fontSize: "0.88rem", display: "inline-block" }}>
+                    Browse vehicles
+                  </Link>
+                </div>
+              ) : sent ? (
                 <div className="sent-msg">
                   <CheckCircle2 size={44} className="sent-check-icon" />
                   <h3>Booking Chat Launched!</h3>
@@ -404,7 +445,7 @@ const VehicleDetail = () => {
               ) : (
                 <div className="booking-form">
                   <h3>Check Availability</h3>
-                  <p>Select your required dates below. Gray dates are already booked.</p>
+                  <p>Select your required dates, then message the host to confirm availability.</p>
                   
                   <div className="calendar-wrapper">
                     <DatePicker
@@ -415,7 +456,6 @@ const VehicleDetail = () => {
                       selectsRange
                       inline
                       minDate={new Date()}
-                      excludeDates={bookedDates}
                     />
                   </div>
 
@@ -436,9 +476,9 @@ const VehicleDetail = () => {
                     <span>Contact via WhatsApp</span>
                   </button>
 
-                  {vehicle.company?.phone && (
+                  {directPhone && (
                     <a
-                      href={`tel:${vehicle.company.phone.replace(/[^0-9]/g, "")}`}
+                      href={`tel:+${toWhatsAppNumber(directPhone)}`}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -451,7 +491,7 @@ const VehicleDetail = () => {
                         fontWeight: 600,
                       }}
                     >
-                      <Phone size={14} /> Call Host Directly: {vehicle.company.phone}
+                      <Phone size={14} /> Call Host Directly: {directPhone}
                     </a>
                   )}
                 </div>

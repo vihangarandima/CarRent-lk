@@ -4,6 +4,7 @@ const Review = require("../models/Review");
 const Vehicle = require("../models/Vehicle");
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
+const { escapeRegex } = require("../middleware/auth");
 
 // Optional & strict auth middleware
 const optionalAuth = (req, res, next) => {
@@ -62,7 +63,7 @@ router.get("/", async (req, res) => {
 
     // Text search in comment, title
     if (search && search.trim() !== "") {
-      const searchRegex = new RegExp(search.trim(), "i");
+      const searchRegex = new RegExp(escapeRegex(search.trim()), "i");
       filter.$or = [{ title: searchRegex }, { comment: searchRegex }];
     }
 

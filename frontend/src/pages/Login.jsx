@@ -1,25 +1,44 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { API_URL } from "../config";
 import { useToast } from "../context/ToastContext";
 import logo from "../assets/images/logo.png";
+import { getStoredUser, homePathFor, saveSession } from "../utils/session";
+
+// Only allow in-app redirects (no "//evil.com" or absolute URLs)
+const safeRedirect = (value) =>
+  value && value.startsWith("/") && !value.startsWith("//") ? value : null;
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [forgotMsg, setForgotMsg] = useState("");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetCode, setResetCode] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const params = new URLSearchParams(location.search);
+  const redirectTo = safeRedirect(params.get("redirect"));
+  const sessionExpired = params.get("expired") === "1";
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      navigate("/home");
+      navigate(redirectTo || homePathFor(getStoredUser()), { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, redirectTo]);
+
+  const finishSignIn = (data) => {
+    const user = saveSession(data);
+    // Full reload so the navbar and every page pick up the new session
+    window.location.href = redirectTo || homePathFor(user);
+  };
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -33,14 +52,8 @@ const Login = () => {
         `${API_URL}/api/auth/login`,
         formData,
       );
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      if (res.data.company) {
-        localStorage.setItem("company", JSON.stringify(res.data.company));
-      }
       toast.success("Welcome back!", "Signed In");
-      navigate("/home");
-      window.location.reload();
+      finishSignIn(res.data);
     } catch (err) {
       toast.error(
         err.response?.data?.msg ||
@@ -59,40 +72,72 @@ const Login = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
-      // Send to backend
-      const res = await axios.post(
-        `${API_URL}/api/auth/firebase-login`,
-        {
-          name: user.displayName,
-          email: user.email,
-          firebaseId: user.uid,
-        },
-      );
+      // Send the verified Firebase ID token to the backend
+      const idToken = await user.getIdToken();
+      const res = await axios.post(`${API_URL}/api/auth/firebase-login`, {
+        idToken,
+        name: user.displayName,
+      });
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      if (res.data.company) {
-        localStorage.setItem("company", JSON.stringify(res.data.company));
-      }
-      toast.success(`Welcome, ${user.displayName || "traveler"}!`, "Google Sign In");
-      navigate("/home");
-      window.location.reload();
+      toast.success(`Welcome, ${user.displayName || "there"}!`, "Google Sign In");
+      finishSignIn(res.data);
     } catch (err) {
       console.error("Google login error:", err);
       if (err.code !== "auth/popup-closed-by-user") {
-        toast.error("Google login failed: " + err.message, "Sign In Error");
+        toast.error(
+          err.response?.data?.msg || "Google login failed: " + err.message,
+          "Sign In Error"
+        );
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleForgotPassword = () => {
+  const handleForgotPassword = async () => {
     if (!formData.email) {
       setForgotMsg("Please enter your email address above first, then click Forgot.");
       return;
     }
-    setForgotMsg(`Password reset link request has been noted for ${formData.email}. Please check your inbox or contact support.`);
+    setResetLoading(true);
+    setForgotMsg("");
+    try {
+      const res = await axios.post(`${API_URL}/api/auth/forgot-password`, {
+        email: formData.email,
+      });
+      setResetOpen(true);
+      setForgotMsg(res.data?.msg || "A reset code has been sent to your email.");
+    } catch (err) {
+      setForgotMsg(err.response?.data?.msg || "Could not send a reset code. Please try again.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (resetPassword.length < 6) {
+      setForgotMsg("New password must be at least 6 characters.");
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/auth/reset-password`, {
+        email: formData.email,
+        otp: resetCode,
+        password: resetPassword,
+      });
+      toast.success(res.data?.msg || "Password updated.", "Password Reset");
+      setResetOpen(false);
+      setResetCode("");
+      setResetPassword("");
+      setForgotMsg("");
+      setFormData((prev) => ({ ...prev, password: "" }));
+    } catch (err) {
+      setForgotMsg(err.response?.data?.msg || "Could not reset password. Please try again.");
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   return (
@@ -116,10 +161,57 @@ const Login = () => {
           <p>Enter your details to access your dashboard</p>
         </div>
 
+        {sessionExpired && (
+          <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", color: "#c2410c", padding: "10px 14px", borderRadius: 10, fontSize: "0.85rem", marginBottom: "1rem", lineHeight: 1.4 }}>
+            Your session has expired. Please sign in again.
+          </div>
+        )}
+
         {forgotMsg && (
           <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", color: "#c2410c", padding: "10px 14px", borderRadius: 10, fontSize: "0.85rem", marginBottom: "1rem", lineHeight: 1.4 }}>
             {forgotMsg}
           </div>
+        )}
+
+        {resetOpen && (
+          <form onSubmit={handleResetPassword} className="auth-form" style={{ marginBottom: "1.5rem", padding: "16px", border: "1px solid #fed7aa", borderRadius: 16, background: "#fffaf5" }}>
+            <div className="input-group">
+              <label>RESET CODE (SENT TO {formData.email.toUpperCase()})</label>
+              <div className="input-wrapper">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={resetCode}
+                  onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="6-digit code"
+                  required
+                />
+              </div>
+            </div>
+            <div className="input-group">
+              <label>NEW PASSWORD</label>
+              <div className="input-wrapper">
+                <input
+                  type="password"
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  required
+                />
+              </div>
+            </div>
+            <button className="btn-login" type="submit" disabled={resetLoading}>
+              {resetLoading ? "Saving..." : "Set New Password"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setResetOpen(false); setForgotMsg(""); }}
+              style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", marginTop: 8, fontWeight: 600 }}
+            >
+              Cancel
+            </button>
+          </form>
         )}
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -144,9 +236,10 @@ const Login = () => {
                 type="button"
                 onClick={handleForgotPassword}
                 id="forgot-link"
+                disabled={resetLoading}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               >
-                Forgot?
+                {resetLoading && !resetOpen ? "Sending..." : "Forgot?"}
               </button>
             </div>
             <div className="input-wrapper">

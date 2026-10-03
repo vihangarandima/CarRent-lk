@@ -1,24 +1,23 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const Vehicle = require("../models/Vehicle");
 const Company = require("../models/Company");
 const User = require("../models/User");
 const Review = require("../models/Review");
-const jwt = require("jsonwebtoken");
+const { auth, escapeRegex } = require("../middleware/auth");
 
-// Middleware to verify JWT
-const auth = (req, res, next) => {
-  const token = req.header("x-auth-token");
-  if (!token)
-    return res.status(401).json({ msg: "No token, authorization denied" });
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ msg: "Token is not valid" });
-  }
-};
+const VEHICLE_TYPES = ["bicycle", "threewheeler", "mini-car", "car", "premium-car", "mini-van", "van", "others"];
+
+// Listings the owner paused or an admin flagged are not shown publicly
+const PUBLIC_STATUS_FILTER = { status: { $nin: ["hidden", "flagged"] } };
+
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+const cleanImages = (images) =>
+  Array.isArray(images)
+    ? images.filter((img) => typeof img === "string" && img.trim() !== "").slice(0, 5)
+    : [];
 
 // @route   GET api/vehicles
 // @desc    Get all vehicles with filters (only active public listings by default)
@@ -28,11 +27,11 @@ router.get("/", async (req, res) => {
     let query = {
       status: status || { $nin: ["hidden", "flagged", "rented"] },
     };
-    if (brand) query.brand = new RegExp(brand, "i");
-    if (model) query.model = new RegExp(model, "i");
-    if (location) query.location = new RegExp(location, "i");
-    if (vehicleType) query.vehicleType = vehicleType;
-    if (companyId) query.company = companyId;
+    if (brand) query.brand = new RegExp(escapeRegex(brand), "i");
+    if (model) query.model = new RegExp(escapeRegex(model), "i");
+    if (location) query.location = new RegExp(escapeRegex(location), "i");
+    if (vehicleType) query.vehicleType = String(vehicleType);
+    if (companyId && isValidId(companyId)) query.company = companyId;
     if (minPrice || maxPrice) {
       query.pricePerDay = {};
       const parsedMin = parseInt(minPrice, 10);
@@ -43,12 +42,14 @@ router.get("/", async (req, res) => {
     }
 
     const vehicles = await Vehicle.find(query)
-      .populate("owner", "name email role")
-      .populate("company", "companyName logo address phone contactEmail isVerified");
+      .populate("owner", "name role")
+      .populate("company", "companyName logo address phone contactEmail isVerified")
+      .sort({ isFeatured: -1, createdAt: -1 })
+      .lean();
     res.json(vehicles);
   } catch (err) {
     console.error("Error fetching vehicles:", err);
-    res.status(500).send("Server Error");
+    res.status(500).json({ msg: "Server Error" });
   }
 });
 
@@ -59,10 +60,28 @@ router.get("/my", auth, async (req, res) => {
     const vehicles = await Vehicle.find({ owner: req.user.id })
       .populate("company", "companyName logo phone address isVerified")
       .sort({ createdAt: -1 });
-    res.json(vehicles);
+
+    // Attach review stats per vehicle so the dashboard can show real numbers
+    const ids = vehicles.map((v) => v._id);
+    const stats = await Review.aggregate([
+      { $match: { vehicle: { $in: ids } } },
+      { $group: { _id: "$vehicle", count: { $sum: 1 }, avg: { $avg: "$rating" } } },
+    ]);
+    const statsById = Object.fromEntries(stats.map((s) => [s._id.toString(), s]));
+
+    res.json(
+      vehicles.map((v) => {
+        const s = statsById[v._id.toString()];
+        return {
+          ...v.toObject(),
+          reviewCount: s ? s.count : 0,
+          rating: s ? Number(s.avg.toFixed(1)) : 0,
+        };
+      })
+    );
   } catch (err) {
     console.error("Error fetching user vehicles:", err);
-    res.status(500).send("Server Error");
+    res.status(500).json({ msg: "Server Error" });
   }
 });
 
@@ -88,24 +107,35 @@ router.post("/", auth, async (req, res) => {
       availableTo,
     } = req.body;
 
-    // Validation for vehicle type
-    if (
-      !vehicleType ||
-      !["bicycle", "threewheeler", "mini-car", "car", "premium-car", "mini-van", "van", "others"].includes(vehicleType)
-    ) {
+    if (!vehicleType || !VEHICLE_TYPES.includes(vehicleType)) {
       return res.status(400).json({ msg: "Valid vehicle type is required." });
+    }
+    if (!brand || !model || !location) {
+      return res.status(400).json({ msg: "Brand, model and location are required." });
+    }
+    const price = Number(pricePerDay);
+    if (!price || price <= 0) {
+      return res.status(400).json({ msg: "Please enter a valid daily price." });
     }
 
     // Validation for images: At least 1 valid image required (up to 5)
-    const validImages = Array.isArray(images) ? images.filter(img => typeof img === "string" && img.trim() !== "") : [];
+    const validImages = cleanImages(images);
     if (validImages.length === 0) {
       return res.status(400).json({ msg: "Please upload at least 1 image of the vehicle." });
     }
 
+    const lister = await User.findById(req.user.id).select("role");
+    if (!lister) return res.status(401).json({ msg: "Account not found. Please sign in again." });
+
+    // A renter who lists a car becomes an owner (host)
+    if (lister.role === "renter") {
+      lister.role = "owner";
+      await lister.save();
+    }
+
     // Auto-attach company if the lister is a company account
     let companyId = null;
-    const lister = await User.findById(req.user.id).select("role");
-    if (lister && lister.role === "company") {
+    if (lister.role === "company") {
       const company = await Company.findOne({ user: req.user.id });
       if (company) companyId = company._id;
     }
@@ -115,8 +145,8 @@ router.post("/", auth, async (req, res) => {
       brand,
       model,
       year,
-      pricePerDay,
-      pricePerKmAfter100km: pricePerKmAfter100km || 0,
+      pricePerDay: price,
+      pricePerKmAfter100km: Number(pricePerKmAfter100km) || 0,
       vehicleType,
       fuelType,
       transmission,
@@ -130,10 +160,13 @@ router.post("/", auth, async (req, res) => {
       company: companyId,
     });
     const vehicle = await newVehicle.save();
-    res.json(vehicle);
+    res.json({ ...vehicle.toObject(), listerRole: lister.role });
   } catch (err) {
     console.error("Listing Crash Error:", err);
-    res.status(500).json({ msg: err.message || "Server Error" });
+    if (err.name === "ValidationError") {
+      return res.status(400).json({ msg: err.message });
+    }
+    res.status(500).json({ msg: "Server error while saving the listing" });
   }
 });
 
@@ -141,13 +174,75 @@ router.post("/", auth, async (req, res) => {
 // @desc    Get a single vehicle by ID
 router.get("/:id", async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Vehicle not found" });
+    // Owner phone is public on purpose: customers contact hosts directly on WhatsApp
     const vehicle = await Vehicle.findById(req.params.id)
-      .populate("owner", "name email")
+      .populate("owner", "name phone")
       .populate("company", "companyName logo phone contactEmail address");
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
     res.json(vehicle);
   } catch (err) {
-    res.status(500).send("Server Error");
+    console.error("Error fetching vehicle:", err);
+    res.status(500).json({ msg: "Server Error" });
+  }
+});
+
+// @route   PUT api/vehicles/:id
+// @desc    Update a listing (only the lister who owns it)
+router.put("/:id", auth, async (req, res) => {
+  try {
+    if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Vehicle not found" });
+    const vehicle = await Vehicle.findById(req.params.id);
+    if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
+    if (vehicle.owner.toString() !== req.user.id)
+      return res.status(403).json({ msg: "Not authorized" });
+
+    const editable = [
+      "brand", "model", "year", "pricePerDay", "pricePerKmAfter100km", "fuelType",
+      "transmission", "description", "location", "lat", "lng", "availableFrom", "availableTo",
+    ];
+    for (const key of editable) {
+      if (req.body[key] !== undefined) vehicle[key] = req.body[key];
+    }
+
+    if (req.body.vehicleType !== undefined) {
+      if (!VEHICLE_TYPES.includes(req.body.vehicleType)) {
+        return res.status(400).json({ msg: "Valid vehicle type is required." });
+      }
+      vehicle.vehicleType = req.body.vehicleType;
+    }
+
+    if (req.body.images !== undefined) {
+      const validImages = cleanImages(req.body.images);
+      if (validImages.length === 0) {
+        return res.status(400).json({ msg: "A listing needs at least 1 photo." });
+      }
+      vehicle.images = validImages;
+    }
+
+    // Owners can pause/resume a listing, but cannot clear an admin flag
+    if (req.body.status !== undefined) {
+      if (!["active", "hidden"].includes(req.body.status)) {
+        return res.status(400).json({ msg: "Invalid status" });
+      }
+      if (vehicle.status === "flagged") {
+        return res.status(403).json({ msg: "This listing was flagged by an admin. Please contact support." });
+      }
+      vehicle.status = req.body.status;
+    }
+
+    if (!(Number(vehicle.pricePerDay) > 0)) {
+      return res.status(400).json({ msg: "Please enter a valid daily price." });
+    }
+
+    await vehicle.save();
+    res.json(vehicle);
+  } catch (err) {
+    console.error("Error updating vehicle:", err);
+    if (err.name === "ValidationError" || err.name === "CastError") {
+      return res.status(400).json({ msg: err.message });
+    }
+    res.status(500).json({ msg: "Server error while updating the listing" });
   }
 });
 
@@ -220,14 +315,16 @@ router.patch("/:id/availability", auth, handleVehicleUpdate);
 // @desc    Delete a vehicle (owner/company must own it)
 router.delete("/:id", auth, async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Vehicle not found" });
     const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
     if (vehicle.owner.toString() !== req.user.id)
-      return res.status(401).json({ msg: "Not authorized" });
+      return res.status(403).json({ msg: "Not authorized" });
     await vehicle.deleteOne();
     res.json({ msg: "Vehicle removed" });
   } catch (err) {
-    res.status(500).send("Server Error");
+    console.error("Error deleting vehicle:", err);
+    res.status(500).json({ msg: "Server Error" });
   }
 });
 
@@ -239,9 +336,18 @@ router.post("/:id/reviews", auth, async (req, res) => {
     if (!rating || !comment) {
       return res.status(400).json({ msg: "Rating and comment are required" });
     }
+    const numRating = Number(rating);
+    if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+      return res.status(400).json({ msg: "Rating must be between 1 and 5" });
+    }
 
+    if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Vehicle not found" });
     const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
+
+    if (vehicle.owner.toString() === req.user.id) {
+      return res.status(400).json({ msg: "You cannot review your own vehicle" });
+    }
 
     // Ensure the user hasn't already reviewed this vehicle
     const existingReview = await Review.findOne({ vehicle: req.params.id, user: req.user.id });
@@ -252,7 +358,7 @@ router.post("/:id/reviews", auth, async (req, res) => {
     const newReview = new Review({
       vehicle: req.params.id,
       user: req.user.id,
-      rating: Number(rating),
+      rating: numRating,
       comment
     });
 
@@ -260,7 +366,7 @@ router.post("/:id/reviews", auth, async (req, res) => {
     res.json(review);
   } catch (err) {
     console.error("Review Error:", err);
-    res.status(500).send("Server Error");
+    res.status(500).json({ msg: "Server Error" });
   }
 });
 
@@ -268,10 +374,11 @@ router.post("/:id/reviews", auth, async (req, res) => {
 // @desc    Get all reviews for a vehicle
 router.get("/:id/reviews", async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) return res.json([]);
     const reviews = await Review.find({ vehicle: req.params.id }).populate("user", "name").sort({ createdAt: -1 });
     res.json(reviews);
   } catch (err) {
-    res.status(500).send("Server Error");
+    res.status(500).json({ msg: "Server Error" });
   }
 });
 

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
+const { escapeRegex } = require("../middleware/auth");
 const User = require("../models/User");
 const Vehicle = require("../models/Vehicle");
 const Company = require("../models/Company");
@@ -146,8 +147,8 @@ router.get("/users", auth, adminOnly, async (req, res) => {
     if (role && role !== "all") query.role = role;
     if (search) {
       query.$or = [
-        { name: new RegExp(search, "i") },
-        { email: new RegExp(search, "i") },
+        { name: new RegExp(escapeRegex(search), "i") },
+        { email: new RegExp(escapeRegex(search), "i") },
       ];
     }
     const users = await User.find(query)
@@ -242,9 +243,9 @@ router.get("/vehicles", auth, adminOnly, async (req, res) => {
     }
     if (search) {
       query.$or = [
-        { brand: new RegExp(search, "i") },
-        { model: new RegExp(search, "i") },
-        { location: new RegExp(search, "i") },
+        { brand: new RegExp(escapeRegex(search), "i") },
+        { model: new RegExp(escapeRegex(search), "i") },
+        { location: new RegExp(escapeRegex(search), "i") },
       ];
     }
     const vehicles = await Vehicle.find(query)
