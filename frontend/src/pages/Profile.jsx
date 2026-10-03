@@ -360,7 +360,6 @@ const Profile = () => {
 
   const tabs = isRenter ? [
     { id: "overview", label: "Overview", icon: <Grid size={16} /> },
-    { id: "bookings", label: "My Trips", icon: <Calendar size={16} /> },
     { id: "reviews", label: `My Reviews (${myReviews.length})`, icon: <Star size={16} /> },
     { id: "settings", label: "Settings", icon: <SettingsIcon size={16} /> },
   ] : [
@@ -480,7 +479,7 @@ const Profile = () => {
                     <h2>Welcome back, {firstName}!</h2>
                     {isRenter ? (
                       <p>
-                        Discover thousands of verified cars, SUVs, and vans available for self-drive or with driver across Sri Lanka.
+                        Find bikes, tuk-tuks, cars and vans across Sri Lanka and contact the owner directly on WhatsApp.
                       </p>
                     ) : (
                       <p>
@@ -500,7 +499,7 @@ const Profile = () => {
                     {isRenter ? (
                       <>
                         <h3>Become a Host</h3>
-                        <p>List your personal vehicle and start earning high passive income with full verified guest security.</p>
+                        <p>List your own vehicle for free and let customers contact you on WhatsApp.</p>
                         <Link to="/choose-listing-type" className="cta-link">
                           Get started <ChevronRight size={16} />
                         </Link>

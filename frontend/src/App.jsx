@@ -34,6 +34,7 @@ const CompanyDashboard = lazy(() => import("./pages/CompanyDashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const ChooseListingType = lazy(() => import("./pages/ChooseListingType"));
 const ReviewsPortal = lazy(() => import("./pages/ReviewsPortal"));
+const QuickAddFleet = lazy(() => import("./pages/QuickAddFleet"));
 
 const PageLoader = () => (
   <div style={{ minHeight: "60vh", display: "grid", placeItems: "center" }}>
@@ -216,6 +217,7 @@ function AppContent() {
           <Route path={DASHBOARD_PATH} element={<CompanyDashboard />} />
           <Route path="/company-dashboard" element={<LegacyDashboardRedirect />} />
           <Route path="/company-list-vehicle" element={<ListVehicle />} />
+          <Route path="/fleet/quick-add" element={<QuickAddFleet />} />
           <Route path="/choose-listing-type" element={<ChooseListingType />} />
           <Route path="/select-role" element={<ChooseListingType />} />
           <Route path="/reviews" element={<ReviewsPortal />} />

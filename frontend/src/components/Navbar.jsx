@@ -56,13 +56,18 @@ const Navbar = () => {
 
   const handleLogout = logout;
 
+  // Pages that start with the orange header band get the transparent white navbar
+  const onOrangeHeader =
+    ["/", "/home", "/vehicles", "/companies", "/reviews", "/reviews-portal", "/why-us"].includes(location.pathname) ||
+    location.pathname.startsWith("/companies/");
+
   const lister = Boolean(token) && isLister(user);
   // A lister who has not chosen to browse as a customer sees a hosting-only navbar
   const hostingNav = lister && !isBrowsingAsCustomer();
 
   const listTarget =
     user?.role === "company"
-      ? "/company-list-vehicle"
+      ? "/fleet/quick-add"
       : user?.role === "owner"
       ? "/list-my-car"
       : "/choose-listing-type";
@@ -90,7 +95,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className={`hero-nav ${scrolled ? "scrolled" : ""} ${location.pathname === '/' && !scrolled ? "on-dark" : ""}`}>
+      <nav className={`hero-nav ${scrolled ? "scrolled" : ""} ${onOrangeHeader && !scrolled ? "on-dark" : ""}`}>
         <Link to="/" className="nav-logo">
           <img src={logo} alt="Yamu Car Rentals" className="nav-logo-img" />
           <span className="brand-yamu">Yamu</span>
@@ -420,6 +425,10 @@ const Navbar = () => {
           color: rgba(255, 255, 255, 0.95);
           font-weight: 600;
         }
+        .hero-nav.on-dark .nav-link-btn {
+          color: rgba(255, 255, 255, 0.95);
+          font-weight: 600;
+        }
         .hero-nav.on-dark .nav-links a:hover {
           color: #ffffff;
           opacity: 1;
@@ -713,7 +722,7 @@ const Navbar = () => {
           color: #ffffff;
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 1100px) {
           .nav-links, .nav-actions {
             display: none !important;
           }

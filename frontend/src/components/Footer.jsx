@@ -84,10 +84,10 @@ const Footer = () => {
               </span>
             </Link>
             <p className="footer-tagline">
-              {footer?.tagline || "Sri Lanka's most trusted car sharing marketplace. Rent verified vehicles or earn by listing yours."}
+              {footer?.tagline || "Find a vehicle anywhere in Sri Lanka, or earn by listing yours."}
             </p>
             <div className="footer-social">
-              {dynamicSocialIcons.map((icon) => (
+              {dynamicSocialIcons.filter((icon) => icon.url && icon.url !== "#").map((icon) => (
                 <a
                   key={icon.label}
                   href={icon.url || "#"}
@@ -116,10 +116,10 @@ const Footer = () => {
           <div className="footer-col">
             <h4>Rent</h4>
             <Link to="/vehicles">Browse Cars</Link>
-            <Link to="/vehicles">SUVs & Vans</Link>
+            <Link to="/vehicles?type=van">Vans</Link>
             <Link to="/companies">Rental Companies</Link>
             <Link to="/reviews">Customer Reviews</Link>
-            <Link to="/vehicles">Luxury Cars</Link>
+            <Link to="/vehicles?type=premium-car">Premium Cars</Link>
           </div>
 
           <div className="footer-col">
@@ -160,8 +160,7 @@ const Footer = () => {
             {footer?.copyrightText || `© ${new Date().getFullYear()} Yamu Car Rentals. All rights reserved.`}
           </p>
           <div className="footer-legal">
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
+
           </div>
         </div>
       </div>

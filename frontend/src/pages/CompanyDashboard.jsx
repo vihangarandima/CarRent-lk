@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config";
 import { useToast } from "../context/ToastContext";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
+import logo from "../assets/images/logo.png";
+import { uploadVehicleImage } from "../utils/uploadImage";
+import {
+  DASHBOARD_PATH,
+  logout,
+  setBrowsingAsCustomer,
+  updateStoredUser,
+} from "../utils/session";
 import {
   BarChart3,
   Building2,
@@ -16,6 +24,10 @@ import {
   CreditCard,
   Edit3,
   ExternalLink,
+  Eye,
+  Camera,
+  Loader2,
+  Search,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -44,20 +56,36 @@ import {
 import { formatLKR } from "../data/mock";
 
 const navItems = [
-
   { label: "Overview", icon: LayoutDashboard },
   { label: "Fleet", icon: CarFront },
   { label: "Bookings", icon: CalendarCheck },
-  { label: "Payments", icon: CreditCard },
-  { label: "Customers", icon: Users },
-  { label: "Settings", icon: Settings },
 ];
+
+const greeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+};
+
+// Short Y-axis labels: 0, 500, 2k, 1.5M
+const formatAxis = (v) => {
+  if (v >= 1000000) return `${+(v / 1000000).toFixed(1)}M`;
+  if (v >= 1000) return `${+(v / 1000).toFixed(1)}k`;
+  return `${v}`;
+};
 
 export default function CompanyDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "null"));
+  // Personal hosts ("owner") use their own account details instead of a company profile
+  const isCompany = user?.role === "company";
+  const wantsCompanySetup = new URLSearchParams(location.search).get("setup") === "company";
+  // Companies add vehicles in bulk; personal hosts use the step-by-step form
+  const addVehiclePath = isCompany ? "/fleet/quick-add" : "/list-my-car";
 
   const [company, setCompany] = useState(null);
   const [vehicles, setVehicles] = useState([]);
@@ -95,15 +123,38 @@ export default function CompanyDashboard() {
 
   useEffect(() => {
     if (!token || !user) {
-      navigate("/login");
+      navigate(`/login?redirect=${encodeURIComponent(DASHBOARD_PATH)}`, { replace: true });
       return;
     }
+    if (user.role === "admin") {
+      navigate("/admin", { replace: true });
+      return;
+    }
+    if (user.role === "renter" && !wantsCompanySetup) {
+      navigate("/choose-listing-type", { replace: true });
+      return;
+    }
+    // Being on the dashboard means working as a lister, not browsing as a customer
+    setBrowsingAsCustomer(false);
+
+    const personalProfile = {
+      companyName: user.name,
+      phone: user.phone || "",
+      contactEmail: user.email || "",
+      isPersonal: true,
+    };
+
     const fetchData = async () => {
       try {
+        const companyReq =
+          user.role === "owner"
+            ? Promise.resolve({ data: personalProfile })
+            : axios.get(`${API_URL}/api/companies/me`).catch((err) => {
+                if (err.response?.status === 404) return { data: null };
+                throw err;
+              });
         const [companyRes, vehiclesRes, bidsRes, rentalsRes, rentalStatsRes] = await Promise.all([
-          axios.get(`${API_URL}/api/companies/me`, {
-            headers: { "x-auth-token": token },
-          }),
+          companyReq,
           axios.get(`${API_URL}/api/vehicles/my`, {
             headers: { "x-auth-token": token },
           }),
@@ -120,11 +171,6 @@ export default function CompanyDashboard() {
         if (companyRes.data) {
           setCompany(companyRes.data);
           setEditData(companyRes.data);
-          // Sync updated role in local storage
-          if (user && user.role !== "company") {
-            const updatedUser = { ...user, role: "company" };
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-          }
         }
         setVehicles(vehiclesRes.data || []);
         setBids(bidsRes.data || []);
@@ -132,11 +178,13 @@ export default function CompanyDashboard() {
         setRentalStats(rentalStatsRes.data || null);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
+        toast.error(err.response?.data?.msg || "Could not load your dashboard. Please refresh the page.");
       } finally {
         setLoading(false);
       }
     };
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleQuickCreate = async (e) => {
@@ -155,13 +203,15 @@ export default function CompanyDashboard() {
       );
       setCompany(res.data);
       setEditData(res.data);
-      if (user && user.role !== "company") {
-        const updatedUser = { ...user, role: "company" };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-      }
+      setUser(updateStoredUser({ role: "company", companyId: res.data._id }));
+      localStorage.setItem(
+        "company",
+        JSON.stringify({ id: res.data._id, companyName: res.data.companyName, logo: res.data.logo })
+      );
+      navigate(DASHBOARD_PATH, { replace: true });
       toast.success("Company profile created successfully!");
     } catch (err) {
-      toast.error("Failed to initialize company profile. Please try again.");
+      toast.error(err.response?.data?.msg || "Failed to initialize company profile. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -170,14 +220,25 @@ export default function CompanyDashboard() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await axios.put(`${API_URL}/api/companies/me`, editData, {
-        headers: { "x-auth-token": token },
-      });
-      setCompany(res.data);
+      if (company?.isPersonal) {
+        const res = await axios.post(`${API_URL}/api/auth/update-profile`, {
+          name: editData.companyName,
+          phone: editData.phone,
+        });
+        const saved = res.data.user;
+        setUser(updateStoredUser({ name: saved.name, phone: saved.phone }));
+        setCompany({ ...company, companyName: saved.name, phone: saved.phone });
+      } else {
+        const { companyName, phone, contactEmail, address, logo, description } = editData;
+        const res = await axios.put(`${API_URL}/api/companies/me`, {
+          companyName, phone, contactEmail, address, logo, description,
+        });
+        setCompany(res.data);
+      }
       setEditMode(false);
-      toast.success("Company profile updated successfully!");
+      toast.success("Profile updated successfully!");
     } catch (err) {
-      toast.error("Failed to save profile. Please try again.");
+      toast.error(err.response?.data?.msg || "Failed to save profile. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -240,10 +301,73 @@ export default function CompanyDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  const handleLogout = logout;
+
+  // ── One-line fleet management ──
+  const [fleetSearch, setFleetSearch] = useState("");
+  const [rowBusy, setRowBusy] = useState({});
+  const [priceDrafts, setPriceDrafts] = useState({});
+
+  const patchVehicle = async (v, changes, successMsg) => {
+    setRowBusy((b) => ({ ...b, [v._id]: true }));
+    try {
+      const res = await axios.put(`${API_URL}/api/vehicles/${v._id}`, changes);
+      setVehicles((prev) => prev.map((x) => (x._id === v._id ? { ...x, ...res.data } : x)));
+      if (successMsg) toast.success(successMsg);
+      return true;
+    } catch (err) {
+      toast.error(err.response?.data?.msg || "Could not update this vehicle.");
+      return false;
+    } finally {
+      setRowBusy((b) => ({ ...b, [v._id]: false }));
+    }
+  };
+
+  const commitPrice = async (v) => {
+    const draft = priceDrafts[v._id];
+    if (draft === undefined) return;
+    const price = Number(draft);
+    if (!(price > 0)) {
+      toast.warning("Enter a valid daily price.");
+      setPriceDrafts((d) => ({ ...d, [v._id]: undefined }));
+      return;
+    }
+    if (price !== Number(v.pricePerDay)) {
+      await patchVehicle(v, { pricePerDay: price }, `${v.brand} ${v.model}: price updated.`);
+    }
+    setPriceDrafts((d) => ({ ...d, [v._id]: undefined }));
+  };
+
+  const toggleLive = (v) =>
+    patchVehicle(
+      v,
+      { status: v.status === "hidden" ? "active" : "hidden" },
+      v.status === "hidden" ? `${v.brand} ${v.model} is live again.` : `${v.brand} ${v.model} is paused and hidden from customers.`
+    );
+
+  const addRowPhoto = async (v, file) => {
+    if (!file) return;
+    setRowBusy((b) => ({ ...b, [v._id]: true }));
+    try {
+      const url = await uploadVehicleImage(file);
+      await patchVehicle(v, { images: [url, ...(v.images || [])].slice(0, 5) }, "Photo added.");
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setRowBusy((b) => ({ ...b, [v._id]: false }));
+    }
+  };
+
+  const browseAsCustomer = () => {
+    setBrowsingAsCustomer(true);
     navigate("/");
+  };
+
+  const startEditProfile = () => {
+    setEditData(company);
+    setEditMode(true);
+    setActiveTab("Overview");
+    setTimeout(() => document.getElementById("cd-profile")?.scrollIntoView({ behavior: "smooth" }), 50);
   };
 
   // ── Mark as Rented ──
@@ -486,10 +610,10 @@ export default function CompanyDashboard() {
         <div className="cd-layout">
           {/* ── Sidebar ── */}
           <aside className="cd-sidebar">
-            <Link to="/" className="cd-logo">
-              <span className="cd-logo-icon"><CarFront size={18} /></span>
+            <Link to={DASHBOARD_PATH} className="cd-logo">
+              <img src={logo} alt="" className="cd-logo-img" />
               <span className="cd-logo-text">
-                CarRents<span className="cd-logo-accent">.lk</span>
+                Yamu<span className="cd-logo-accent"> Car Rentals</span>
               </span>
             </Link>
 
@@ -505,10 +629,16 @@ export default function CompanyDashboard() {
 
               <div className="cd-nav-divider" />
 
-              <Link to={`/companies/${company._id}`} className="cd-nav-item" target="_blank">
-                <ExternalLink size={16} />
-                View Public Page
-              </Link>
+              <button type="button" className="cd-nav-item" onClick={browseAsCustomer}>
+                <Eye size={16} />
+                View site as customer
+              </button>
+              {!company.isPersonal && company._id && (
+                <Link to={`/companies/${company._id}`} className="cd-nav-item" target="_blank" rel="noopener noreferrer">
+                  <ExternalLink size={16} />
+                  View Public Page
+                </Link>
+              )}
 
               <div className="cd-nav-divider" />
 
@@ -521,9 +651,11 @@ export default function CompanyDashboard() {
             <div className="cd-sidebar-card">
               <p className="cd-sidebar-card-name">{company.companyName}</p>
               <p className="cd-sidebar-card-sub">
-                <CheckCircle size={10} style={{ color: "#10b981" }} /> Verified company · Colombo
+                <CheckCircle size={10} style={{ color: "#10b981" }} />{" "}
+                {company.isPersonal ? "Personal host" : "Rent-a-car company"}
+                {company.address ? ` · ${company.address}` : ""}
               </p>
-              <Link to="/list-my-car" className="cd-add-vehicle-btn">
+              <Link to={addVehiclePath} className="cd-add-vehicle-btn">
                 <Plus size={14} /> Add vehicle
               </Link>
             </div>
@@ -531,23 +663,54 @@ export default function CompanyDashboard() {
 
           {/* ── Main content ── */}
           <main className="cd-main">
-            <header className="cd-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <header className="cd-header">
               <div>
                 <h1 className="cd-title">
-                  Good morning, <span style={{ color: "#f97316" }}>{company.companyName}</span>
+                  {greeting()}, <span style={{ color: "#f97316" }}>{company.companyName}</span>
                 </h1>
-                <p className="cd-subtitle">Here's how your fleet performed this month.</p>
+                <p className="cd-subtitle">
+                  {company.isPersonal ? "Manage your vehicles and rentals." : "Manage your fleet, rentals and company profile."}
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="cd-btn-outline"
-                style={{ color: "#EF4444", borderColor: "rgba(239,68,68,0.3)", display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <LogOut size={14} />
-                <span>Log Out</span>
-              </button>
+              <div className="cd-header-actions">
+                <Link to={addVehiclePath} className="cd-btn-primary-sm cd-header-btn">
+                  <Plus size={14} /> Add vehicle
+                </Link>
+                <button type="button" onClick={browseAsCustomer} className="cd-btn-outline cd-header-btn">
+                  <Eye size={14} /> View site as customer
+                </button>
+                <button type="button" onClick={handleLogout} className="cd-btn-outline cd-header-btn cd-btn-logout">
+                  <LogOut size={14} /> Log out
+                </button>
+              </div>
             </header>
+
+            {/* Tabs for phones and tablets, where the sidebar is hidden */}
+            <nav className="cd-mobile-tabs" aria-label="Dashboard sections">
+              {navItems.map(({ label, icon: Icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`cd-mobile-tab ${activeTab === label ? "cd-mobile-tab-active" : ""}`}
+                  onClick={() => setActiveTab(label)}
+                >
+                  <Icon size={15} /> {label === "Bookings" ? "Rentals" : label}
+                </button>
+              ))}
+            </nav>
+
+            {!company.phone && (
+              <div className="cd-alert">
+                <Phone size={18} />
+                <div>
+                  <strong>Add your phone number</strong>
+                  <p>Customers contact you on WhatsApp from your listings. Without a number they can't reach you.</p>
+                </div>
+                <button type="button" className="cd-btn-primary-sm" onClick={startEditProfile}>
+                  Add number
+                </button>
+              </div>
+            )}
 
             {/* ── OVERVIEW TAB ── */}
             {activeTab === "Overview" && (
@@ -572,15 +735,15 @@ export default function CompanyDashboard() {
                         <AreaChart data={revenueChartData}>
                           <defs>
                             <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#0f766e" stopOpacity={0.55} />
-                              <stop offset="100%" stopColor="#0f766e" stopOpacity={0} />
+                              <stop offset="0%" stopColor="#ea580c" stopOpacity={0.55} />
+                              <stop offset="100%" stopColor="#ea580c" stopOpacity={0} />
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" />
                           <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
-                          <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}k`} />
+                          <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatAxis} allowDecimals={false} domain={[0, (max) => Math.max(max, 10000)]} />
                           <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid #e5e7eb", background: "#fff", color: "#111827" }} formatter={(v) => formatLKR(v)} />
-                          <Area type="monotone" dataKey="revenue" stroke="#0f766e" strokeWidth={3} fill="url(#rev)" />
+                          <Area type="monotone" dataKey="revenue" stroke="#ea580c" strokeWidth={3} fill="url(#rev)" />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
@@ -590,18 +753,25 @@ export default function CompanyDashboard() {
                     <h2 className="cd-card-title">Quick actions</h2>
                     <div className="cd-actions-grid">
                       {[
-                        { label: "Add vehicle", icon: Plus, to: "/list-my-car" },
-                        { label: "New booking", icon: CalendarCheck },
-                        { label: "Withdraw", icon: Wallet },
-                        { label: "Reports", icon: BarChart3 },
-                      ].map(({ label, icon: Icon, to }) => (
+                        { label: "Add vehicle", icon: Plus, to: addVehiclePath },
+                        {
+                          label: "Record a rental",
+                          icon: KeyRound,
+                          onClick: () => {
+                            setActiveTab("Fleet");
+                            toast.info("Tap the key icon next to a vehicle to record a rental.");
+                          },
+                        },
+                        { label: "Rental records", icon: CalendarCheck, onClick: () => setActiveTab("Bookings") },
+                        { label: "View site as customer", icon: Eye, onClick: browseAsCustomer },
+                      ].map(({ label, icon: Icon, to, onClick }) => (
                         to ? (
                           <Link key={label} to={to} className="cd-action-btn">
                             <Icon size={20} className="cd-action-icon" />
                             <span className="cd-action-label">{label}</span>
                           </Link>
                         ) : (
-                          <button key={label} type="button" className="cd-action-btn">
+                          <button key={label} type="button" className="cd-action-btn" onClick={onClick}>
                             <Icon size={20} className="cd-action-icon" />
                             <span className="cd-action-label">{label}</span>
                           </button>
@@ -626,14 +796,14 @@ export default function CompanyDashboard() {
                 </div>
 
                 {/* ── Company Profile Card ── */}
-                <section className="cd-card cd-profile-card">
+                <section className="cd-card cd-profile-card" id="cd-profile">
                   <div className="cd-card-head">
                     <div>
-                      <h2 className="cd-card-title">Company Information</h2>
-                      <p className="cd-card-desc">Manage your public contact details.</p>
+                      <h2 className="cd-card-title">{company.isPersonal ? "My Contact Details" : "Company Information"}</h2>
+                      <p className="cd-card-desc">Customers use these details to contact you.</p>
                     </div>
                     {!editMode ? (
-                      <button className="cd-btn-outline" onClick={() => setEditMode(true)}>
+                      <button className="cd-btn-outline" onClick={startEditProfile}>
                         <Edit3 size={12} /> Edit
                       </button>
                     ) : (
@@ -646,7 +816,20 @@ export default function CompanyDashboard() {
                     )}
                   </div>
                   <div className="cd-card-body">
-                    {editMode ? (
+                    {editMode && company.isPersonal ? (
+                      <div className="cd-edit-form">
+                        <div className="cd-form-row">
+                          <div className="cd-form-group">
+                            <label>Full Name</label>
+                            <input type="text" value={editData.companyName || ""} onChange={(e) => setEditData({ ...editData, companyName: e.target.value })} />
+                          </div>
+                          <div className="cd-form-group">
+                            <label>Phone Number (WhatsApp)</label>
+                            <input type="tel" value={editData.phone || ""} placeholder="077 123 4567" onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
+                          </div>
+                        </div>
+                      </div>
+                    ) : editMode ? (
                       <div className="cd-edit-form">
                         <div className="cd-form-row">
                           <div className="cd-form-group">
@@ -654,8 +837,8 @@ export default function CompanyDashboard() {
                             <input type="text" value={editData.companyName || ""} onChange={(e) => setEditData({ ...editData, companyName: e.target.value })} />
                           </div>
                           <div className="cd-form-group">
-                            <label>Phone Number</label>
-                            <input type="text" value={editData.phone || ""} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
+                            <label>Phone Number (WhatsApp)</label>
+                            <input type="tel" value={editData.phone || ""} placeholder="077 123 4567" onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
                           </div>
                         </div>
                         <div className="cd-form-row">
@@ -679,10 +862,12 @@ export default function CompanyDashboard() {
                       </div>
                     ) : (
                       <div className="cd-info-grid">
-                        <div className="cd-info-item">
-                          <div className="cd-info-icon"><MapPin size={16} /></div>
-                          <div><span className="cd-info-label">Address</span><span className="cd-info-value">{company.address || "Not specified"}</span></div>
-                        </div>
+                        {!company.isPersonal && (
+                          <div className="cd-info-item">
+                            <div className="cd-info-icon"><MapPin size={16} /></div>
+                            <div><span className="cd-info-label">Address</span><span className="cd-info-value">{company.address || "Not specified"}</span></div>
+                          </div>
+                        )}
                         <div className="cd-info-item">
                           <div className="cd-info-icon"><Phone size={16} /></div>
                           <div><span className="cd-info-label">Phone</span><span className="cd-info-value">{company.phone || "Not specified"}</span></div>
@@ -709,9 +894,11 @@ export default function CompanyDashboard() {
                 <div className="cd-card-head">
                   <div>
                     <h2 className="cd-card-title">Vehicle Fleet</h2>
-                    <p className="cd-card-desc">You have {vehicles.length} vehicles active.</p>
+                    <p className="cd-card-desc">
+                      {totalVehicles} vehicle{totalVehicles === 1 ? "" : "s"} · {activeVehicles} available · {rentedVehicles} rented
+                    </p>
                   </div>
-                  <Link to="/list-my-car" className="cd-btn-primary-sm"><Plus size={12} /> Add</Link>
+                  <Link to={addVehiclePath} className="cd-btn-primary-sm"><Plus size={12} /> Add</Link>
                 </div>
                 <div className="cd-card-body" style={{ padding: 0 }}>
                   {vehicles.length === 0 ? (
@@ -719,83 +906,104 @@ export default function CompanyDashboard() {
                       <Car size={24} style={{ color: "#f97316" }} />
                       <h3>Your fleet is empty</h3>
                       <p>Start building your presence.</p>
-                      <Link to="/list-my-car" className="cd-add-vehicle-btn" style={{ marginTop: 8 }}>Add Vehicle</Link>
+                      <Link to={addVehiclePath} className="cd-add-vehicle-btn" style={{ marginTop: 8 }}>Add Vehicle</Link>
                     </div>
                   ) : (
-                    <div className="cd-table-wrap">
-                      <table className="cd-table">
-                        <thead>
-                          <tr>
-                            <th>Vehicle Details</th>
-                            <th>Location</th>
-                            <th>Rate / Day</th>
-                            <th style={{ textAlign: "right" }}>Manage</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {vehicles.map((v) => (
-                            <tr key={v._id}>
-                              <td style={{ cursor: "pointer" }} onClick={() => handleOpenVehicleProfile(v)}>
-                                <div className="cd-cell-vehicle">
-                                  {v.images && v.images.length > 0 ? (
-                                    <img
-                                      src={formatVehicleImageUrl(v.images, v.vehicleType)}
-                                      alt={v.brand}
-                                      className="cd-vehicle-thumb"
-                                      onError={(e) => handleImageError(e, formatVehicleImageUrl(null, v.vehicleType))}
-                                    />
-                                  ) : (
-                                    <div className="cd-vehicle-thumb-placeholder"><Car size={14} /></div>
-                                  )}
-                                  <div>
-                                    <span className="cd-vehicle-name">{v.brand} {v.model}</span>
-                                    <span className="cd-vehicle-year">
-                                      {v.year} · <span style={{ color: v.status === "rented" ? "#ef4444" : (v.status || "active") === "active" ? "#10b981" : "#f97316", fontWeight: 600 }}>{v.status === "rented" ? "🔑 Rented" : (v.status || "active") === "active" ? "Active" : "Hidden"}</span>
-                                    </span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="cd-cell-muted">
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                  <MapPin size={12} /> {v.location}
-                                </span>
-                              </td>
-                              <td className="cd-cell-price">LKR {v.pricePerDay?.toLocaleString()}</td>
-                              <td>
+                    <>
+                      {vehicles.length > 5 && (
+                        <div className="cd-fleet-search">
+                          <Search size={16} />
+                          <input
+                            value={fleetSearch}
+                            onChange={(e) => setFleetSearch(e.target.value)}
+                            placeholder="Search your fleet by brand, model or location..."
+                            aria-label="Search fleet"
+                          />
+                        </div>
+                      )}
+                      <div className="cd-fleet-list">
+                        {vehicles
+                          .filter((v) => {
+                            const q = fleetSearch.trim().toLowerCase();
+                            return !q || `${v.brand} ${v.model} ${v.location} ${v.year}`.toLowerCase().includes(q);
+                          })
+                          .map((v) => {
+                            const status = v.status || "active";
+                            const hasPhoto = Array.isArray(v.images) && v.images.length > 0;
+                            const busy = rowBusy[v._id];
+                            return (
+                              <div key={v._id} className="cd-fleet-row">
+                                <label className="cd-fleet-photo" title={hasPhoto ? "Add another photo" : "Add a photo"}>
+                                  <input type="file" accept="image/*" hidden disabled={busy}
+                                    onChange={(e) => { addRowPhoto(v, e.target.files?.[0]); e.target.value = ""; }} />
+                                  <img
+                                    src={formatVehicleImageUrl(v.images, v.vehicleType)}
+                                    alt={`${v.brand} ${v.model}`}
+                                    onError={(e) => handleImageError(e, formatVehicleImageUrl(null, v.vehicleType))}
+                                  />
+                                  <span className={`cd-fleet-photo-badge ${hasPhoto ? "" : "cd-fleet-photo-missing"}`}>
+                                    {busy ? <Loader2 size={12} className="cd-spin" /> : <Camera size={12} />}
+                                  </span>
+                                </label>
+
+                                <button type="button" className="cd-fleet-info" onClick={() => handleOpenVehicleProfile(v)} title="Edit all details">
+                                  <span className="cd-vehicle-name">{v.brand} {v.model}</span>
+                                  <span className="cd-vehicle-year">
+                                    {v.year} · {v.location}{!hasPhoto && <span className="cd-fleet-nophoto"> · No photo yet</span>}
+                                  </span>
+                                </button>
+
+                                <label className="cd-fleet-price" title="Price per day">
+                                  <span>LKR</span>
+                                  <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    min="1"
+                                    value={priceDrafts[v._id] ?? v.pricePerDay ?? ""}
+                                    disabled={busy}
+                                    onChange={(e) => setPriceDrafts((d) => ({ ...d, [v._id]: e.target.value }))}
+                                    onBlur={() => commitPrice(v)}
+                                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                                    aria-label={`Price per day for ${v.brand} ${v.model}`}
+                                  />
+                                  <span>/day</span>
+                                </label>
+
+                                {status === "rented" ? (
+                                  <span className="cd-fleet-status cd-fleet-rented">🔑 Rented</span>
+                                ) : status === "flagged" ? (
+                                  <span className="cd-fleet-status cd-fleet-flagged">Under review</span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className={`cd-fleet-toggle ${status === "active" ? "on" : ""}`}
+                                    onClick={() => toggleLive(v)}
+                                    disabled={busy}
+                                    title={status === "active" ? "Pause (hide from customers)" : "Make live"}
+                                  >
+                                    <span className="cd-fleet-knob" />
+                                    {status === "active" ? "Live" : "Paused"}
+                                  </button>
+                                )}
+
                                 <div className="cd-cell-actions">
-                                  {(v.status || "active") !== "rented" && (
-                                    <button
-                                      type="button"
-                                      className="cd-action-icon-btn cd-rent-btn"
-                                      onClick={() => handleOpenRentalModal(v)}
-                                      title="Mark as Rented"
-                                    >
+                                  {status === "active" && (
+                                    <button type="button" className="cd-action-icon-btn cd-rent-btn" onClick={() => handleOpenRentalModal(v)} title="Record a rental">
                                       <KeyRound size={14} />
                                     </button>
                                   )}
-                                  <button
-                                    type="button"
-                                    className="cd-action-icon-btn cd-view-btn"
-                                    onClick={() => handleOpenVehicleProfile(v)}
-                                    title="Edit Details & Availability"
-                                  >
-                                    <ChevronRight size={14} />
+                                  <button type="button" className="cd-action-icon-btn cd-view-btn" onClick={() => handleOpenVehicleProfile(v)} title="Edit all details">
+                                    <Edit3 size={14} />
                                   </button>
-                                  <button
-                                    type="button"
-                                    className="cd-action-icon-btn cd-delete-btn"
-                                    onClick={() => setDeleteConfirm(v._id)}
-                                    title="Delete"
-                                  >
+                                  <button type="button" className="cd-action-icon-btn cd-delete-btn" onClick={() => setDeleteConfirm(v._id)} title="Delete">
                                     <Trash2 size={14} />
                                   </button>
                                 </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </>
                   )}
                 </div>
               </section>
@@ -899,16 +1107,6 @@ export default function CompanyDashboard() {
               </section>
             )}
 
-            {/* ── OTHER TABS (Coming Soon) ── */}
-            {!["Overview", "Fleet", "Bookings"].includes(activeTab) && (
-              <section className="cd-card" style={{ marginTop: 24 }}>
-                <div className="cd-empty-state">
-                  <Settings size={32} style={{ color: "#f97316" }} />
-                  <h3>{activeTab}</h3>
-                  <p>This section is coming soon.</p>
-                </div>
-              </section>
-            )}
           </main>
         </div>
       </div>
@@ -1225,7 +1423,7 @@ export default function CompanyDashboard() {
                     <div className="cd-quick-summary">
                       <span>📅 {days} day{days > 1 ? "s" : ""}</span>
                       <span>💰 {formatLKR(Number(rentalForm.dailyRate || 0))}/day</span>
-                      {total > 0 && <span style={{ color: "#0f766e", fontWeight: 700 }}>Total: {formatLKR(total)}</span>}
+                      {total > 0 && <span style={{ color: "#ea580c", fontWeight: 700 }}>Total: {formatLKR(total)}</span>}
                     </div>
                   );
                 })()}
@@ -1372,13 +1570,99 @@ const loadingCSS = `
 const dashboardCSS = `
   .cd-wrapper {
     min-height: 100vh;
-    background: #fafafa;
+    background: var(--bg);
     font-family: var(--font-body, "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif);
     color: #09090b;
   }
   .cd-layout { display: flex; max-width: 1500px; margin: 0 auto; }
 
   /* ── Sidebar ── */
+  .cd-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cd-fleet-search {
+    display: flex; align-items: center; gap: 8px; margin: 12px 0 4px; padding: 0 12px;
+    border: 1.5px solid #e2e8f0; border-radius: 12px; color: #94a3b8; background: #fff;
+  }
+  .cd-fleet-search input { flex: 1; border: none; outline: none; padding: 10px 0; font: inherit; font-size: 15px; background: transparent; }
+  .cd-fleet-list { display: flex; flex-direction: column; margin-top: 8px; }
+  .cd-fleet-row {
+    display: grid; grid-template-columns: 64px minmax(0, 1fr) 190px 112px auto;
+    align-items: center; gap: 14px; padding: 12px 4px; border-top: 1px solid #f1f5f9;
+  }
+  .cd-fleet-photo { position: relative; width: 64px; height: 48px; cursor: pointer; display: block; }
+  .cd-fleet-photo img { width: 64px; height: 48px; border-radius: 10px; object-fit: cover; background: #f1f5f9; }
+  .cd-fleet-photo-badge {
+    position: absolute; right: -6px; bottom: -6px; width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center; background: #fff; color: #475569; border: 1px solid #e2e8f0;
+  }
+  .cd-fleet-photo-missing { background: #f97316; color: #fff; border-color: #f97316; }
+  .cd-fleet-info { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; background: none; border: none; padding: 0; text-align: left; cursor: pointer; font: inherit; }
+  .cd-fleet-info .cd-vehicle-name, .cd-fleet-info .cd-vehicle-year { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cd-fleet-nophoto { color: #ea580c; font-weight: 600; }
+  .cd-fleet-price {
+    display: flex; align-items: center; gap: 6px; padding: 0 10px; height: 40px;
+    border: 1.5px solid #e2e8f0; border-radius: 10px; background: #fff; color: #94a3b8; font-size: 0.8rem; font-weight: 600;
+  }
+  .cd-fleet-price:focus-within { border-color: #f97316; box-shadow: 0 0 0 3px rgba(249,115,22,0.12); }
+  .cd-fleet-price input {
+    flex: 1; min-width: 0; width: 100%; border: none; outline: none; background: transparent;
+    font: inherit; font-size: 15px; font-weight: 700; color: #ea580c;
+  }
+  .cd-fleet-toggle {
+    display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 4px;
+    border-radius: 999px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #475569;
+    font: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;
+  }
+  .cd-fleet-knob { width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .cd-fleet-toggle.on { background: #dcfce7; border-color: #86efac; color: #15803d; flex-direction: row-reverse; padding: 0 4px 0 12px; }
+  .cd-fleet-toggle.on .cd-fleet-knob { background: #16a34a; }
+  .cd-fleet-status { justify-self: start; padding: 6px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+  .cd-fleet-rented { background: #fff7ed; color: #c2410c; }
+  .cd-fleet-flagged { background: #fee2e2; color: #b91c1c; }
+  .cd-spin { animation: cd-spin 0.8s linear infinite; }
+  @keyframes cd-spin { to { transform: rotate(360deg); } }
+  @media (max-width: 760px) {
+    .cd-fleet-row {
+      grid-template-columns: 64px minmax(0, 1fr);
+      grid-template-areas: "photo info" "price price" "status actions";
+      row-gap: 10px; padding: 14px 2px;
+    }
+    .cd-fleet-photo { grid-area: photo; }
+    .cd-fleet-info { grid-area: info; }
+    .cd-fleet-price { grid-area: price; }
+    .cd-fleet-toggle, .cd-fleet-status { grid-area: status; justify-self: start; }
+    .cd-fleet-row .cd-cell-actions { grid-area: actions; justify-content: flex-end; }
+    .cd-action-icon-btn { width: 40px; height: 40px; }
+  }
+  .cd-header-btn { padding: 8px 14px !important; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .cd-btn-logout { color: #EF4444 !important; border-color: rgba(239,68,68,0.3) !important; }
+  .cd-mobile-tabs { display: none; }
+  .cd-mobile-tab {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 8px; border: none; border-radius: 999px; background: transparent;
+    color: #71717a; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit;
+  }
+  .cd-mobile-tab-active { background: var(--grad-primary); color: #fff; }
+  .cd-alert {
+    display: flex; align-items: center; gap: 14px; margin-top: 20px; padding: 14px 18px;
+    background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; color: #9a3412;
+  }
+  .cd-alert > div { flex: 1; min-width: 0; }
+  .cd-alert strong { display: block; font-size: 0.9rem; }
+  .cd-alert p { margin: 2px 0 0; font-size: 0.8rem; color: #9a3412; }
+  #cd-profile { scroll-margin-top: 16px; }
+  @media (max-width: 1024px) {
+    .cd-mobile-tabs {
+      display: flex; gap: 4px; margin-top: 16px; padding: 4px; background: #fff;
+      border: 1px solid rgba(228,228,231,0.8); border-radius: 999px;
+      position: sticky; top: 8px; z-index: 20; box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+    }
+  }
+  @media (max-width: 640px) {
+    .cd-header-actions { width: 100%; }
+    .cd-header-btn { flex: 1 1 auto; justify-content: center; }
+    .cd-alert { flex-wrap: wrap; }
+  }
+
   .cd-sidebar {
     position: sticky; top: 0; width: 250px; flex-shrink: 0;
     height: 100vh; overflow-y: auto; padding: 24px 20px;
@@ -1386,9 +1670,11 @@ const dashboardCSS = `
     display: flex; flex-direction: column;
   }
   .cd-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+  .cd-logo-img { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; }
+  .cd-logo-text { white-space: nowrap; font-size: 1rem !important; }
   .cd-logo-icon {
     width: 36px; height: 36px; display: grid; place-items: center;
-    border-radius: 12px; background: #0f766e; color: #fff;
+    border-radius: 12px; background: #ea580c; color: #fff;
   }
   .cd-logo-text { font-size: 1.125rem; font-weight: 800; font-family: var(--font-display, 'Poppins', sans-serif); }
   .cd-logo-accent { color: #f97316; }
@@ -1401,7 +1687,7 @@ const dashboardCSS = `
     text-align: left; font-family: inherit; text-decoration: none;
   }
   .cd-nav-item:hover { background: #f4f4f5; color: #18181b; }
-  .cd-nav-active { background: #0f766e !important; color: #fff !important; }
+  .cd-nav-active { background: var(--grad-primary) !important; color: #fff !important; box-shadow: 0 6px 16px -6px rgba(249,115,22,0.6); }
   .cd-nav-divider { height: 1px; background: rgba(226,232,240,0.6); margin: 12px 8px; }
   .cd-nav-logout { color: #ef4444 !important; }
   .cd-nav-logout:hover { background: #fef2f2 !important; }
@@ -1439,7 +1725,7 @@ const dashboardCSS = `
   .cd-stat-top { display: flex; align-items: center; gap: 12px; }
   .cd-stat-icon {
     width: 40px; height: 40px; display: grid; place-items: center;
-    border-radius: 16px; background: #ccfbf1; color: #0f766e; flex-shrink: 0;
+    border-radius: 16px; background: #fff7ed; color: #ea580c; flex-shrink: 0;
   }
   .cd-stat-label { font-size: 0.75rem; color: #71717a; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cd-stat-value { font-size: 1.25rem; font-weight: 800; margin: 12px 0 0; color: #09090b; font-family: var(--font-display, 'Poppins', sans-serif); }
@@ -1467,8 +1753,8 @@ const dashboardCSS = `
     background: #fafafa; cursor: pointer; transition: all 0.2s; font-family: inherit;
     text-decoration: none; color: inherit;
   }
-  .cd-action-btn:hover { border-color: rgba(15,118,110,0.3); box-shadow: 0 6px 16px rgba(0,0,0,0.04); transform: translateY(-1px); }
-  .cd-action-icon { color: #0f766e; }
+  .cd-action-btn:hover { border-color: rgba(249,115,22,0.3); box-shadow: 0 6px 16px rgba(0,0,0,0.04); transform: translateY(-1px); }
+  .cd-action-icon { color: #ea580c; }
   .cd-action-label { font-size: 0.75rem; font-weight: 700; color: #09090b; }
 
   .cd-payment-title { font-size: 0.875rem; font-weight: 700; margin: 24px 0 0; color: #09090b; }
@@ -1558,15 +1844,15 @@ const dashboardCSS = `
   .cd-vehicle-name { font-weight: 600; color: #09090b; display: block; }
   .cd-vehicle-year { font-size: 0.75rem; color: #94a3b8; }
   .cd-cell-muted { color: #71717a; }
-  .cd-cell-price { font-weight: 600; color: #0f766e; }
+  .cd-cell-price { font-weight: 600; color: #ea580c; }
   .cd-cell-actions { display: flex; gap: 8px; justify-content: flex-end; }
   .cd-action-icon-btn {
     width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: all 0.2s; background: #fff;
   }
-  .cd-view-btn { color: #0f766e; }
-  .cd-view-btn:hover { background: #ccfbf1; border-color: #0f766e; }
+  .cd-view-btn { color: #ea580c; }
+  .cd-view-btn:hover { background: #fff7ed; border-color: #ea580c; }
   .cd-rent-btn { color: #f97316; }
   .cd-rent-btn:hover { background: #fff7ed; border-color: #f97316; }
   .cd-delete-btn { color: #ef4444; }
@@ -1609,7 +1895,7 @@ const dashboardCSS = `
   }
   .cd-section-badge-title {
     display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem;
-    font-weight: 700; color: #0f766e; text-transform: uppercase; letter-spacing: 0.03em;
+    font-weight: 700; color: #ea580c; text-transform: uppercase; letter-spacing: 0.03em;
   }
   .cd-modal-section .cd-form-group {
     display: flex; flex-direction: column; gap: 4px;

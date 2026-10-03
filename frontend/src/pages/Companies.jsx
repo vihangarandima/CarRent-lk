@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import PageHero from "../components/PageHero";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config";
@@ -159,156 +160,35 @@ const Companies = () => {
 
   return (
     <div className="companies-page">
-      {/* Radiant Modern Hero Section with Background Fleet Image */}
-      <section className="companies-hero">
-        <div
-          className="hero-bg-image-layer"
-          style={{ backgroundImage: `url(${fleetsHeroBg})` }}
-        />
-        <div className="hero-atmosphere-gradient" />
-        <div className="hero-atmosphere-glow" />
-        <div className="hero-grid-pattern" />
-
-        <div className="companies-hero-inner">
-          <div className="hero-content">
-            <div className="hero-badge">
-              <ShieldCheck size={15} className="hero-badge-icon" />
-              <span>VERIFIED RENTAL FLEETS • 100% INSURED</span>
-            </div>
-
-            <h1 className="hero-title">
-              Rent from Sri Lanka's
-              <span className="hero-highlight">trusted rental companies</span>
-            </h1>
-
-            <p className="hero-description">
-              Every partner on Yamu is verified, background-checked, and insured.
-              Browse their live fleets, compare vehicles, and book directly with
-              zero middleman fees.
-            </p>
-
-            {/* Modern Search Bar */}
-            <div className="companies-search-wrap">
-              <div className="companies-search-bar">
-                <Search size={20} className="search-icon" />
-                <input
-                  type="text"
-                  placeholder="Search by company name, city, or district..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                {search && (
-                  <button
-                    type="button"
-                    className="search-clear-btn"
-                    onClick={() => setSearch("")}
-                    title="Clear search"
-                  >
-                    <X size={16} />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="search-btn"
-                  onClick={() => {}}
-                >
-                  <span>Search Fleets</span>
-                  <ArrowRight size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Live Stats */}
-            <div className="hero-stats">
-              <div className="stat-item">
-                <div className="stat-icon-wrap">
-                  <Building2 size={20} />
-                </div>
-                <div>
-                  <h3>{totalCompanies}</h3>
-                  <p>VERIFIED PARTNERS</p>
-                </div>
-              </div>
-
-              <div className="stat-divider" />
-
-              <div className="stat-item">
-                <div className="stat-icon-wrap">
-                  <Car size={20} />
-                </div>
-                <div>
-                  <h3>{totalVehicles}</h3>
-                  <p>VEHICLES ON ROAD</p>
-                </div>
-              </div>
-
-              <div className="stat-divider" />
-
-              <div className="stat-item">
-                <div className="stat-icon-wrap gold">
-                  <Star size={20} />
-                </div>
-                <div>
-                  <h3>{averageRating}</h3>
-                  <p>AVERAGE RATING</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Hero Right: Vehicle Type Quick Switcher */}
-          <div className="hero-filters-panel">
-            <div className="vehicle-type-section">
-              <div className="vehicle-type-header">
-                <div className="panel-title-wrap">
-                  <Layers size={18} className="panel-icon" />
-                  <div>
-                    <h2>Pick a vehicle category</h2>
-                    <p>Filter fleets by what they have on the road</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="vehicle-type-grid">
-                {vehicleCategoryCards.map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    className={`vehicle-type-card ${
-                      selectedType === type.id ? "active" : ""
-                    }`}
-                    onClick={() => {
-                      setSelectedType(type.id);
-                      if (type.id !== "all") {
-                        navigate(`/vehicles?type=${type.id}`);
-                      }
-                    }}
-                  >
-                    <div className="vehicle-type-img-wrap">
-                      {type.image ? (
-                        <img
-                          src={type.image}
-                          alt={type.title}
-                          className="vehicle-type-thumb"
-                        />
-                      ) : (
-                        <div className="vehicle-type-placeholder">
-                          {type.icon}
-                        </div>
-                      )}
-                    </div>
-                    <div className="vehicle-type-info">
-                      <span className="type-title">{type.title}</span>
-                      <span className="type-sub">{type.subtitle}</span>
-                    </div>
-                    <ChevronRight size={14} className="type-arrow" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+      <PageHero
+        badge="Rent-a-car companies"
+        title="Rent from Sri Lanka's"
+        highlight="rental companies"
+        subtitle="Browse each company's fleet, compare vehicles and contact them directly on WhatsApp. No middleman fees."
+      >
+        <div className="y-fleet-search">
+          <Search size={20} className="y-fleet-search-icon" />
+          <input
+            type="text"
+            placeholder="Search by company name or city..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search rental companies"
+          />
+          {search && (
+            <button type="button" className="y-fleet-search-clear" onClick={() => setSearch("")} title="Clear search">
+              <X size={16} />
+            </button>
+          )}
         </div>
-      </section>
+        <div className="y-fleet-stats">
+          <span><Building2 size={16} /> <strong>{totalCompanies}</strong> {totalCompanies === 1 ? "company" : "companies"}</span>
+          <span><Car size={16} /> <strong>{totalVehicles}</strong> {totalVehicles === 1 ? "vehicle" : "vehicles"}</span>
+          {Number(averageRating) > 0 && (
+            <span><Star size={16} /> <strong>{averageRating}</strong> avg. rating</span>
+          )}
+        </div>
+      </PageHero>
 
       {/* Main Companies Listing Section */}
       <section className="companies-grid-section">
@@ -590,6 +470,29 @@ const Companies = () => {
       </section>
 
       <style>{`
+        .y-fleet-search {
+          display: flex; align-items: center; gap: 0.6rem;
+          max-width: 620px; margin: 0 auto; padding: 0.4rem 0.5rem 0.4rem 1.1rem;
+          background: #fff; border-radius: 999px; box-shadow: 0 18px 40px -12px rgba(124, 45, 18, 0.45);
+        }
+        .y-fleet-search input {
+          flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+          font-family: var(--font-body); font-size: 16px; padding: 0.7rem 0; color: var(--text);
+        }
+        .y-fleet-search-icon { color: var(--primary); flex-shrink: 0; }
+        .y-fleet-search-clear {
+          width: 36px; height: 36px; border-radius: 50%; background: #f1f5f9; color: #475569;
+          display: grid; place-items: center; flex-shrink: 0;
+        }
+        .y-fleet-stats {
+          display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 1.25rem;
+        }
+        .y-fleet-stats span {
+          display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem;
+          border-radius: 999px; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.3);
+          color: #fff; font-size: 0.85rem;
+        }
+
         /* Master Companies Page Styling */
         .companies-page {
           min-height: 100vh;
