@@ -243,6 +243,106 @@ The audit identifies:
 
 ---
 
+### 14. Anonymous / Guest "Helpful" Vote Spam Exploit on Reviews
+- **File Affected**: `backend/routes/reviews.js` (lines 315–318)
+- **The Issue**:
+  In `POST /api/reviews/:id/helpful`, when unauthenticated guest users click the helpful button, the backend unconditionally increments:
+  ```js
+  } else {
+    // Guest vote
+    review.helpfulCount += 1;
+  }
+  ```
+  There is zero IP check, session check, or rate limiting.
+- **Consequence**:
+  Anyone can write a simple loop script to hit this endpoint 50,000 times in seconds to artificially inflate any review's score and manipulate customer perception.
+- **Solution**:
+  Require logged-in authentication to vote, or track voter IP addresses in an expiring cache to prevent multiple votes per IP.
+
+---
+
+### 15. Registered Renters Trapped in Redirect Loop (`/dashboard` ➔ `/choose-listing-type`)
+- **File Affected**: `frontend/src/pages/CompanyDashboard.jsx` (lines 133–136)
+- **The Issue**:
+  When a user with role `"renter"` visits `/dashboard`:
+  ```js
+  if (user.role === "renter" && !wantsCompanySetup) {
+    navigate("/choose-listing-type", { replace: true });
+    return;
+  }
+  ```
+- **Consequence**:
+  Customers who only want to rent vehicles have **no customer dashboard** to view their active booking inquiries, rental receipts, or saved vehicles. If they don't want to list a vehicle, clicking "Dashboard" traps them in an unwanted onboarding funnel.
+- **Solution**:
+  Provide a dedicated Renter Dashboard view displaying their active rentals, past trip history, and submitted price bids.
+
+---
+
+### 16. Logged-in Users Cannot Change Their Password
+- **Files Affected**:
+  - `backend/routes/auth.js` (lines 461–509)
+  - `frontend/src/pages/Profile.jsx`
+- **The Issue**:
+  There is no endpoint (`POST /api/auth/change-password`) and no UI in `Profile.jsx` allowing an authenticated user to update their password.
+- **Consequence**:
+  If a user wants to update their password for security reasons, their only recourse is to log out, go to the login screen, click "Forgot Password", and wait for an email OTP.
+- **Solution**:
+  Add a standard `POST /api/auth/change-password` endpoint requiring the user's current password and new password, paired with a "Security" card on the Profile page.
+
+---
+
+### 17. Vehicle Hosts Locked Out of Personal `/profile`
+- **File Affected**: `frontend/src/App.jsx` (line 212)
+- **The Issue**:
+  In `App.jsx`, the profile route is guarded as:
+  ```jsx
+  <Route path="/profile" element={isLister() ? <Navigate to={DASHBOARD_PATH} replace /> : <Profile />} />
+  ```
+- **Consequence**:
+  Personal car owners and fleet managers are forcibly redirected away from `/profile` back to `/dashboard`. They are completely locked out of updating their personal profile picture, name, or account credentials.
+- **Solution**:
+  Allow all authenticated users access to `/profile`:
+  ```jsx
+  <Route path="/profile" element={<Profile />} />
+  ```
+
+---
+
+### 18. Renters Cannot View the Inquiries / Bids They Sent
+- **File Affected**: `backend/routes/bids.js` (lines 8–23)
+- **The Issue**:
+  `GET /api/bids/my` only retrieves bids received for vehicles owned by the logged-in user. There is no endpoint (e.g. `GET /api/bids/sent`) to retrieve bids submitted by the logged-in renter (`Bid.find({ renter: req.user.id })`).
+- **Consequence**:
+  When renters submit custom price offers ("Tag a Price"), they have no interface or API to track their offers, view responses, or check whether a host accepted.
+- **Solution**:
+  Add `GET /api/bids/sent` populated with vehicle and owner contact details.
+
+---
+
+### 19. Hosts Cannot Accept or Decline Bids (Missing `PUT /api/bids/:id`)
+- **Files Affected**:
+  - `backend/routes/bids.js`
+  - `backend/models/Bid.js` (line 8)
+- **The Issue**:
+  The `Bid` schema explicitly defines `status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' }`, but `bids.js` lacks an endpoint allowing hosts to update the status.
+- **Consequence**:
+  Hosts cannot resolve incoming customer bids within the system, rendering the bid status field static and non-functional.
+- **Solution**:
+  Add `PUT /api/bids/:id` allowing the vehicle owner to update status to `"accepted"` or `"rejected"`.
+
+---
+
+### 20. Inconsistent Authorization Header Support in `reviews.js` (Ignores `Bearer <token>`)
+- **File Affected**: `backend/routes/reviews.js` (lines 10–24)
+- **The Issue**:
+  Unlike `backend/middleware/auth.js` (which parses both `x-auth-token` and `Authorization: Bearer <token>`), `reviews.js` defines custom auth middleware that strictly checks `req.header("x-auth-token")`.
+- **Consequence**:
+  Third-party API integrations, mobile clients, and testing tools sending standard HTTP `Authorization: Bearer <token>` headers are falsely rejected with `401 No token, authorization denied`.
+- **Solution**:
+  Import and reuse the shared `auth` and `optionalAuth` middleware from `backend/middleware/auth.js`.
+
+---
+
 ## ⚡ PART 2: Usability & User-Friendliness Enhancements
 
 ### 1. Dead-End Tabs in the Company Dashboard
@@ -342,9 +442,9 @@ The audit identifies:
 
 | Phase | Focus Areas | Estimated Effort |
 | :--- | :--- | :--- |
-| **Phase 1: Critical Fixes & Security** | • Owner contact phone populated on Vehicle Detail & WhatsApp<br>• Brand & Model search query fix<br>• Prevent self-reviews & self-bidding<br>• Add null-safety for `vehicle.owner.toString()`<br>• Fix WhatsApp floating button domestic phone formatting | Immediate (1–2 days) |
-| **Phase 2: Data Integrity & Host Ops** | • Global auto-expiry for rented vehicle status<br>• Admin permission bypass for vehicle deletion<br>• Cascade cleanup for deleted vehicles/users<br>• Inquiries & Bids management tab in Company Dashboard<br>• Replace demo booked dates with real rental schedules | Short Term (2–3 days) |
-| **Phase 3: Experience Polish** | • Dynamic trip pricing calculator on vehicle detail page<br>• Host "Manage Listing" shortcut on detail view<br>• Listing wizard draft auto-save in `sessionStorage`<br>• Verified host badge modal & currency toggle | Enhancement (2–4 days) |
+| **Phase 1: Critical Fixes & Security** | • Owner contact phone populated on Vehicle Detail & WhatsApp<br>• Brand & Model search query fix<br>• Prevent self-reviews & self-bidding<br>• Block guest vote spam on reviews<br>• Add null-safety for `vehicle.owner.toString()`<br>• Fix WhatsApp floating button domestic phone formatting | Immediate (1–2 days) |
+| **Phase 2: Data Integrity & User Flows** | • Unlock `/profile` for hosts and add Change Password<br>• Create customer inquiries view (`GET /api/bids/sent`)<br>• Add host bid response endpoint (`PUT /api/bids/:id`)<br>• Standardize Bearer auth header in `reviews.js`<br>• Global auto-expiry for rented vehicle status<br>• Admin permission bypass for vehicle deletion<br>• Cascade cleanup for deleted vehicles/users | Short Term (2–3 days) |
+| **Phase 3: Experience Polish** | • Renter dashboard for bookings & inquiries<br>• Dynamic trip pricing calculator on vehicle detail page<br>• Host "Manage Listing" shortcut on detail view<br>• Listing wizard draft auto-save in `sessionStorage`<br>• Verified host badge modal & currency toggle | Enhancement (2–4 days) |
 
 ---
 
