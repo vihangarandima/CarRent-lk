@@ -84,10 +84,10 @@ const Footer = () => {
               </span>
             </Link>
             <p className="footer-tagline">
-              {footer?.tagline || "Sri Lanka's most trusted car sharing marketplace. Rent verified vehicles or earn by listing yours."}
+              {footer?.tagline || "Find a vehicle anywhere in Sri Lanka, or earn by listing yours."}
             </p>
             <div className="footer-social">
-              {dynamicSocialIcons.map((icon) => (
+              {dynamicSocialIcons.filter((icon) => icon.url && icon.url !== "#").map((icon) => (
                 <a
                   key={icon.label}
                   href={icon.url || "#"}
@@ -116,22 +116,24 @@ const Footer = () => {
           <div className="footer-col">
             <h4>Rent</h4>
             <Link to="/vehicles">Browse Cars</Link>
-            <Link to="/vehicles">SUVs & Vans</Link>
+            <Link to="/vehicles?type=van">Vans</Link>
             <Link to="/companies">Rental Companies</Link>
-            <Link to="/vehicles">Luxury Cars</Link>
+            <Link to="/reviews">Customer Reviews</Link>
+            <Link to="/vehicles?type=premium-car">Premium Cars</Link>
           </div>
 
           <div className="footer-col">
             <h4>Host</h4>
             <Link to="/choose-listing-type">List Your Vehicle</Link>
             <Link to="/register?role=owner">Become a Host</Link>
-            <Link to="/company-dashboard">Company Dashboard</Link>
+            <Link to="/dashboard">Lister Dashboard</Link>
             <Link to="/why-us">Host Benefits</Link>
           </div>
 
           <div className="footer-col">
             <h4>Company</h4>
             <Link to="/why-us">Why Yamu Car Rentals</Link>
+            <Link to="/reviews">Reviews & Stories</Link>
             <Link to="/#how-it-works">How It Works</Link>
             <Link to="/companies">Partners</Link>
             <Link to="/login">Sign In</Link>
@@ -139,14 +141,14 @@ const Footer = () => {
 
           <div className="footer-col footer-contact">
             <h4>Contact</h4>
-            <a href={`tel:${(contact?.phone || "+94 11 234 5678").replace(/\\s+/g, "")}`}>
-              <Phone size={14} /> {contact?.phone || "+94 11 234 5678"}
+            <a href={`tel:${(contact?.phone || "+94 70 243 4288").replace(/\s+/g, "")}`}>
+              <Phone size={14} /> {contact?.phone || "+94 70 243 4288"}
             </a>
-            <a href={`mailto:${contact?.email || "hello@yamucarrentals.lk"}`}>
-              <Mail size={14} /> {contact?.email || "hello@yamucarrentals.lk"}
+            <a href={`mailto:${contact?.email || "yamucarrentals@gmail.com"}`}>
+              <Mail size={14} /> {contact?.email || "yamucarrentals@gmail.com"}
             </a>
             <span>
-              <MapPin size={14} /> {contact?.address || "Colombo, Sri Lanka"}
+              <MapPin size={14} /> {contact?.address || "551/1, Thalgahawatta Lane, Wawa Road, Boralasgamuwa"}
             </span>
           </div>
         </div>
@@ -158,8 +160,7 @@ const Footer = () => {
             {footer?.copyrightText || `© ${new Date().getFullYear()} Yamu Car Rentals. All rights reserved.`}
           </p>
           <div className="footer-legal">
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
+
           </div>
         </div>
       </div>

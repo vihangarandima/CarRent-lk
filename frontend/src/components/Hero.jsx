@@ -162,7 +162,7 @@ const Hero = () => {
               const token = localStorage.getItem("token");
               const user = JSON.parse(localStorage.getItem("user") || "null");
               if (token && user?.role === "company") {
-                navigate("/company-list-vehicle");
+                navigate("/fleet/quick-add");
               } else if (token && (user?.role === "owner" || user?.role === "admin" || user?.role === "renter")) {
                 navigate("/list-my-car");
               } else {

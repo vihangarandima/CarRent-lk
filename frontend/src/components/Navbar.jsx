@@ -1,14 +1,35 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/images/logo.png";
+import {
+  DASHBOARD_PATH,
+  isBrowsingAsCustomer,
+  isLister,
+  logout,
+  setBrowsingAsCustomer,
+} from "../utils/session";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const [user, setUser] = useState(() =>
+    JSON.parse(localStorage.getItem("user") || "null")
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleUserUpdate = () => {
+      setUser(JSON.parse(localStorage.getItem("user") || "null"));
+    };
+    window.addEventListener("user-updated", handleUserUpdate);
+    window.addEventListener("storage", handleUserUpdate);
+    return () => {
+      window.removeEventListener("user-updated", handleUserUpdate);
+      window.removeEventListener("storage", handleUserUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -33,60 +54,86 @@ const Navbar = () => {
 
   const closeMenu = () => setMenuOpen(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.href = "/";
-  };
+  const handleLogout = logout;
+
+  // Pages that start with the orange header band get the transparent white navbar
+  const onOrangeHeader =
+    ["/", "/home", "/vehicles", "/companies", "/reviews", "/reviews-portal", "/why-us"].includes(location.pathname) ||
+    location.pathname.startsWith("/companies/");
+
+  const lister = Boolean(token) && isLister(user);
+  // A lister who has not chosen to browse as a customer sees a hosting-only navbar
+  const hostingNav = lister && !isBrowsingAsCustomer();
 
   const listTarget =
     user?.role === "company"
-      ? "/company-list-vehicle"
+      ? "/fleet/quick-add"
       : user?.role === "owner"
       ? "/list-my-car"
       : "/choose-listing-type";
 
-  const mode = localStorage.getItem('appMode') || 'hosting';
-  const isTraveling = mode === 'traveling';
-
   const profileTarget =
-    user?.role === "admin"
-      ? "/admin"
-      : user?.role === "company" && !isTraveling
-      ? "/company-dashboard"
-      : "/profile";
+    user?.role === "admin" ? "/admin" : lister ? DASHBOARD_PATH : "/profile";
 
   const profileLabel =
-    user?.role === "admin"
-      ? "Admin Portal"
-      : user?.role === "company" && !isTraveling
-      ? "Company Dashboard"
-      : "My Profile";
+    user?.role === "admin" ? "Admin Portal" : lister ? "My Dashboard" : "My Profile";
+
+  const goToDashboard = () => {
+    closeMenu();
+    setBrowsingAsCustomer(false);
+    navigate(DASHBOARD_PATH);
+  };
+
+  const browseAsCustomer = () => {
+    closeMenu();
+    setBrowsingAsCustomer(true);
+    navigate("/");
+  };
 
   const listLabel = 
     user?.role === "renter" ? "List Your Car" : "List Car";
 
   return (
     <>
-      <nav className={`hero-nav ${scrolled ? "scrolled" : ""} ${location.pathname === '/' && !scrolled ? "on-dark" : ""}`}>
+      <nav className={`hero-nav ${scrolled ? "scrolled" : ""} ${onOrangeHeader && !scrolled ? "on-dark" : ""}`}>
         <Link to="/" className="nav-logo">
           <img src={logo} alt="Yamu Car Rentals" className="nav-logo-img" />
           <span className="brand-yamu">Yamu</span>
           <span className="brand-orange">&nbsp;Car Rentals</span>
         </Link>
 
-        <div className="nav-links hidden-mobile">
-          <Link to="/vehicles">Find Cars</Link>
-          <Link to="/companies">Rent-A-Car Fleets</Link>
-          <Link to="/#how-it-works">How it works</Link>
-          <Link to="/why-us">Why us</Link>
-        </div>
+        {hostingNav ? (
+          <div className="nav-links hidden-mobile">
+            <Link to={DASHBOARD_PATH}>Dashboard</Link>
+            <Link to={listTarget}>Add Vehicle</Link>
+            <button type="button" className="nav-link-btn" onClick={browseAsCustomer}>
+              View site as customer
+            </button>
+          </div>
+        ) : (
+          <div className="nav-links hidden-mobile">
+            <Link to="/vehicles">Find Cars</Link>
+            <Link to="/companies">Rent-A-Car Fleets</Link>
+            <Link to="/reviews">Reviews</Link>
+            <Link to="/#how-it-works">How it works</Link>
+            <Link to="/why-us">Why us</Link>
+          </div>
+        )}
 
         <div className="nav-actions hidden-mobile">
           {token ? (
             <>
-              {/* List Vehicle Button */}
-              {user?.role !== "admin" && (
+              {lister ? (
+                <button type="button" onClick={goToDashboard} className="nav-list-btn" title="Back to your dashboard">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="7" height="9" />
+                    <rect x="14" y="3" width="7" height="5" />
+                    <rect x="14" y="12" width="7" height="9" />
+                    <rect x="3" y="16" width="7" height="5" />
+                  </svg>
+                  <span>{hostingNav ? "My Dashboard" : "Back to Dashboard"}</span>
+                </button>
+              ) : user?.role !== "admin" && (
                 <Link to={listTarget} className="nav-list-btn" title="List a Vehicle">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19" />
@@ -96,6 +143,7 @@ const Navbar = () => {
                 </Link>
               )}
 
+              {!lister && (
               <Link
                 to={profileTarget}
                 className="nav-profile-pill"
@@ -107,6 +155,7 @@ const Navbar = () => {
                 )}
                 <span>{profileLabel}</span>
               </Link>
+              )}
 
               {/* Dedicated Logout Button */}
               <button
@@ -152,9 +201,33 @@ const Navbar = () => {
       )}
 
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`} id="mobile-menu">
+        {hostingNav ? (
         <div className="mobile-menu-links">
+          <button type="button" className="mobile-nav-item mobile-nav-btn" onClick={goToDashboard}>
+            My Dashboard
+          </button>
+          <Link to={listTarget} className="mobile-nav-item" onClick={closeMenu}>
+            + Add Vehicle
+          </Link>
+          <button type="button" className="mobile-nav-item mobile-nav-btn" onClick={browseAsCustomer}>
+            View site as customer
+          </button>
+        </div>
+        ) : (
+        <div className="mobile-menu-links">
+          {lister && (
+            <button type="button" className="mobile-nav-item mobile-nav-btn" style={{ color: "#ea580c", fontWeight: 700 }} onClick={goToDashboard}>
+              ← Back to My Dashboard
+            </button>
+          )}
+          <Link to="/vehicles" className="mobile-nav-item" onClick={closeMenu}>
+            Find Cars
+          </Link>
           <Link to="/companies" className="mobile-nav-item" onClick={closeMenu}>
             Rent-A-Car Fleets
+          </Link>
+          <Link to="/reviews" className="mobile-nav-item" onClick={closeMenu}>
+            Reviews & Ratings
           </Link>
           <Link to="/#how-it-works" className="mobile-nav-item" onClick={closeMenu}>
             How it works
@@ -162,14 +235,22 @@ const Navbar = () => {
           <Link to="/why-us" className="mobile-nav-item" onClick={closeMenu}>
             Why us
           </Link>
+          {user?.role !== "admin" && !lister && (
+            <Link to={listTarget} className="mobile-nav-item" style={{ color: "#ea580c", fontWeight: 700 }} onClick={closeMenu}>
+              + {listLabel}
+            </Link>
+          )}
         </div>
+        )}
 
         <div className="mobile-menu-actions">
           {token ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
-              <Link to={profileTarget} className="mobile-btn-outline" onClick={closeMenu}>
-                {profileLabel}
-              </Link>
+              {!lister && (
+                <Link to={profileTarget} className="mobile-btn-outline" onClick={closeMenu}>
+                  {profileLabel}
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => { closeMenu(); handleLogout(); }}
@@ -265,6 +346,31 @@ const Navbar = () => {
           color: #FF8A00;
         }
 
+        .nav-link-btn {
+          background: none;
+          border: none;
+          padding: 0;
+          cursor: pointer;
+          font: inherit;
+          color: #444444;
+          font-weight: 500;
+          font-size: 0.95rem;
+          transition: color 0.2s;
+        }
+
+        .nav-link-btn:hover {
+          color: #FF8A00;
+        }
+
+        .mobile-nav-btn {
+          background: none;
+          border: none;
+          width: 100%;
+          text-align: left;
+          cursor: pointer;
+          font: inherit;
+        }
+
         .nav-actions {
           display: flex;
           align-items: center;
@@ -316,6 +422,10 @@ const Navbar = () => {
           opacity: 0.95;
         }
         .hero-nav.on-dark .nav-links a {
+          color: rgba(255, 255, 255, 0.95);
+          font-weight: 600;
+        }
+        .hero-nav.on-dark .nav-link-btn {
           color: rgba(255, 255, 255, 0.95);
           font-weight: 600;
         }
@@ -398,6 +508,9 @@ const Navbar = () => {
 
         /* List Vehicle Button — compact pill to the left of profile */
         .nav-list-btn {
+          border: none;
+          cursor: pointer;
+          font-family: inherit;
           display: inline-flex;
           align-items: center;
           gap: 6px;
@@ -609,7 +722,7 @@ const Navbar = () => {
           color: #ffffff;
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 1100px) {
           .nav-links, .nav-actions {
             display: none !important;
           }

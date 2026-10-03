@@ -32,42 +32,44 @@ import nirmalImg from "../assets/images/nirmal.png";
 const categories = [
   {
     id: "suv",
-    label: "SUV",
+    label: "SUV & 4x4",
+    vehicleType: "premium-car",
     icon: Truck,
-    image:
-      "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/images/suv_category.jpg",
   },
   {
     id: "sedan",
-    label: "Sedan",
+    label: "Sedan & Cars",
+    vehicleType: "car",
     icon: Car,
-    image:
-      "https://images.unsplash.com/photo-1555215695-3004980adade?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/images/sedan_category.jpg",
   },
   {
     id: "luxury",
     label: "Luxury",
+    vehicleType: "premium-car",
     icon: Star,
     image:
       "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80&w=400",
   },
   {
-    id: "electric",
-    label: "Electric",
-    icon: Zap,
-    image:
-      "https://images.unsplash.com/photo-1593941707882-a5bba14938bc?auto=format&fit=crop&q=80&w=400",
+    id: "mini-car",
+    label: "Mini Cars",
+    vehicleType: "mini-car",
+    icon: Car,
+    image: "/assets/images/electric_category.jpg",
   },
   {
     id: "van",
-    label: "Van",
+    label: "Vans & Groups",
+    vehicleType: "van",
     icon: Truck,
-    image:
-      "https://images.unsplash.com/photo-1527786356703-4b100916cd20?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/images/van_category.jpg",
   },
   {
-    id: "coupe",
-    label: "Coupe",
+    id: "threewheeler",
+    label: "Three-Wheelers",
+    vehicleType: "threewheeler",
     icon: Car,
     image:
       "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=400",
@@ -150,6 +152,7 @@ const resolveTestimonialAvatar = (t) => {
 const LandingPage = () => {
   const { config } = useSiteConfig();
   const [featuredCars, setFeaturedCars] = useState([]);
+  const [totalListed, setTotalListed] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const activeCategories = config?.home?.categories || categories;
@@ -165,7 +168,7 @@ const LandingPage = () => {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const listTarget =
     user?.role === "company"
-      ? "/company-list-vehicle"
+      ? "/fleet/quick-add"
       : user?.role === "owner"
       ? "/list-my-car"
       : "/choose-listing-type";
@@ -174,7 +177,16 @@ const LandingPage = () => {
     const fetchCars = async () => {
       try {
         const response = await axios.get(`${API_URL}/api/vehicles`);
-        setFeaturedCars(response.data.slice(0, 4));
+        const allCars = Array.isArray(response.data) ? response.data : [];
+        // Prioritize isFeatured: true first, then newest first
+        const sorted = [...allCars].sort((a, b) => {
+          if (a.isFeatured && !b.isFeatured) return -1;
+          if (!a.isFeatured && b.isFeatured) return 1;
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        });
+        // Display top 8 vehicles on Home Page
+        setFeaturedCars(sorted.slice(0, 8));
+        setTotalListed(allCars.length);
       } catch (error) {
         console.error("Error fetching cars:", error);
       } finally {
@@ -314,16 +326,16 @@ const LandingPage = () => {
 
                 <div className="hiw-glass-stats">
                   <div className="hiw-stat">
-                    <span className="hiw-stat-val">200+</span>
-                    <span className="hiw-stat-label">CARS</span>
+                    <span className="hiw-stat-val">{totalListed ?? "—"}</span>
+                    <span className="hiw-stat-label">{totalListed === 1 ? "VEHICLE" : "VEHICLES"}</span>
                   </div>
                   <div className="hiw-stat">
                     <span className="hiw-stat-val">2</span>
                     <span className="hiw-stat-label">MINS</span>
                   </div>
                   <div className="hiw-stat">
-                    <span className="hiw-stat-val">24/7</span>
-                    <span className="hiw-stat-label">SUPPORT</span>
+                    <span className="hiw-stat-val">Rs. 0</span>
+                    <span className="hiw-stat-label">BOOKING FEES</span>
                   </div>
                 </div>
               </div>
@@ -372,7 +384,7 @@ const LandingPage = () => {
             >
               <span className="section-badge">Why Yamu Car Rentals?</span>
               <h2 className="section-title">
-                The most trusted car sharing marketplace in{" "}
+                The simple way to rent a vehicle in{" "}
                 <span className="text-gradient">Sri Lanka</span>
               </h2>
 
@@ -380,18 +392,18 @@ const LandingPage = () => {
                 {[
                   {
                     icon: ShieldCheck,
-                    title: "Fully Insured",
-                    desc: "Every trip covered by comprehensive insurance.",
+                    title: "Deal directly with owners",
+                    desc: "Message the owner on WhatsApp and agree everything before you pay.",
                   },
                   {
                     icon: HeartHandshake,
-                    title: "Verified Hosts",
-                    desc: "Every host and vehicle manually verified.",
+                    title: "Verified contacts",
+                    desc: "Every lister confirms their email and mobile number when signing up.",
                   },
                   {
                     icon: Clock,
-                    title: "24/7 Support",
-                    desc: "Dedicated support team always here to help.",
+                    title: "WhatsApp support",
+                    desc: "Questions? Tap the WhatsApp button and talk to the Yamu team.",
                   },
                 ].map((b, i) => (
                   <li key={i}>
@@ -418,24 +430,24 @@ const LandingPage = () => {
               viewport={{ once: true }}
             >
               <img
-                src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&q=80&w=800"
-                alt="Happy travelers with rental car"
+                src="/assets/images/why_us_colombo.jpg"
+                alt="Colombo Sri Lanka Skyline and Travel"
                 className="why-img"
               />
               <div className="trust-card">
                 <div className="trust-stat">
-                  <span className="stat-number">5,000+</span>
-                  <span className="stat-label">Happy Renters</span>
+                  <span className="stat-number">{totalListed ?? "—"}</span>
+                  <span className="stat-label">Vehicles Listed</span>
                 </div>
                 <div className="trust-divider" />
                 <div className="trust-stat">
-                  <span className="stat-number">4.9/5</span>
-                  <span className="stat-label">Avg. Rating</span>
+                  <span className="stat-number">Rs. 0</span>
+                  <span className="stat-label">Booking Fees</span>
                 </div>
                 <div className="trust-divider" />
                 <div className="trust-stat">
-                  <span className="stat-number">500+</span>
-                  <span className="stat-label">Verified Hosts</span>
+                  <span className="stat-number">Direct</span>
+                  <span className="stat-label">Owner Contact</span>
                 </div>
               </div>
             </motion.div>
@@ -1113,6 +1125,7 @@ const LandingPage = () => {
           width: 100%;
           height: 420px;
           object-fit: cover;
+          object-position: center 30%;
           border-radius: var(--radius-xl);
           box-shadow: var(--shadow-card);
         }

@@ -27,8 +27,21 @@ const VehicleSchema = new mongoose.Schema({
   availableFrom: { type: Date, required: true },
   availableTo: { type: Date, required: true },
   isFeatured: { type: Boolean, default: false },
-  status: { type: String, enum: ["active", "hidden", "flagged"], default: "active" },
+  status: {
+    type: String,
+    enum: ["active", "pending", "rejected", "hidden", "flagged", "rented"],
+    default: "pending",
+  },
+  rejectionReason: { type: String, default: "" },
+  approvedAt: { type: Date },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   createdAt: { type: Date, default: Date.now },
 });
+
+// Indexes for the queries the site runs on every page load
+VehicleSchema.index({ status: 1, isFeatured: -1, createdAt: -1 });
+VehicleSchema.index({ owner: 1, createdAt: -1 });
+VehicleSchema.index({ company: 1 });
+VehicleSchema.index({ vehicleType: 1, pricePerDay: 1 });
 
 module.exports = mongoose.model("Vehicle", VehicleSchema);

@@ -9,15 +9,24 @@ import {
   Building2,
   ArrowRight,
 } from "lucide-react";
+import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
+
+const TYPE_LABELS = {
+  bicycle: "Bike",
+  threewheeler: "Tuk-tuk",
+  "mini-car": "Mini car",
+  car: "Car",
+  "premium-car": "Premium",
+  "mini-van": "Mini van",
+  van: "Van",
+  others: "Other",
+};
 
 const VehicleCard = ({ vehicle, index = 0 }) => {
-  const coverImage =
-    vehicle.images && vehicle.images.length > 0 && vehicle.images[0]
-      ? vehicle.images[0]
-      : "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=600";
+  const coverImage = formatVehicleImageUrl(vehicle?.images, vehicle?.vehicleType);
 
-  const year = vehicle.year || "2024";
-  const originalPrice = (vehicle.pricePerDay * 1.12).toLocaleString();
+  const year = vehicle.year;
+  const typeLabel = TYPE_LABELS[vehicle.vehicleType] || vehicle.vehicleType;
 
   return (
     <motion.div
@@ -25,34 +34,28 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ delay: index * 0.08, duration: 0.5 }}
+      transition={{ delay: Math.min(index, 6) * 0.06, duration: 0.4 }}
       whileHover={{ y: -8 }}
     >
       <div className="v-card-image-area">
-        <img src={coverImage} alt={`${vehicle.brand} ${vehicle.model}`} />
+        <img
+          src={coverImage}
+          alt={`${vehicle.brand} ${vehicle.model}`}
+          loading="lazy"
+          decoding="async"
+          onError={(e) => handleImageError(e, formatVehicleImageUrl(null, vehicle?.vehicleType))}
+        />
         <div className="v-card-badges">
-          <span className="v-year-badge">{year}</span>
+          {year && <span className="v-year-badge">{year}</span>}
           {vehicle.distanceFromCenter !== null &&
             vehicle.distanceFromCenter !== undefined && (
               <span className="v-dist-badge">
                 📍 {vehicle.distanceFromCenter.toFixed(1)} km
               </span>
             )}
-          <button className="v-heart-btn" type="button" aria-label="Save">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
-          </button>
         </div>
         {vehicle.vehicleType && (
-          <span className="v-type-badge">{vehicle.vehicleType}</span>
+          <span className="v-type-badge">{typeLabel}</span>
         )}
       </div>
 
@@ -71,17 +74,26 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           )}
         </div>
 
-        <div className="v-specs">
-          <span>
-            <Users size={14} /> {vehicle.seats || 5} seats
-          </span>
-          <span>
-            <Fuel size={14} /> {vehicle.fuelType || "Petrol"}
-          </span>
-          <span>
-            <Settings2 size={14} /> {vehicle.transmission || "Auto"}
-          </span>
-        </div>
+        {/* Only show specs the lister actually entered */}
+        {(vehicle.seats || vehicle.fuelType || vehicle.transmission) && (
+          <div className="v-specs">
+            {vehicle.seats && (
+              <span>
+                <Users size={14} /> {vehicle.seats} seats
+              </span>
+            )}
+            {vehicle.fuelType && (
+              <span>
+                <Fuel size={14} /> {vehicle.fuelType}
+              </span>
+            )}
+            {vehicle.transmission && (
+              <span>
+                <Settings2 size={14} /> {vehicle.transmission}
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="v-card-footer">
           <div className="v-location">
@@ -89,11 +101,15 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
             <span>{vehicle.location || "Sri Lanka"}</span>
           </div>
           <div className="v-pricing">
-            <span className="v-price-old">LKR {originalPrice}</span>
             <div className="v-price-main">
-              LKR {vehicle.pricePerDay?.toLocaleString()}
+              LKR {Number(vehicle.pricePerDay || 0).toLocaleString("en-LK")}
               <small>/day</small>
             </div>
+            {Number(vehicle.pricePerKmAfter100km) > 0 && (
+              <div className="v-price-extra">
+                +LKR {Number(vehicle.pricePerKmAfter100km).toLocaleString("en-LK")}/km after 100km
+              </div>
+            )}
           </div>
         </div>
 
@@ -269,25 +285,30 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           display: flex;
           justify-content: space-between;
           align-items: flex-end;
+          gap: 0.75rem;
           margin-bottom: 1.1rem;
         }
 
         .v-location {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 5px;
           color: #64748b;
           font-size: 0.8rem;
           font-weight: 600;
+          flex: 1;
+          line-height: 1.35;
         }
 
         .v-location svg {
           color: #f97316;
           flex-shrink: 0;
+          margin-top: 2px;
         }
 
         .v-pricing {
           text-align: right;
+          flex-shrink: 0;
         }
 
         .v-price-old {
@@ -300,7 +321,7 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         }
 
         .v-price-main {
-          font-size: 1.2rem;
+          font-size: 1.25rem;
           font-weight: 900;
           color: #ea580c;
           line-height: 1;
@@ -311,6 +332,20 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           color: #64748b;
           font-weight: 600;
           margin-left: 2px;
+        }
+
+        .v-price-extra {
+          display: inline-block;
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: #ea580c;
+          background: #fff7ed;
+          padding: 2px 7px;
+          border-radius: 6px;
+          border: 1px solid #ffedd5;
+          margin-top: 4px;
+          line-height: 1.2;
+          white-space: nowrap;
         }
 
         /* VIEW DETAILS BUTTON — Radiant Sunset Orange matching user reference */

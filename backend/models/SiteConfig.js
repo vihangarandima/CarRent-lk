@@ -38,16 +38,19 @@ const SiteConfigSchema = new mongoose.Schema(
       },
       whatsAppSupport: {
         enabled: { type: Boolean, default: true },
-        phoneNumber: { type: String, default: "+94770000000" },
+        phoneNumber: { type: String, default: "+94702434288" },
         greetingMessage: {
           type: String,
           default: "Hello Yamu Team! I need help with renting a vehicle.",
         },
       },
       contact: {
-        phone: { type: String, default: "+94 77 123 4567" },
-        email: { type: String, default: "hello@yamucarrentals.lk" },
-        address: { type: String, default: "Colombo, Sri Lanka" },
+        phone: { type: String, default: "+94 70 243 4288" },
+        email: { type: String, default: "yamucarrentals@gmail.com" },
+        address: {
+          type: String,
+          default: "551/1, Thalgahawatta Lane, Wawa Road, Boralasgamuwa",
+        },
       },
       socialLinks: {
         tiktok: {
@@ -108,15 +111,13 @@ const SiteConfigSchema = new mongoose.Schema(
             id: "suv",
             label: "SUV",
             vehicleType: "premium-car",
-            image:
-              "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&q=80&w=400",
+            image: "/assets/images/suv_category.jpg",
           },
           {
             id: "sedan",
             label: "Sedan",
             vehicleType: "car",
-            image:
-              "https://images.unsplash.com/photo-1555215695-3004980adade?auto=format&fit=crop&q=80&w=400",
+            image: "/assets/images/sedan_category.jpg",
           },
           {
             id: "luxury",
@@ -129,15 +130,13 @@ const SiteConfigSchema = new mongoose.Schema(
             id: "electric",
             label: "Electric",
             vehicleType: "car",
-            image:
-              "https://images.unsplash.com/photo-1593941707882-a5bba14938bc?auto=format&fit=crop&q=80&w=400",
+            image: "/assets/images/electric_category.jpg",
           },
           {
             id: "van",
             label: "Van",
             vehicleType: "van",
-            image:
-              "https://images.unsplash.com/photo-1527786356703-4b100916cd20?auto=format&fit=crop&q=80&w=400",
+            image: "/assets/images/van_category.jpg",
           },
           {
             id: "coupe",

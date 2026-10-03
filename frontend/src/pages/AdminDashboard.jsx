@@ -45,6 +45,13 @@ import {
   Sliders,
   DollarSign,
   TrendingUp,
+  Bell,
+  Clock,
+  CheckCircle2,
+  KeyRound,
+  FileText,
+  X,
+  Filter,
 } from "lucide-react";
 import {
   BarChart,
@@ -58,11 +65,13 @@ import {
   Cell,
 } from "recharts";
 import { API_URL } from "../config";
+import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import {
   useSiteConfig,
   HOLIDAY_THEME_PRESETS,
   DEFAULT_CONFIG,
 } from "../context/SiteConfigContext";
+import { useToast } from "../context/ToastContext";
 
 const VEHICLE_TYPES = [
   { id: "bicycle", label: "Bicycle / Bike" },
@@ -79,13 +88,14 @@ const COLORS = ["#f97316", "#3b82f6", "#10b981", "#8b5cf6", "#ec4899", "#eab308"
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { toast, confirm } = useToast();
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const { config, updateConfig, restoreSnapshot, resetToDefaults, refreshConfig } =
     useSiteConfig();
 
   // Active module tab
-  const [activeTab, setActiveTab] = useState("analytics"); // analytics | cms | fleet | companies | users | reviews | rollback
+  const [activeTab, setActiveTab] = useState("analytics"); // analytics | approvals | cms | fleet | companies | rentals | users | reviews | rollback
   const [cmsSection, setCmsSection] = useState("theme"); // theme | global | hero | categories | stats | testimonials | filters | companies | faqs | footer
   const [previewDevice, setPreviewDevice] = useState("desktop"); // desktop | tablet | mobile
 
@@ -101,6 +111,7 @@ const AdminDashboard = () => {
   const [usersList, setUsersList] = useState([]);
   const [companiesList, setCompaniesList] = useState([]);
   const [vehiclesList, setVehiclesList] = useState([]);
+  const [rentalsList, setRentalsList] = useState([]);
   const [reviewsList, setReviewsList] = useState([]);
   const [snapshotsList, setSnapshotsList] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
@@ -109,10 +120,32 @@ const AdminDashboard = () => {
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("all");
   const [vehicleSearch, setVehicleSearch] = useState("");
+  const [fleetStatusFilter, setFleetStatusFilter] = useState("all");
+  const [fleetTypeFilter, setFleetTypeFilter] = useState("all");
   const [companySearch, setCompanySearch] = useState("");
+  const [companyVerifyFilter, setCompanyVerifyFilter] = useState("all");
+  const [approvalFilter, setApprovalFilter] = useState("pending"); // pending | rejected | all
+  const [rentalStatusFilter, setRentalStatusFilter] = useState("all");
 
-  // Role upgrade modal or feedback
+  // Feedback banner
   const [actionFeedback, setActionFeedback] = useState("");
+
+  // Super Admin Edit Modals State
+  const [editingVehicle, setEditingVehicle] = useState(null);
+  const [vehicleForm, setVehicleForm] = useState({});
+  const [savingVehicle, setSavingVehicle] = useState(false);
+
+  const [rejectingVehicle, setRejectingVehicle] = useState(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState("");
+  const [submittingReject, setSubmittingReject] = useState(false);
+
+  const [editingUser, setEditingUser] = useState(null);
+  const [userForm, setUserForm] = useState({});
+  const [savingUser, setSavingUser] = useState(false);
+
+  const [editingCompany, setEditingCompany] = useState(null);
+  const [companyForm, setCompanyForm] = useState({});
+  const [savingCompany, setSavingCompany] = useState(false);
 
   // Sync draftConfig with live config on load or reset
   useEffect(() => {
@@ -124,7 +157,7 @@ const AdminDashboard = () => {
   // Auth & Admin check
   useEffect(() => {
     if (!token || user?.role !== "admin") {
-      // If user is not admin, we still allow viewing if they promote themselves, but show warning
+      // If user is not admin, notify or route
     }
   }, [token, user]);
 
@@ -159,11 +192,16 @@ const AdminDashboard = () => {
           headers: { "x-auth-token": token },
         });
         setCompaniesList(res.data);
-      } else if (tab === "fleet") {
+      } else if (tab === "fleet" || tab === "approvals") {
         const res = await axios.get(`${API_URL}/api/admin/vehicles`, {
           headers: { "x-auth-token": token },
         });
         setVehiclesList(res.data);
+      } else if (tab === "rentals") {
+        const res = await axios.get(`${API_URL}/api/admin/rentals`, {
+          headers: { "x-auth-token": token },
+        });
+        setRentalsList(res.data);
       } else if (tab === "reviews") {
         const res = await axios.get(`${API_URL}/api/admin/reviews`, {
           headers: { "x-auth-token": token },
@@ -187,7 +225,7 @@ const AdminDashboard = () => {
   }, [token]);
 
   useEffect(() => {
-    if (["users", "companies", "fleet", "reviews", "rollback"].includes(activeTab)) {
+    if (["users", "companies", "fleet", "approvals", "rentals", "reviews", "rollback"].includes(activeTab)) {
       fetchTabData(activeTab);
     }
   }, [activeTab]);
@@ -245,66 +283,157 @@ const AdminDashboard = () => {
   };
 
   const handleRollback = async (snapshotId) => {
-    if (!window.confirm("Are you sure you want to restore this configuration snapshot?")) return;
+    const ok = await confirm({
+      title: "Restore Configuration Snapshot?",
+      message: "Are you sure you want to restore this configuration snapshot? Live settings will be reverted.",
+      confirmText: "Restore Snapshot",
+    });
+    if (!ok) return;
     try {
       await restoreSnapshot(snapshotId);
-      setActionFeedback("Snapshot restored successfully!");
+      toast.success("Snapshot restored successfully!");
       fetchTabData("rollback");
-      setTimeout(() => setActionFeedback(""), 3000);
     } catch (err) {
-      alert("Error restoring snapshot: " + err.message);
+      toast.error("Error restoring snapshot: " + err.message);
     }
   };
 
   const handleResetDefaults = async () => {
-    if (
-      !window.confirm(
-        "WARNING: This will reset all site customizations to factory defaults. Continue?"
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Reset to Factory Defaults?",
+      message: "WARNING: This will reset all site customizations, colors, and content to factory defaults. This action cannot be undone.",
+      confirmText: "Reset Defaults",
+      isDestructive: true,
+    });
+    if (!ok) return;
     try {
       await resetToDefaults();
-      setActionFeedback("Site reset to factory defaults!");
-      setTimeout(() => setActionFeedback(""), 3000);
+      toast.success("Site reset to factory defaults!");
     } catch (err) {
-      alert("Error resetting: " + err.message);
+      toast.error("Error resetting: " + err.message);
     }
   };
 
-  // User role change
-  const handleChangeUserRole = async (userId, newRole) => {
-    try {
-      await axios.patch(
-        `${API_URL}/api/admin/users/${userId}/role`,
-        { role: newRole },
-        { headers: { "x-auth-token": token } }
-      );
-      setActionFeedback(`User role changed to ${newRole}`);
-      fetchTabData("users");
-      setTimeout(() => setActionFeedback(""), 3000);
-    } catch (err) {
-      alert("Error updating role: " + (err.response?.data?.msg || err.message));
-    }
-  };
+  // ==========================================
+  // SUPER ADMIN APPROVAL ACTIONS
+  // ==========================================
 
-  // Company verification toggle
-  const handleToggleCompanyVerify = async (companyId) => {
+  const handleApproveVehicle = async (vehicleId, vehicleName) => {
     try {
       const res = await axios.patch(
-        `${API_URL}/api/admin/companies/${companyId}/verify`,
+        `${API_URL}/api/admin/vehicles/${vehicleId}/approve`,
         {},
         { headers: { "x-auth-token": token } }
       );
-      setActionFeedback(res.data.msg);
-      fetchTabData("companies");
-      setTimeout(() => setActionFeedback(""), 3000);
+      toast.success(res.data.msg || `${vehicleName || "Vehicle"} is now live on the marketplace!`);
+      fetchStats();
+      fetchTabData("approvals");
+      fetchTabData("fleet");
     } catch (err) {
-      alert("Error verifying company: " + (err.response?.data?.msg || err.message));
+      toast.error("Error approving vehicle: " + (err.response?.data?.msg || err.message));
     }
   };
 
-  // Vehicle feature toggle
+  const handleOpenRejectModal = (vehicle) => {
+    setRejectingVehicle(vehicle);
+    setRejectionReasonInput(vehicle.rejectionReason || "");
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectingVehicle) return;
+    setSubmittingReject(true);
+    try {
+      const res = await axios.patch(
+        `${API_URL}/api/admin/vehicles/${rejectingVehicle._id}/reject`,
+        { reason: rejectionReasonInput },
+        { headers: { "x-auth-token": token } }
+      );
+      toast.success(res.data.msg || "Listing rejected");
+      setRejectingVehicle(null);
+      setRejectionReasonInput("");
+      fetchStats();
+      fetchTabData("approvals");
+      fetchTabData("fleet");
+    } catch (err) {
+      toast.error("Error rejecting vehicle: " + (err.response?.data?.msg || err.message));
+    } finally {
+      setSubmittingReject(false);
+    }
+  };
+
+  // ==========================================
+  // SUPER ADMIN VEHICLE EDIT & STATUS ACTIONS
+  // ==========================================
+
+  const handleOpenEditVehicleModal = (vehicle) => {
+    setEditingVehicle(vehicle);
+    setVehicleForm({
+      brand: vehicle.brand || "",
+      model: vehicle.model || "",
+      year: vehicle.year || new Date().getFullYear(),
+      vehicleType: vehicle.vehicleType || "car",
+      pricePerDay: vehicle.pricePerDay || 0,
+      pricePerKmAfter100km: vehicle.pricePerKmAfter100km || 0,
+      freeKmPerDay: vehicle.freeKmPerDay || 100,
+      deposit: vehicle.deposit || 0,
+      transmission: vehicle.transmission || "Automatic",
+      fuelType: vehicle.fuelType || "Petrol",
+      seats: vehicle.seats || 4,
+      mileage: vehicle.mileage || "",
+      location: vehicle.location || "Colombo",
+      status: vehicle.status || "active",
+      rejectionReason: vehicle.rejectionReason || "",
+      isFeatured: !!vehicle.isFeatured,
+      images: Array.isArray(vehicle.images) ? [...vehicle.images] : [],
+      features: Array.isArray(vehicle.features) ? vehicle.features.join(", ") : (vehicle.features || ""),
+    });
+  };
+
+  const handleSaveVehicleAdmin = async (forceApprove = false) => {
+    if (!editingVehicle) return;
+    setSavingVehicle(true);
+    try {
+      const payload = {
+        ...vehicleForm,
+        status: forceApprove ? "active" : vehicleForm.status,
+        features: typeof vehicleForm.features === "string"
+          ? vehicleForm.features.split(",").map((f) => f.trim()).filter(Boolean)
+          : vehicleForm.features,
+      };
+
+      const res = await axios.put(
+        `${API_URL}/api/admin/vehicles/${editingVehicle._id}`,
+        payload,
+        { headers: { "x-auth-token": token } }
+      );
+      toast.success(res.data.msg || "Vehicle listing updated successfully!");
+      setEditingVehicle(null);
+      fetchStats();
+      fetchTabData("fleet");
+      fetchTabData("approvals");
+    } catch (err) {
+      toast.error("Error saving vehicle: " + (err.response?.data?.msg || err.message));
+    } finally {
+      setSavingVehicle(false);
+    }
+  };
+
+  const handleChangeVehicleStatus = async (vehicleId, newStatus) => {
+    try {
+      const res = await axios.patch(
+        `${API_URL}/api/admin/vehicles/${vehicleId}/status`,
+        { status: newStatus },
+        { headers: { "x-auth-token": token } }
+      );
+      toast.success(res.data.msg);
+      fetchStats();
+      fetchTabData("fleet");
+      fetchTabData("approvals");
+    } catch (err) {
+      toast.error("Error updating status: " + (err.response?.data?.msg || err.message));
+    }
+  };
+
   const handleToggleVehicleFeature = async (vehicleId) => {
     try {
       const res = await axios.patch(
@@ -312,50 +441,247 @@ const AdminDashboard = () => {
         {},
         { headers: { "x-auth-token": token } }
       );
-      setActionFeedback(res.data.msg);
+      toast.success(res.data.msg);
       fetchTabData("fleet");
-      setTimeout(() => setActionFeedback(""), 3000);
+      fetchStats();
     } catch (err) {
-      alert("Error updating vehicle: " + (err.response?.data?.msg || err.message));
+      toast.error("Error updating vehicle: " + (err.response?.data?.msg || err.message));
     }
   };
 
-  // Vehicle delete
   const handleDeleteVehicle = async (vehicleId) => {
-    if (!window.confirm("Are you sure you want to permanently delete this vehicle listing?")) return;
+    const ok = await confirm({
+      title: "Delete Vehicle Listing Permanently?",
+      message: "Are you sure? This will delete the listing and all inquiries from the marketplace completely.",
+      confirmText: "Delete Listing",
+      isDestructive: true,
+    });
+    if (!ok) return;
     try {
       await axios.delete(`${API_URL}/api/admin/vehicles/${vehicleId}`, {
         headers: { "x-auth-token": token },
       });
-      setActionFeedback("Vehicle deleted successfully");
+      toast.success("Vehicle deleted successfully");
+      fetchStats();
       fetchTabData("fleet");
-      setTimeout(() => setActionFeedback(""), 3000);
+      fetchTabData("approvals");
     } catch (err) {
-      alert("Error deleting vehicle: " + err.message);
+      toast.error("Error deleting vehicle: " + err.message);
+    }
+  };
+
+  // ==========================================
+  // SUPER ADMIN USER MANAGEMENT
+  // ==========================================
+
+  const handleOpenEditUserModal = (u) => {
+    setEditingUser(u);
+    setUserForm({
+      name: u.name || "",
+      email: u.email || "",
+      phone: u.phone || "",
+      role: u.role || "renter",
+    });
+  };
+
+  const handleSaveUserAdmin = async () => {
+    if (!editingUser) return;
+    setSavingUser(true);
+    try {
+      const res = await axios.put(
+        `${API_URL}/api/admin/users/${editingUser._id}`,
+        userForm,
+        { headers: { "x-auth-token": token } }
+      );
+      toast.success(res.data.msg || "User updated successfully");
+      setEditingUser(null);
+      fetchStats();
+      fetchTabData("users");
+    } catch (err) {
+      toast.error("Error saving user: " + (err.response?.data?.msg || err.message));
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  const handleChangeUserRole = async (userId, newRole) => {
+    try {
+      await axios.patch(
+        `${API_URL}/api/admin/users/${userId}/role`,
+        { role: newRole },
+        { headers: { "x-auth-token": token } }
+      );
+      toast.success(`User role changed to ${newRole}`);
+      fetchStats();
+      fetchTabData("users");
+    } catch (err) {
+      toast.error("Error updating role: " + (err.response?.data?.msg || err.message));
+    }
+  };
+
+  const handleDeleteUser = async (userId, userName) => {
+    const ok = await confirm({
+      title: `Delete Account: ${userName || "User"}?`,
+      message: "WARNING: This will delete the user account, their company profile, and all their vehicle listings permanently.",
+      confirmText: "Delete User",
+      isDestructive: true,
+    });
+    if (!ok) return;
+    try {
+      const res = await axios.delete(`${API_URL}/api/admin/users/${userId}`, {
+        headers: { "x-auth-token": token },
+      });
+      toast.success(res.data.msg);
+      fetchStats();
+      fetchTabData("users");
+    } catch (err) {
+      toast.error("Error deleting user: " + err.message);
+    }
+  };
+
+  // ==========================================
+  // SUPER ADMIN COMPANY MANAGEMENT
+  // ==========================================
+
+  const handleOpenEditCompanyModal = (c) => {
+    setEditingCompany(c);
+    setCompanyForm({
+      companyName: c.companyName || "",
+      contactEmail: c.contactEmail || "",
+      phone: c.phone || "",
+      address: c.address || "",
+      description: c.description || "",
+      logo: c.logo || "",
+      isVerified: !!c.isVerified,
+    });
+  };
+
+  const handleSaveCompanyAdmin = async () => {
+    if (!editingCompany) return;
+    setSavingCompany(true);
+    try {
+      const res = await axios.put(
+        `${API_URL}/api/admin/companies/${editingCompany._id}`,
+        companyForm,
+        { headers: { "x-auth-token": token } }
+      );
+      toast.success(res.data.msg || "Company updated successfully");
+      setEditingCompany(null);
+      fetchStats();
+      fetchTabData("companies");
+    } catch (err) {
+      toast.error("Error saving company: " + (err.response?.data?.msg || err.message));
+    } finally {
+      setSavingCompany(false);
+    }
+  };
+
+  const handleToggleCompanyVerify = async (companyId) => {
+    try {
+      const res = await axios.patch(
+        `${API_URL}/api/admin/companies/${companyId}/verify`,
+        {},
+        { headers: { "x-auth-token": token } }
+      );
+      toast.success(res.data.msg);
+      fetchStats();
+      fetchTabData("companies");
+    } catch (err) {
+      toast.error("Error verifying company: " + (err.response?.data?.msg || err.message));
+    }
+  };
+
+  const handleDeleteCompany = async (companyId, companyName) => {
+    const ok = await confirm({
+      title: `Delete Company: ${companyName}?`,
+      message: "Are you sure you want to permanently delete this company profile from the platform?",
+      confirmText: "Delete Company",
+      isDestructive: true,
+    });
+    if (!ok) return;
+    try {
+      const res = await axios.delete(`${API_URL}/api/admin/companies/${companyId}`, {
+        headers: { "x-auth-token": token },
+      });
+      toast.success(res.data.msg);
+      fetchStats();
+      fetchTabData("companies");
+    } catch (err) {
+      toast.error("Error deleting company: " + err.message);
+    }
+  };
+
+  // ==========================================
+  // SUPER ADMIN RENTALS SUPERVISOR
+  // ==========================================
+
+  const handleUpdateRentalStatus = async (rentalId, newStatus) => {
+    try {
+      const res = await axios.patch(
+        `${API_URL}/api/admin/rentals/${rentalId}/status`,
+        { status: newStatus },
+        { headers: { "x-auth-token": token } }
+      );
+      toast.success(res.data.msg);
+      fetchStats();
+      fetchTabData("rentals");
+    } catch (err) {
+      toast.error("Error updating rental: " + (err.response?.data?.msg || err.message));
+    }
+  };
+
+  const handleDeleteRental = async (rentalId) => {
+    const ok = await confirm({
+      title: "Delete Rental Record?",
+      message: "Are you sure you want to delete this booking record?",
+      confirmText: "Delete Rental",
+      isDestructive: true,
+    });
+    if (!ok) return;
+    try {
+      const res = await axios.delete(`${API_URL}/api/admin/rentals/${rentalId}`, {
+        headers: { "x-auth-token": token },
+      });
+      toast.success(res.data.msg);
+      fetchStats();
+      fetchTabData("rentals");
+    } catch (err) {
+      toast.error("Error deleting rental: " + err.message);
     }
   };
 
   // Review delete
   const handleDeleteReview = async (reviewId) => {
-    if (!window.confirm("Delete this review?")) return;
+    const ok = await confirm({
+      title: "Delete Customer Review?",
+      message: "Are you sure you want to delete this review?",
+      confirmText: "Delete Review",
+      isDestructive: true,
+    });
+    if (!ok) return;
     try {
       await axios.delete(`${API_URL}/api/admin/reviews/${reviewId}`, {
         headers: { "x-auth-token": token },
       });
-      setActionFeedback("Review deleted");
+      toast.success("Review deleted");
+      fetchStats();
       fetchTabData("reviews");
-      setTimeout(() => setActionFeedback(""), 3000);
     } catch (err) {
-      alert("Error deleting review: " + err.message);
+      toast.error("Error deleting review: " + err.message);
     }
   };
 
   // Export JSON
   const handleExportJSON = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(draftConfig, null, 2));
+    const dataStr =
+      "data:text/json;charset=utf-8," +
+      encodeURIComponent(JSON.stringify(draftConfig, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `yamu-site-config-${new Date().toISOString().slice(0, 10)}.json`);
+    downloadAnchor.setAttribute(
+      "download",
+      `yamu-site-config-${new Date().toISOString().slice(0, 10)}.json`
+    );
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -368,32 +694,57 @@ const AdminDashboard = () => {
       const matchesSearch =
         !userSearch ||
         u.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
-        u.email?.toLowerCase().includes(userSearch.toLowerCase());
+        u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+        u.phone?.toLowerCase().includes(userSearch.toLowerCase());
       return matchesRole && matchesSearch;
     });
   }, [usersList, userRoleFilter, userSearch]);
 
   const filteredVehicles = useMemo(() => {
     return vehiclesList.filter((v) => {
-      return (
+      const matchesStatus = fleetStatusFilter === "all" || v.status === fleetStatusFilter;
+      const matchesType = fleetTypeFilter === "all" || v.vehicleType === fleetTypeFilter;
+      const matchesSearch =
         !vehicleSearch ||
         v.brand?.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
         v.model?.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
-        v.location?.toLowerCase().includes(vehicleSearch.toLowerCase())
-      );
+        v.location?.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
+        v.company?.companyName?.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
+        v.owner?.name?.toLowerCase().includes(vehicleSearch.toLowerCase());
+      return matchesStatus && matchesType && matchesSearch;
     });
-  }, [vehiclesList, vehicleSearch]);
+  }, [vehiclesList, fleetStatusFilter, fleetTypeFilter, vehicleSearch]);
+
+  const pendingApprovalsVehicles = useMemo(() => {
+    return vehiclesList.filter((v) => {
+      if (approvalFilter === "pending") return v.status === "pending";
+      if (approvalFilter === "rejected") return v.status === "rejected";
+      return true;
+    });
+  }, [vehiclesList, approvalFilter]);
 
   const filteredCompanies = useMemo(() => {
     return companiesList.filter((c) => {
-      return (
+      const matchesVerify =
+        companyVerifyFilter === "all" ||
+        (companyVerifyFilter === "verified" ? c.isVerified : !c.isVerified);
+      const matchesSearch =
         !companySearch ||
         c.companyName?.toLowerCase().includes(companySearch.toLowerCase()) ||
         c.contactEmail?.toLowerCase().includes(companySearch.toLowerCase()) ||
-        c.address?.toLowerCase().includes(companySearch.toLowerCase())
-      );
+        c.address?.toLowerCase().includes(companySearch.toLowerCase()) ||
+        c.phone?.toLowerCase().includes(companySearch.toLowerCase());
+      return matchesVerify && matchesSearch;
     });
-  }, [companiesList, companySearch]);
+  }, [companiesList, companyVerifyFilter, companySearch]);
+
+  const filteredRentals = useMemo(() => {
+    return rentalsList.filter((r) => {
+      return rentalStatusFilter === "all" || r.status === rentalStatusFilter;
+    });
+  }, [rentalsList, rentalStatusFilter]);
+
+  const pendingCount = stats?.pendingApprovals?.vehicles ?? vehiclesList.filter((v) => v.status === "pending").length;
 
   return (
     <div className="admin-portal">
@@ -401,14 +752,18 @@ const AdminDashboard = () => {
       <header className="admin-header">
         <div className="admin-header-left">
           <Link to="/" className="admin-brand">
-            <img src={draftConfig?.global?.logoUrl || "/logo.png"} alt="Logo" className="admin-logo-img" />
+            <img
+              src={draftConfig?.global?.logoUrl || "/logo.png"}
+              alt="Logo"
+              className="admin-logo-img"
+            />
             <div>
               <div className="admin-brand-name">{draftConfig?.global?.brandName || "Yamu"}</div>
-              <div className="admin-brand-tag">Platform Control Center</div>
+              <div className="admin-brand-tag">Super Admin Control Center</div>
             </div>
           </Link>
           <div className="admin-badge-pill">
-            <ShieldCheck size={14} /> Super Admin
+            <ShieldCheck size={14} /> Ultimate Super Admin
           </div>
         </div>
 
@@ -417,6 +772,18 @@ const AdminDashboard = () => {
             <div className="admin-toast-badge">
               <Check size={14} /> {actionFeedback}
             </div>
+          )}
+
+          {pendingCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("approvals")}
+              className="admin-header-alert-btn"
+              title={`${pendingCount} listing requests need your approval`}
+            >
+              <Bell size={15} className="bell-ring" />
+              <span>{pendingCount} Pending Approvals</span>
+            </button>
           )}
 
           <a
@@ -443,6 +810,32 @@ const AdminDashboard = () => {
         </div>
       </header>
 
+      {/* Global Super Admin Alert Notification Banner */}
+      {stats?.pendingApprovals?.vehicles > 0 && (
+        <div className="admin-urgent-banner">
+          <div className="urgent-banner-content">
+            <div className="urgent-icon">
+              <Bell size={18} />
+            </div>
+            <div>
+              <strong>Super Admin Action Required:</strong> You have{" "}
+              <span className="urgent-highlight">{stats.pendingApprovals.vehicles} vehicle listing request(s)</span>{" "}
+              submitted by listers awaiting your verification & approval before they go live on Yamu.
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-urgent-action"
+            onClick={() => {
+              setActiveTab("approvals");
+              setApprovalFilter("pending");
+            }}
+          >
+            Review & Approve Now →
+          </button>
+        </div>
+      )}
+
       {/* Main Admin Body */}
       <div className="admin-layout">
         {/* Left Sidebar Tabs */}
@@ -459,6 +852,23 @@ const AdminDashboard = () => {
 
           <button
             type="button"
+            className={`admin-nav-item ${activeTab === "approvals" ? "active" : ""}`}
+            onClick={() => {
+              setActiveTab("approvals");
+              fetchTabData("approvals");
+            }}
+          >
+            <CheckCircle2 size={18} />
+            <div className="nav-item-content">
+              <span>Listing Approvals</span>
+              {pendingCount > 0 && (
+                <span className="approval-badge-count">{pendingCount}</span>
+              )}
+            </div>
+          </button>
+
+          <button
+            type="button"
             className={`admin-nav-item ${activeTab === "cms" ? "active" : ""}`}
             onClick={() => setActiveTab("cms")}
           >
@@ -469,29 +879,55 @@ const AdminDashboard = () => {
             </div>
           </button>
 
-          <div className="sidebar-group-title">PLATFORM MODERATION</div>
+          <div className="sidebar-group-title">PLATFORM SUPERVISION</div>
           <button
             type="button"
             className={`admin-nav-item ${activeTab === "fleet" ? "active" : ""}`}
-            onClick={() => setActiveTab("fleet")}
+            onClick={() => {
+              setActiveTab("fleet");
+              fetchTabData("fleet");
+            }}
           >
             <Car size={18} />
-            <span>Fleet & Listings</span>
+            <span>Fleet & All Cars</span>
           </button>
 
           <button
             type="button"
             className={`admin-nav-item ${activeTab === "companies" ? "active" : ""}`}
-            onClick={() => setActiveTab("companies")}
+            onClick={() => {
+              setActiveTab("companies");
+              fetchTabData("companies");
+            }}
           >
             <Building2 size={18} />
-            <span>Company Verification</span>
+            <div className="nav-item-content">
+              <span>Companies & Partners</span>
+              {stats?.companies?.pending > 0 && (
+                <span className="pending-pill-sm">{stats.companies.pending}</span>
+              )}
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`admin-nav-item ${activeTab === "rentals" ? "active" : ""}`}
+            onClick={() => {
+              setActiveTab("rentals");
+              fetchTabData("rentals");
+            }}
+          >
+            <KeyRound size={18} />
+            <span>Rental Bookings</span>
           </button>
 
           <button
             type="button"
             className={`admin-nav-item ${activeTab === "users" ? "active" : ""}`}
-            onClick={() => setActiveTab("users")}
+            onClick={() => {
+              setActiveTab("users");
+              fetchTabData("users");
+            }}
           >
             <Users size={18} />
             <span>User Management</span>
@@ -500,7 +936,10 @@ const AdminDashboard = () => {
           <button
             type="button"
             className={`admin-nav-item ${activeTab === "reviews" ? "active" : ""}`}
-            onClick={() => setActiveTab("reviews")}
+            onClick={() => {
+              setActiveTab("reviews");
+              fetchTabData("reviews");
+            }}
           >
             <Star size={18} />
             <span>Reviews & Feedback</span>
@@ -510,7 +949,10 @@ const AdminDashboard = () => {
           <button
             type="button"
             className={`admin-nav-item ${activeTab === "rollback" ? "active" : ""}`}
-            onClick={() => setActiveTab("rollback")}
+            onClick={() => {
+              setActiveTab("rollback");
+              fetchTabData("rollback");
+            }}
           >
             <History size={18} />
             <span>1-Click Rollback</span>
@@ -542,7 +984,33 @@ const AdminDashboard = () => {
                     <div className="kpi-num">{stats?.vehicles?.total ?? "..."}</div>
                     <div className="kpi-label">Total Vehicles Listed</div>
                     <div className="kpi-sub">
-                      <span>★ {stats?.vehicles?.featured ?? 0}</span> featured on homepage
+                      <span>★ {stats?.vehicles?.featured ?? 0}</span> featured • {stats?.vehicles?.active ?? 0} live
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`kpi-card ${pendingCount > 0 ? "kpi-card-urgent" : ""}`}>
+                  <div className="kpi-icon-wrap kpi-amber">
+                    <Bell size={24} />
+                  </div>
+                  <div className="kpi-info">
+                    <div className="kpi-num">{pendingCount}</div>
+                    <div className="kpi-label">Pending Car Approvals</div>
+                    <div className="kpi-sub">
+                      {pendingCount > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTab("approvals");
+                            setApprovalFilter("pending");
+                          }}
+                          className="kpi-link-btn"
+                        >
+                          Review Now →
+                        </button>
+                      ) : (
+                        <span className="text-green">All listings reviewed!</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -568,7 +1036,22 @@ const AdminDashboard = () => {
                     <div className="kpi-num">{stats?.users?.total ?? "..."}</div>
                     <div className="kpi-label">Registered Users</div>
                     <div className="kpi-sub">
-                      {stats?.users?.renters ?? 0} Renters • {stats?.users?.owners ?? 0} Owners
+                      {stats?.users?.renters ?? 0} Renters • {stats?.users?.owners ?? 0} Hosts
+                    </div>
+                  </div>
+                </div>
+
+                <div className="kpi-card">
+                  <div className="kpi-icon-wrap kpi-emerald">
+                    <DollarSign size={24} />
+                  </div>
+                  <div className="kpi-info">
+                    <div className="kpi-num">
+                      Rs. {stats?.rentals?.totalRevenue ? (stats.rentals.totalRevenue >= 1000000 ? `${(stats.rentals.totalRevenue / 1000000).toFixed(1)}M` : stats.rentals.totalRevenue.toLocaleString()) : "0"}
+                    </div>
+                    <div className="kpi-label">Platform Bookings Value</div>
+                    <div className="kpi-sub">
+                      {stats?.rentals?.total ?? 0} total bookings ({stats?.rentals?.active ?? 0} active)
                     </div>
                   </div>
                 </div>
@@ -1937,25 +2420,289 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* TAB 3: FLEET & LISTINGS MODERATION */}
+          {/* TAB: LISTING APPROVALS HUB (SUPER ADMIN) */}
+          {activeTab === "approvals" && (
+            <div className="tab-pane">
+              <div className="pane-header">
+                <div>
+                  <h2>Car Listing Verification & Approval Center</h2>
+                  <p>
+                    Super Admin gateway: Review vehicle listings submitted by personal hosts and
+                    rental companies. Only approved vehicles appear live on the Yamu marketplace.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <div className="approval-filter-pills">
+                    <button
+                      type="button"
+                      className={`pill-btn ${approvalFilter === "pending" ? "active" : ""}`}
+                      onClick={() => setApprovalFilter("pending")}
+                    >
+                      ⏳ Pending Review ({vehiclesList.filter((v) => v.status === "pending").length})
+                    </button>
+                    <button
+                      type="button"
+                      className={`pill-btn ${approvalFilter === "rejected" ? "active" : ""}`}
+                      onClick={() => setApprovalFilter("rejected")}
+                    >
+                      ❌ Rejected ({vehiclesList.filter((v) => v.status === "rejected").length})
+                    </button>
+                    <button
+                      type="button"
+                      className={`pill-btn ${approvalFilter === "all" ? "active" : ""}`}
+                      onClick={() => setApprovalFilter("all")}
+                    >
+                      All Listings ({vehiclesList.length})
+                    </button>
+                  </div>
+                  <button type="button" onClick={() => fetchTabData("approvals")} className="btn-secondary-sm">
+                    <RefreshCw size={14} /> Refresh
+                  </button>
+                </div>
+              </div>
+
+              {loadingData ? (
+                <div className="loading-state">Loading vehicle listings for approval...</div>
+              ) : pendingApprovalsVehicles.length === 0 ? (
+                <div className="empty-approvals-box">
+                  <CheckCircle2 size={48} className="text-green mb-3" />
+                  <h3>No {approvalFilter === "pending" ? "Pending" : approvalFilter} Requests</h3>
+                  <p>
+                    {approvalFilter === "pending"
+                      ? "Awesome! All car listing requests have been reviewed and approved."
+                      : "No listings found matching this filter."}
+                  </p>
+                </div>
+              ) : (
+                <div className="approvals-grid">
+                  {pendingApprovalsVehicles.map((v) => {
+                    const listerPhone = v.company?.phone || v.owner?.phone || "";
+                    const sanitizedPhone = listerPhone.replace(/[^0-9]/g, "");
+                    const waText = encodeURIComponent(
+                      `Hello ${v.company?.companyName || v.owner?.name || "Host"}, this is Yamu Admin regarding your car listing for ${v.brand} ${v.model} (${v.year}).`
+                    );
+
+                    return (
+                      <div key={v._id} className={`approval-card ${v.status === "pending" ? "is-pending" : ""}`}>
+                        {/* Top Card Bar */}
+                        <div className="approval-card-top">
+                          <div className="approval-card-thumb-wrap">
+                            <img
+                              src={formatVehicleImageUrl(v.images, v.vehicleType)}
+                              alt={`${v.brand} ${v.model}`}
+                              className="approval-card-thumb"
+                              onError={(e) => handleImageError(e, formatVehicleImageUrl(null, v.vehicleType))}
+                            />
+                            <span className={`approval-status-pill status-${v.status}`}>
+                              {v.status === "pending" ? "⏳ Awaiting Approval" : v.status === "rejected" ? "❌ Rejected" : "🟢 " + v.status}
+                            </span>
+                            {v.images && v.images.length > 1 && (
+                              <span className="approval-photos-count">
+                                📷 {v.images.length} Photos
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="approval-card-main">
+                            <div className="approval-card-title-row">
+                              <div>
+                                <h3 className="approval-vehicle-title">
+                                  {v.brand} {v.model} <span className="text-muted">({v.year})</span>
+                                </h3>
+                                <div className="approval-vehicle-meta">
+                                  <span className="type-badge">{v.vehicleType}</span>
+                                  <span>•</span>
+                                  <span>{v.transmission}</span>
+                                  <span>•</span>
+                                  <span>{v.fuelType}</span>
+                                  <span>•</span>
+                                  <span>{v.seats} Seats</span>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1">
+                                    <MapPin size={12} /> {v.location}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="approval-price-box">
+                                <div className="approval-price-val">Rs. {v.pricePerDay?.toLocaleString()}</div>
+                                <div className="approval-price-lbl">per day</div>
+                              </div>
+                            </div>
+
+                            {/* Rates & Specifications Row */}
+                            <div className="approval-specs-grid">
+                              <div className="spec-item">
+                                <span className="spec-lbl">Free KM / Day:</span>
+                                <span className="spec-val">{v.freeKmPerDay || 100} KM</span>
+                              </div>
+                              <div className="spec-item">
+                                <span className="spec-lbl">Extra KM Rate:</span>
+                                <span className="spec-val">Rs. {v.pricePerKmAfter100km || 0}/km</span>
+                              </div>
+                              <div className="spec-item">
+                                <span className="spec-lbl">Security Deposit:</span>
+                                <span className="spec-val">Rs. {v.deposit ? v.deposit.toLocaleString() : "0"}</span>
+                              </div>
+                              <div className="spec-item">
+                                <span className="spec-lbl">Submitted On:</span>
+                                <span className="spec-val">{new Date(v.createdAt).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+
+                            {/* Rejection Note if Rejected */}
+                            {v.status === "rejected" && v.rejectionReason && (
+                              <div className="rejection-reason-box">
+                                <strong>Rejection Reason:</strong> {v.rejectionReason}
+                              </div>
+                            )}
+
+                            {/* Features list */}
+                            {v.features && v.features.length > 0 && (
+                              <div className="approval-features-list">
+                                {v.features.map((f, i) => (
+                                  <span key={i} className="approval-feature-chip">✓ {f}</span>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Lister Profile & Contact Section */}
+                            <div className="approval-lister-row">
+                              <div className="approval-lister-info">
+                                <div className="lister-avatar">
+                                  {v.company ? <Building2 size={16} /> : <Users size={16} />}
+                                </div>
+                                <div>
+                                  <div className="lister-name">
+                                    {v.company ? v.company.companyName : (v.owner?.name || "Private Host")}
+                                    {v.company?.isVerified && (
+                                      <span className="verified-badge-sm" title="Gold Verified Partner">✓</span>
+                                    )}
+                                    <span className="lister-type-tag">
+                                      {v.company ? "Rental Company" : "Personal Host"}
+                                    </span>
+                                  </div>
+                                  <div className="lister-contact-line">
+                                    <span>✉️ {v.company?.contactEmail || v.owner?.email || "—"}</span>
+                                    {listerPhone && <span>📞 {listerPhone}</span>}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Quick Contact & Verification Buttons */}
+                              <div className="approval-quick-contact">
+                                {sanitizedPhone && (
+                                  <a
+                                    href={`https://wa.me/${sanitizedPhone}?text=${waText}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn-lister-whatsapp"
+                                    title="Chat with lister on WhatsApp"
+                                  >
+                                    <MessageCircle size={14} /> WhatsApp Lister
+                                  </a>
+                                )}
+                                {listerPhone && (
+                                  <a href={`tel:${listerPhone}`} className="btn-lister-call" title="Call lister">
+                                    <Phone size={14} /> Call
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Super Admin Action Buttons */}
+                            <div className="approval-actions-bar">
+                              {v.status !== "active" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleApproveVehicle(v._id, `${v.brand} ${v.model}`)}
+                                  className="btn-admin-approve"
+                                >
+                                  <CheckCircle size={16} /> Approve & Publish Live
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditVehicleModal(v)}
+                                className="btn-admin-edit"
+                              >
+                                <Edit3 size={15} /> Edit Details
+                              </button>
+
+                              {v.status !== "rejected" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenRejectModal(v)}
+                                  className="btn-admin-reject"
+                                >
+                                  <XCircle size={15} /> Reject Listing
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteVehicle(v._id)}
+                                className="btn-admin-delete"
+                                title="Delete listing permanently"
+                              >
+                                <Trash2 size={15} /> Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: FLEET & ALL LISTINGS */}
           {activeTab === "fleet" && (
             <div className="tab-pane">
               <div className="pane-header">
                 <div>
-                  <h2>Vehicle Fleet & Listings Moderation</h2>
+                  <h2>Vehicle Fleet & Listings Supervisor</h2>
                   <p>
-                    Manage all vehicles listed on the platform. Pin top cars to the homepage
-                    showcase or remove spam listings.
+                    Full Super Admin authority to view, edit, approve, reject, pin to homepage, or delete any vehicle listing across the platform.
                   </p>
                 </div>
-                <div className="search-box">
-                  <Search size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search brand, model, city..."
-                    value={vehicleSearch}
-                    onChange={(e) => setVehicleSearch(e.target.value)}
-                  />
+                <div className="flex gap-2 flex-wrap">
+                  <select
+                    value={fleetStatusFilter}
+                    onChange={(e) => setFleetStatusFilter(e.target.value)}
+                    className="select-role-filter"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="active">Active (Live)</option>
+                    <option value="pending">Pending Approval</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="hidden">Hidden / Paused</option>
+                    <option value="rented">Currently Rented</option>
+                  </select>
+
+                  <select
+                    value={fleetTypeFilter}
+                    onChange={(e) => setFleetTypeFilter(e.target.value)}
+                    className="select-role-filter"
+                  >
+                    <option value="all">All Categories</option>
+                    {VEHICLE_TYPES.map((t) => (
+                      <option key={t.id} value={t.id}>{t.label}</option>
+                    ))}
+                  </select>
+
+                  <div className="search-box">
+                    <Search size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search brand, model, city, owner..."
+                      value={vehicleSearch}
+                      onChange={(e) => setVehicleSearch(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1971,7 +2718,8 @@ const AdminDashboard = () => {
                         <th>Day Rate</th>
                         <th>Location</th>
                         <th>Owner / Company</th>
-                        <th>Featured on Home</th>
+                        <th>Status</th>
+                        <th>Featured</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -1982,16 +2730,17 @@ const AdminDashboard = () => {
                             <td>
                               <div className="vehicle-cell">
                                 <img
-                                  src={v.images?.[0] || "/logo.png"}
+                                  src={formatVehicleImageUrl(v.images, v.vehicleType)}
                                   alt={v.model}
                                   className="v-cell-thumb"
+                                  onError={(e) => handleImageError(e, formatVehicleImageUrl(null, v.vehicleType))}
                                 />
                                 <div>
                                   <div className="font-semibold">
                                     {v.brand} {v.model} ({v.year})
                                   </div>
                                   <div className="text-muted text-xs">
-                                    {v.transmission} • {v.fuelType}
+                                    {v.transmission} • {v.fuelType} • {v.seats} seats
                                   </div>
                                 </div>
                               </div>
@@ -2020,6 +2769,20 @@ const AdminDashboard = () => {
                               )}
                             </td>
                             <td>
+                              <select
+                                value={v.status || "active"}
+                                onChange={(e) => handleChangeVehicleStatus(v._id, e.target.value)}
+                                className={`status-changer-select status-${v.status || "active"}`}
+                              >
+                                <option value="active">🟢 Active</option>
+                                <option value="pending">⏳ Pending</option>
+                                <option value="rejected">❌ Rejected</option>
+                                <option value="hidden">⏸️ Hidden</option>
+                                <option value="rented">🔑 Rented</option>
+                                <option value="flagged">🚩 Flagged</option>
+                              </select>
+                            </td>
+                            <td>
                               <button
                                 type="button"
                                 onClick={() => handleToggleVehicleFeature(v._id)}
@@ -2034,10 +2797,18 @@ const AdminDashboard = () => {
                                   to={`/vehicle/${v._id}`}
                                   target="_blank"
                                   className="btn-action-view"
-                                  title="View on site"
+                                  title="View on public site"
                                 >
                                   <Eye size={14} />
                                 </Link>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditVehicleModal(v)}
+                                  className="btn-action-edit"
+                                  title="Super Admin Edit"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteVehicle(v._id)}
@@ -2052,7 +2823,7 @@ const AdminDashboard = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="7" className="text-center text-muted">
+                          <td colSpan="8" className="text-center text-muted">
                             No vehicles found matching search.
                           </td>
                         </tr>
@@ -2064,25 +2835,36 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* TAB 4: COMPANY VERIFICATION HUB */}
+          {/* TAB 4: COMPANY VERIFICATION & MANAGEMENT */}
           {activeTab === "companies" && (
             <div className="tab-pane">
               <div className="pane-header">
                 <div>
-                  <h2>Rental Company Verification Hub</h2>
+                  <h2>Rental Company Verification & Partner Hub</h2>
                   <p>
-                    Review rental companies and grant/revoke the official Yamu Gold Verified Trust
-                    Badge.
+                    Manage rental companies. Review registration details, grant/revoke official Yamu Gold Verified Badges, edit profiles, or delete accounts.
                   </p>
                 </div>
-                <div className="search-box">
-                  <Search size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search company name, email..."
-                    value={companySearch}
-                    onChange={(e) => setCompanySearch(e.target.value)}
-                  />
+                <div className="flex gap-2 flex-wrap">
+                  <select
+                    value={companyVerifyFilter}
+                    onChange={(e) => setCompanyVerifyFilter(e.target.value)}
+                    className="select-role-filter"
+                  >
+                    <option value="all">All Companies</option>
+                    <option value="verified">Verified Partners</option>
+                    <option value="unverified">Pending Verification</option>
+                  </select>
+
+                  <div className="search-box">
+                    <Search size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search company name, email, phone..."
+                      value={companySearch}
+                      onChange={(e) => setCompanySearch(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -2097,6 +2879,7 @@ const AdminDashboard = () => {
                         <th>Contact Email</th>
                         <th>Phone</th>
                         <th>Address</th>
+                        <th>Fleet Count</th>
                         <th>Verification Status</th>
                         <th>Actions</th>
                       </tr>
@@ -2126,6 +2909,9 @@ const AdminDashboard = () => {
                             <td className="text-muted">{c.phone || "—"}</td>
                             <td className="text-muted">{c.address || "—"}</td>
                             <td>
+                              <span className="badge-count-sm">{c.vehicleCount || 0} cars</span>
+                            </td>
+                            <td>
                               <span
                                 className={`status-badge ${
                                   c.isVerified ? "status-verified" : "status-pending"
@@ -2135,22 +2921,173 @@ const AdminDashboard = () => {
                               </span>
                             </td>
                             <td>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleCompanyVerify(c._id)}
-                                className={`btn-verify-toggle ${
-                                  c.isVerified ? "btn-revoke" : "btn-approve"
-                                }`}
-                              >
-                                {c.isVerified ? "Revoke Badge" : "✓ Approve Verified"}
-                              </button>
+                              <div className="actions-cell">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleCompanyVerify(c._id)}
+                                  className={`btn-verify-toggle ${
+                                    c.isVerified ? "btn-revoke" : "btn-approve"
+                                  }`}
+                                >
+                                  {c.isVerified ? "Revoke Badge" : "✓ Approve Verified"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditCompanyModal(c)}
+                                  className="btn-action-edit"
+                                  title="Edit Company"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCompany(c._id, c.companyName)}
+                                  className="btn-action-del"
+                                  title="Delete Company"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="6" className="text-center text-muted">
+                          <td colSpan="7" className="text-center text-muted">
                             No companies found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: PLATFORM RENTALS SUPERVISOR */}
+          {activeTab === "rentals" && (
+            <div className="tab-pane">
+              <div className="pane-header">
+                <div>
+                  <h2>Platform Rental Bookings Supervisor</h2>
+                  <p>
+                    Oversee all active, returned, and cancelled rentals recorded across hosts and companies.
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <select
+                    value={rentalStatusFilter}
+                    onChange={(e) => setRentalStatusFilter(e.target.value)}
+                    className="select-role-filter"
+                  >
+                    <option value="all">All Bookings</option>
+                    <option value="active">Active Rentals</option>
+                    <option value="completed">Completed / Returned</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                  <button type="button" onClick={() => fetchTabData("rentals")} className="btn-secondary-sm">
+                    <RefreshCw size={14} /> Refresh
+                  </button>
+                </div>
+              </div>
+
+              {loadingData ? (
+                <div className="loading-state">Loading rentals...</div>
+              ) : (
+                <div className="table-card">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Vehicle</th>
+                        <th>Customer</th>
+                        <th>Rental Period</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th>Host / Company</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRentals.length > 0 ? (
+                        filteredRentals.map((r) => {
+                          const veh = r.vehicle;
+                          return (
+                            <tr key={r._id}>
+                              <td>
+                                <div className="vehicle-cell">
+                                  <div className="font-semibold">
+                                    {veh?.brand || "—"} {veh?.model || ""}
+                                  </div>
+                                  <div className="text-muted text-xs">
+                                    {veh?.year} • {veh?.location || "Colombo"}
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <div>
+                                  <div className="font-semibold">{r.customerName}</div>
+                                  <div className="text-muted text-xs">
+                                    {r.customerPhone || r.customerNIC || "—"}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="text-muted">
+                                <div>{new Date(r.pickupDate).toLocaleDateString()} → {new Date(r.returnDate).toLocaleDateString()}</div>
+                                <div className="text-xs text-muted">{r.totalDays} day(s)</div>
+                              </td>
+                              <td className="font-semibold text-primary">
+                                Rs. {r.totalAmount?.toLocaleString()}
+                              </td>
+                              <td>
+                                <span className={`status-badge status-${r.status}`}>
+                                  {r.status === "active" ? "🔑 Active" : r.status === "completed" ? "✓ Returned" : "❌ Cancelled"}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="text-sm">
+                                  {r.company ? r.company.companyName : (r.owner?.name || "Host")}
+                                </div>
+                              </td>
+                              <td>
+                                <div className="actions-cell">
+                                  {r.status === "active" && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUpdateRentalStatus(r._id, "completed")}
+                                        className="btn-verify-toggle btn-approve"
+                                        title="Mark as Returned"
+                                      >
+                                        Mark Returned
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUpdateRentalStatus(r._id, "cancelled")}
+                                        className="btn-verify-toggle btn-revoke"
+                                        title="Cancel Rental"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRental(r._id)}
+                                    className="btn-action-del"
+                                    title="Delete rental record"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan="7" className="text-center text-muted">
+                            No rental records found.
                           </td>
                         </tr>
                       )}
@@ -2168,10 +3105,10 @@ const AdminDashboard = () => {
                 <div>
                   <h2>User & Role Management</h2>
                   <p>
-                    Manage registered users. Assign roles (`renter`, `owner`, `company`, or `admin`).
+                    Full user supervision. Promote/demote roles, edit profile info, or delete accounts.
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <select
                     value={userRoleFilter}
                     onChange={(e) => setUserRoleFilter(e.target.value)}
@@ -2179,16 +3116,16 @@ const AdminDashboard = () => {
                   >
                     <option value="all">All Roles</option>
                     <option value="renter">Renters</option>
-                    <option value="owner">Car Owners</option>
+                    <option value="owner">Car Owners / Hosts</option>
                     <option value="company">Companies</option>
-                    <option value="admin">Admins</option>
+                    <option value="admin">Super Admins</option>
                   </select>
 
                   <div className="search-box">
                     <Search size={16} />
                     <input
                       type="text"
-                      placeholder="Search name or email..."
+                      placeholder="Search name, email, phone..."
                       value={userSearch}
                       onChange={(e) => setUserSearch(e.target.value)}
                     />
@@ -2205,9 +3142,11 @@ const AdminDashboard = () => {
                       <tr>
                         <th>Name</th>
                         <th>Email</th>
+                        <th>Phone</th>
                         <th>Current Role</th>
                         <th>Change Role</th>
                         <th>Joined Date</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2216,6 +3155,7 @@ const AdminDashboard = () => {
                           <tr key={u._id}>
                             <td className="font-semibold">{u.name}</td>
                             <td className="text-muted">{u.email}</td>
+                            <td className="text-muted">{u.phone || "—"}</td>
                             <td>
                               <span className={`role-tag role-${u.role}`}>{u.role}</span>
                             </td>
@@ -2226,7 +3166,7 @@ const AdminDashboard = () => {
                                 className="role-changer-select"
                               >
                                 <option value="renter">Renter</option>
-                                <option value="owner">Owner</option>
+                                <option value="owner">Host / Owner</option>
                                 <option value="company">Company</option>
                                 <option value="admin">Super Admin</option>
                               </select>
@@ -2234,11 +3174,31 @@ const AdminDashboard = () => {
                             <td className="text-muted">
                               {new Date(u.createdAt).toLocaleDateString()}
                             </td>
+                            <td>
+                              <div className="actions-cell">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditUserModal(u)}
+                                  className="btn-action-edit"
+                                  title="Edit User"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteUser(u._id, u.name)}
+                                  className="btn-action-del"
+                                  title="Delete User"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="5" className="text-center text-muted">
+                          <td colSpan="7" className="text-center text-muted">
                             No users found.
                           </td>
                         </tr>
@@ -2378,6 +3338,486 @@ const AdminDashboard = () => {
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ==================================================== */}
+          {/* SUPER ADMIN MODALS: VEHICLE EDIT, REJECT, USER, COMPANY */}
+          {/* ==================================================== */}
+
+          {/* 1. SUPER ADMIN VEHICLE EDIT MODAL */}
+          {editingVehicle && (
+            <div className="admin-modal-overlay" onClick={() => setEditingVehicle(null)}>
+              <div className="admin-modal admin-modal-lg" onClick={(e) => e.stopPropagation()}>
+                <div className="admin-modal-header">
+                  <div>
+                    <h3>Super Admin Vehicle Editor</h3>
+                    <p>Modify any specification, rates, images, or status for this listing</p>
+                  </div>
+                  <button type="button" className="btn-close-modal" onClick={() => setEditingVehicle(null)}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="admin-modal-body">
+                  <div className="form-grid-2">
+                    <div className="form-group">
+                      <label>Brand / Make</label>
+                      <input
+                        type="text"
+                        value={vehicleForm.brand || ""}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, brand: e.target.value })}
+                        placeholder="Toyota, Honda, etc."
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Model</label>
+                      <input
+                        type="text"
+                        value={vehicleForm.model || ""}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, model: e.target.value })}
+                        placeholder="Prius, Vezel, Axio..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-grid-3">
+                    <div className="form-group">
+                      <label>Year</label>
+                      <input
+                        type="number"
+                        value={vehicleForm.year || ""}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, year: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Vehicle Category</label>
+                      <select
+                        value={vehicleForm.vehicleType || "car"}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, vehicleType: e.target.value })}
+                      >
+                        {VEHICLE_TYPES.map((t) => (
+                          <option key={t.id} value={t.id}>{t.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Location / City</label>
+                      <input
+                        type="text"
+                        value={vehicleForm.location || ""}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, location: e.target.value })}
+                        placeholder="Colombo, Kandy, Galle..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-grid-3">
+                    <div className="form-group">
+                      <label>Day Rate (LKR)</label>
+                      <input
+                        type="number"
+                        value={vehicleForm.pricePerDay || ""}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, pricePerDay: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Free KM / Day</label>
+                      <input
+                        type="number"
+                        value={vehicleForm.freeKmPerDay || ""}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, freeKmPerDay: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Extra KM Fee (LKR)</label>
+                      <input
+                        type="number"
+                        value={vehicleForm.pricePerKmAfter100km || ""}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, pricePerKmAfter100km: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-grid-3">
+                    <div className="form-group">
+                      <label>Transmission</label>
+                      <select
+                        value={vehicleForm.transmission || "Automatic"}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, transmission: e.target.value })}
+                      >
+                        <option value="Automatic">Automatic</option>
+                        <option value="Manual">Manual</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Fuel Type</label>
+                      <select
+                        value={vehicleForm.fuelType || "Petrol"}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, fuelType: e.target.value })}
+                      >
+                        <option value="Petrol">Petrol</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Hybrid">Hybrid</option>
+                        <option value="Electric">Electric</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Seats Count</label>
+                      <input
+                        type="number"
+                        value={vehicleForm.seats || 4}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, seats: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-grid-2">
+                    <div className="form-group">
+                      <label>Listing Status</label>
+                      <select
+                        value={vehicleForm.status || "active"}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, status: e.target.value })}
+                      >
+                        <option value="active">🟢 Active (Live on Marketplace)</option>
+                        <option value="pending">⏳ Pending Super Admin Approval</option>
+                        <option value="rejected">❌ Rejected</option>
+                        <option value="hidden">⏸️ Hidden / Paused</option>
+                        <option value="rented">🔑 Currently Rented</option>
+                        <option value="flagged">🚩 Flagged</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Security Deposit (LKR)</label>
+                      <input
+                        type="number"
+                        value={vehicleForm.deposit || 0}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, deposit: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {vehicleForm.status === "rejected" && (
+                    <div className="form-group full-width">
+                      <label>Rejection Reason for Lister</label>
+                      <textarea
+                        rows="2"
+                        value={vehicleForm.rejectionReason || ""}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, rejectionReason: e.target.value })}
+                        placeholder="Explain to lister why this car is rejected..."
+                      />
+                    </div>
+                  )}
+
+                  <div className="form-group full-width">
+                    <label>Features & Perks (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={vehicleForm.features || ""}
+                      onChange={(e) => setVehicleForm({ ...vehicleForm, features: e.target.value })}
+                      placeholder="Air Conditioning, Bluetooth, Backup Camera, Cruise Control..."
+                    />
+                  </div>
+
+                  {/* Images Editor */}
+                  <div className="form-group full-width">
+                    <label>Vehicle Images (URLs)</label>
+                    <div className="images-editor-grid">
+                      {Array.isArray(vehicleForm.images) && vehicleForm.images.map((img, idx) => (
+                        <div key={idx} className="img-editor-card">
+                          <img src={img} alt="Vehicle" className="img-editor-thumb" />
+                          <button
+                            type="button"
+                            className="btn-remove-img"
+                            onClick={() => {
+                              const updated = vehicleForm.images.filter((_, i) => i !== idx);
+                              setVehicleForm({ ...vehicleForm, images: updated });
+                            }}
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="toggle-box mt-2">
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={!!vehicleForm.isFeatured}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, isFeatured: e.target.checked })}
+                      />
+                      <span className="slider"></span>
+                    </label>
+                    <div>
+                      <strong>Pin to Homepage Featured Showcase</strong>
+                      <div className="text-muted text-xs">Featured cars appear prominently on the Yamu homepage hero & deals section</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="admin-modal-footer">
+                  <button type="button" className="btn-secondary" onClick={() => setEditingVehicle(null)}>
+                    Cancel
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      disabled={savingVehicle}
+                      onClick={() => handleSaveVehicleAdmin(false)}
+                    >
+                      {savingVehicle ? "Saving..." : "Save Changes"}
+                    </button>
+                    {vehicleForm.status !== "active" && (
+                      <button
+                        type="button"
+                        className="btn-admin-approve"
+                        disabled={savingVehicle}
+                        onClick={() => handleSaveVehicleAdmin(true)}
+                      >
+                        ✓ Save & Set Live
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 2. SUPER ADMIN REJECT REASON MODAL */}
+          {rejectingVehicle && (
+            <div className="admin-modal-overlay" onClick={() => setRejectingVehicle(null)}>
+              <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="admin-modal-header">
+                  <div>
+                    <h3>Reject Listing: {rejectingVehicle.brand} {rejectingVehicle.model}</h3>
+                    <p>Provide a clear reason to notify the lister what needs to be fixed</p>
+                  </div>
+                  <button type="button" className="btn-close-modal" onClick={() => setRejectingVehicle(null)}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="admin-modal-body">
+                  <div className="reject-presets">
+                    <div className="text-xs font-semibold text-muted mb-1">Quick Reason Presets:</div>
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {[
+                        "Vehicle photos are blurry or not real photos of the car",
+                        "Price per day or excess mileage rate is unrealistic",
+                        "Missing required insurance or vehicle registration details",
+                        "Incomplete or misleading vehicle specifications",
+                        "Duplicate vehicle listing detected",
+                      ].map((preset, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className="preset-pill-btn"
+                          onClick={() => setRejectionReasonInput(preset)}
+                        >
+                          + {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Rejection Reason Note</label>
+                    <textarea
+                      rows="4"
+                      value={rejectionReasonInput}
+                      onChange={(e) => setRejectionReasonInput(e.target.value)}
+                      placeholder="Type details for the lister..."
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-modal-footer">
+                  <button type="button" className="btn-secondary" onClick={() => setRejectingVehicle(null)}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-danger"
+                    disabled={submittingReject}
+                    onClick={handleConfirmReject}
+                  >
+                    {submittingReject ? "Rejecting..." : "Confirm & Reject Listing"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 3. SUPER ADMIN USER EDIT MODAL */}
+          {editingUser && (
+            <div className="admin-modal-overlay" onClick={() => setEditingUser(null)}>
+              <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="admin-modal-header">
+                  <div>
+                    <h3>Super Admin User Editor</h3>
+                    <p>Edit user account details, phone number, and platform role</p>
+                  </div>
+                  <button type="button" className="btn-close-modal" onClick={() => setEditingUser(null)}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="admin-modal-body">
+                  <div className="form-group">
+                    <label>Full Name</label>
+                    <input
+                      type="text"
+                      value={userForm.name || ""}
+                      onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Email Address</label>
+                    <input
+                      type="email"
+                      value={userForm.email || ""}
+                      onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Phone Number</label>
+                    <input
+                      type="text"
+                      value={userForm.phone || ""}
+                      onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Platform Role</label>
+                    <select
+                      value={userForm.role || "renter"}
+                      onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                    >
+                      <option value="renter">Renter (Customer)</option>
+                      <option value="owner">Car Owner / Host</option>
+                      <option value="company">Rental Company</option>
+                      <option value="admin">Super Admin</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="admin-modal-footer">
+                  <button type="button" className="btn-secondary" onClick={() => setEditingUser(null)}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={savingUser}
+                    onClick={handleSaveUserAdmin}
+                  >
+                    {savingUser ? "Saving..." : "Save User"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 4. SUPER ADMIN COMPANY EDIT MODAL */}
+          {editingCompany && (
+            <div className="admin-modal-overlay" onClick={() => setEditingCompany(null)}>
+              <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="admin-modal-header">
+                  <div>
+                    <h3>Super Admin Company Editor</h3>
+                    <p>Edit rental company profile, contact details, and trust badge</p>
+                  </div>
+                  <button type="button" className="btn-close-modal" onClick={() => setEditingCompany(null)}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="admin-modal-body">
+                  <div className="form-group">
+                    <label>Company Name</label>
+                    <input
+                      type="text"
+                      value={companyForm.companyName || ""}
+                      onChange={(e) => setCompanyForm({ ...companyForm, companyName: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-grid-2">
+                    <div className="form-group">
+                      <label>Contact Email</label>
+                      <input
+                        type="email"
+                        value={companyForm.contactEmail || ""}
+                        onChange={(e) => setCompanyForm({ ...companyForm, contactEmail: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Phone Number</label>
+                      <input
+                        type="text"
+                        value={companyForm.phone || ""}
+                        onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Address / Headquarters</label>
+                    <input
+                      type="text"
+                      value={companyForm.address || ""}
+                      onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Logo Image URL</label>
+                    <input
+                      type="text"
+                      value={companyForm.logo || ""}
+                      onChange={(e) => setCompanyForm({ ...companyForm, logo: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Company Description / Bio</label>
+                    <textarea
+                      rows="3"
+                      value={companyForm.description || ""}
+                      onChange={(e) => setCompanyForm({ ...companyForm, description: e.target.value })}
+                    />
+                  </div>
+                  <div className="toggle-box mt-2">
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={!!companyForm.isVerified}
+                        onChange={(e) => setCompanyForm({ ...companyForm, isVerified: e.target.checked })}
+                      />
+                      <span className="slider"></span>
+                    </label>
+                    <div>
+                      <strong>Grant Yamu Gold Verified Trust Badge</strong>
+                      <div className="text-muted text-xs">Displays official verified badge on listings and company profile</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="admin-modal-footer">
+                  <button type="button" className="btn-secondary" onClick={() => setEditingCompany(null)}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={savingCompany}
+                    onClick={handleSaveCompanyAdmin}
+                  >
+                    {savingCompany ? "Saving..." : "Save Company"}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </main>
@@ -3528,6 +4968,799 @@ const AdminDashboard = () => {
           font-weight: 600;
         }
 
+        /* Top Urgent Banner */
+        .admin-urgent-banner {
+          background: linear-gradient(90deg, rgba(239, 68, 68, 0.2) 0%, rgba(249, 115, 22, 0.2) 100%);
+          border-bottom: 1px solid rgba(239, 68, 68, 0.4);
+          padding: 12px 28px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+          animation: fadeIn 0.3s ease;
+        }
+
+        .urgent-banner-content {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-size: 0.88rem;
+          color: #fecdd3;
+        }
+
+        .urgent-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: rgba(239, 68, 68, 0.3);
+          color: #f87171;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .urgent-highlight {
+          color: #ffffff;
+          font-weight: 800;
+          text-decoration: underline;
+        }
+
+        .btn-urgent-action {
+          background: #ef4444;
+          color: #ffffff;
+          border: none;
+          padding: 7px 16px;
+          border-radius: 8px;
+          font-size: 0.84rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: transform 0.15s, background 0.2s;
+          box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-urgent-action:hover {
+          background: #dc2626;
+          transform: translateY(-1px);
+        }
+
+        .admin-header-alert-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(239, 68, 68, 0.2);
+          border: 1px solid rgba(239, 68, 68, 0.4);
+          color: #fecdd3;
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .admin-header-alert-btn:hover {
+          background: #ef4444;
+          color: #ffffff;
+        }
+
+        .bell-ring {
+          animation: ringBell 2s infinite ease-in-out;
+        }
+
+        @keyframes ringBell {
+          0%, 100% { transform: rotate(0); }
+          10%, 30% { transform: rotate(14deg); }
+          20%, 40% { transform: rotate(-14deg); }
+          50% { transform: rotate(0); }
+        }
+
+        .approval-badge-count {
+          background: #ef4444;
+          color: #ffffff;
+          padding: 2px 8px;
+          border-radius: 100px;
+          font-size: 0.72rem;
+          font-weight: 800;
+          animation: pulseBadge 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulseBadge {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+        }
+
+        .pending-pill-sm {
+          background: rgba(234, 179, 8, 0.2);
+          color: #facc15;
+          padding: 2px 6px;
+          border-radius: 100px;
+          font-size: 0.7rem;
+          font-weight: 800;
+        }
+
+        .kpi-amber { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .kpi-emerald { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+
+        .kpi-card-urgent {
+          border-color: rgba(245, 158, 11, 0.4);
+          background: linear-gradient(135deg, #111827 0%, rgba(245, 158, 11, 0.08) 100%);
+        }
+
+        .kpi-link-btn {
+          background: transparent;
+          border: none;
+          color: #f59e0b;
+          font-weight: 700;
+          font-size: 0.75rem;
+          cursor: pointer;
+          padding: 0;
+          text-decoration: underline;
+        }
+
+        /* Approvals Tab Styles */
+        .approval-filter-pills {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: #111827;
+          padding: 4px;
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .pill-btn {
+          background: transparent;
+          border: none;
+          color: #94a3b8;
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 0.8rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .pill-btn:hover {
+          color: #ffffff;
+        }
+
+        .pill-btn.active {
+          background: var(--primary);
+          color: #ffffff;
+        }
+
+        .empty-approvals-box {
+          background: #111827;
+          border: 1px solid rgba(255, 255, 255, 0.07);
+          border-radius: 16px;
+          padding: 60px 24px;
+          text-align: center;
+          color: #94a3b8;
+        }
+
+        .empty-approvals-box h3 {
+          font-size: 1.25rem;
+          color: #ffffff;
+          font-weight: 700;
+          margin-bottom: 6px;
+        }
+
+        .approvals-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .approval-card {
+          background: #111827;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 16px;
+          padding: 20px;
+          transition: border-color 0.2s;
+        }
+
+        .approval-card.is-pending {
+          border-left: 4px solid #f59e0b;
+        }
+
+        .approval-card-top {
+          display: grid;
+          grid-template-columns: 260px 1fr;
+          gap: 22px;
+        }
+
+        .approval-card-thumb-wrap {
+          position: relative;
+          width: 100%;
+          height: 175px;
+          border-radius: 12px;
+          overflow: hidden;
+          background: #0c121e;
+        }
+
+        .approval-card-thumb {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .approval-status-pill {
+          position: absolute;
+          top: 10px;
+          left: 10px;
+          padding: 4px 10px;
+          border-radius: 100px;
+          font-size: 0.72rem;
+          font-weight: 800;
+          backdrop-filter: blur(8px);
+        }
+
+        .approval-status-pill.status-pending {
+          background: rgba(234, 179, 8, 0.9);
+          color: #0f172a;
+        }
+
+        .approval-status-pill.status-rejected {
+          background: rgba(239, 68, 68, 0.9);
+          color: #ffffff;
+        }
+
+        .approval-status-pill.status-active {
+          background: rgba(16, 185, 129, 0.9);
+          color: #ffffff;
+        }
+
+        .approval-photos-count {
+          position: absolute;
+          bottom: 10px;
+          right: 10px;
+          background: rgba(15, 23, 42, 0.85);
+          color: #f1f5f9;
+          font-size: 0.72rem;
+          font-weight: 700;
+          padding: 3px 8px;
+          border-radius: 6px;
+        }
+
+        .approval-card-main {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+
+        .approval-card-title-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .approval-vehicle-title {
+          font-size: 1.25rem;
+          font-weight: 800;
+          color: #ffffff;
+          margin-bottom: 4px;
+        }
+
+        .approval-vehicle-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.8rem;
+          color: #94a3b8;
+          flex-wrap: wrap;
+        }
+
+        .approval-price-box {
+          text-align: right;
+        }
+
+        .approval-price-val {
+          font-size: 1.35rem;
+          font-weight: 800;
+          color: var(--primary);
+        }
+
+        .approval-price-lbl {
+          font-size: 0.75rem;
+          color: #94a3b8;
+        }
+
+        .approval-specs-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 10px;
+          background: #0c121e;
+          padding: 12px 16px;
+          border-radius: 10px;
+        }
+
+        .spec-item {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .spec-lbl {
+          font-size: 0.7rem;
+          color: #64748b;
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+
+        .spec-val {
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #f1f5f9;
+        }
+
+        .rejection-reason-box {
+          background: rgba(239, 68, 68, 0.12);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          color: #fecdd3;
+          padding: 10px 14px;
+          border-radius: 8px;
+          font-size: 0.84rem;
+        }
+
+        .approval-features-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .approval-feature-chip {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #94a3b8;
+          padding: 2px 8px;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+
+        .approval-lister-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          padding-top: 12px;
+          gap: 14px;
+          flex-wrap: wrap;
+        }
+
+        .approval-lister-info {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .lister-avatar {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          background: #1e293b;
+          color: #94a3b8;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .lister-name {
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .verified-badge-sm {
+          background: #059669;
+          color: #ffffff;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.65rem;
+          font-weight: 800;
+        }
+
+        .lister-type-tag {
+          font-size: 0.68rem;
+          padding: 1px 6px;
+          border-radius: 4px;
+          background: rgba(255, 255, 255, 0.08);
+          color: #94a3b8;
+          font-weight: 600;
+        }
+
+        .lister-contact-line {
+          font-size: 0.75rem;
+          color: #64748b;
+          display: flex;
+          gap: 10px;
+          margin-top: 2px;
+        }
+
+        .approval-quick-contact {
+          display: flex;
+          gap: 8px;
+        }
+
+        .btn-lister-whatsapp {
+          background: rgba(37, 211, 102, 0.15);
+          color: #25d366;
+          border: 1px solid rgba(37, 211, 102, 0.3);
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          text-decoration: none;
+          transition: all 0.2s;
+        }
+
+        .btn-lister-whatsapp:hover {
+          background: #25d366;
+          color: #ffffff;
+        }
+
+        .btn-lister-call {
+          background: rgba(255, 255, 255, 0.08);
+          color: #f1f5f9;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          text-decoration: none;
+          transition: all 0.2s;
+        }
+
+        .btn-lister-call:hover {
+          background: rgba(255, 255, 255, 0.15);
+        }
+
+        .approval-actions-bar {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-top: 4px;
+        }
+
+        .btn-admin-approve {
+          background: #059669;
+          color: #ffffff;
+          border: none;
+          padding: 9px 18px;
+          border-radius: 8px;
+          font-size: 0.85rem;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          cursor: pointer;
+          transition: transform 0.15s, background 0.2s;
+          box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+        }
+
+        .btn-admin-approve:hover {
+          background: #047857;
+          transform: translateY(-1px);
+        }
+
+        .btn-admin-edit {
+          background: rgba(59, 130, 246, 0.15);
+          color: #60a5fa;
+          border: 1px solid rgba(59, 130, 246, 0.3);
+          padding: 8px 14px;
+          border-radius: 8px;
+          font-size: 0.84rem;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-admin-edit:hover {
+          background: #3b82f6;
+          color: #ffffff;
+        }
+
+        .btn-admin-reject {
+          background: rgba(239, 68, 68, 0.15);
+          color: #f87171;
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          padding: 8px 14px;
+          border-radius: 8px;
+          font-size: 0.84rem;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-admin-reject:hover {
+          background: #ef4444;
+          color: #ffffff;
+        }
+
+        .btn-admin-delete {
+          background: transparent;
+          color: #64748b;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 8px 12px;
+          border-radius: 8px;
+          font-size: 0.84rem;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          transition: all 0.2s;
+          margin-left: auto;
+        }
+
+        .btn-admin-delete:hover {
+          background: #ef4444;
+          border-color: #ef4444;
+          color: #ffffff;
+        }
+
+        /* Status changer select in tables */
+        .status-changer-select {
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: #1e293b;
+          color: #f1f5f9;
+          cursor: pointer;
+        }
+
+        .status-changer-select.status-active { color: #34d399; }
+        .status-changer-select.status-pending { color: #facc15; }
+        .status-changer-select.status-rejected { color: #f87171; }
+        .status-changer-select.status-rented { color: #60a5fa; }
+        .status-changer-select.status-hidden { color: #94a3b8; }
+
+        .btn-action-edit {
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          cursor: pointer;
+          background: rgba(249, 115, 22, 0.15);
+          color: #fb923c;
+          transition: all 0.2s;
+        }
+
+        .btn-action-edit:hover {
+          background: var(--primary);
+          color: #ffffff;
+        }
+
+        .badge-count-sm {
+          background: rgba(255, 255, 255, 0.08);
+          color: #cbd5e1;
+          padding: 2px 8px;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 700;
+        }
+
+        /* Super Admin Modals */
+        .admin-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.75);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 20px;
+          animation: fadeIn 0.2s ease;
+        }
+
+        .admin-modal {
+          background: #111827;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 18px;
+          width: 100%;
+          max-width: 540px;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+        }
+
+        .admin-modal.admin-modal-lg {
+          max-width: 760px;
+        }
+
+        .admin-modal-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          padding: 20px 24px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          background: #0d1322;
+        }
+
+        .admin-modal-header h3 {
+          font-size: 1.15rem;
+          font-weight: 800;
+          color: #ffffff;
+          margin-bottom: 2px;
+        }
+
+        .admin-modal-header p {
+          font-size: 0.8rem;
+          color: #94a3b8;
+        }
+
+        .btn-close-modal {
+          background: transparent;
+          border: none;
+          color: #94a3b8;
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 6px;
+          transition: color 0.2s;
+        }
+
+        .btn-close-modal:hover {
+          color: #ffffff;
+        }
+
+        .admin-modal-body {
+          padding: 24px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .admin-modal-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 24px;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          background: #0d1322;
+        }
+
+        .form-grid-3 {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 14px;
+        }
+
+        .reject-presets {
+          background: #0c121e;
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 10px;
+          padding: 12px;
+        }
+
+        .preset-pill-btn {
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #cbd5e1;
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 0.72rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-align: left;
+        }
+
+        .preset-pill-btn:hover {
+          background: rgba(249, 115, 22, 0.2);
+          border-color: rgba(249, 115, 22, 0.4);
+          color: #ffffff;
+        }
+
+        .images-editor-grid {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 6px;
+        }
+
+        .img-editor-card {
+          position: relative;
+          width: 72px;
+          height: 52px;
+          border-radius: 8px;
+          overflow: hidden;
+          background: #0c121e;
+        }
+
+        .img-editor-thumb {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .btn-remove-img {
+          position: absolute;
+          top: 2px;
+          right: 2px;
+          background: rgba(239, 68, 68, 0.85);
+          color: #ffffff;
+          border: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        .btn-primary {
+          background: var(--primary);
+          color: #ffffff;
+          border: none;
+          padding: 9px 18px;
+          border-radius: 8px;
+          font-size: 0.85rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+          background: #ea580c;
+        }
+
+        .btn-secondary {
+          background: rgba(255, 255, 255, 0.08);
+          color: #f1f5f9;
+          border: none;
+          padding: 9px 16px;
+          border-radius: 8px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .btn-danger {
+          background: #ef4444;
+          color: #ffffff;
+          border: none;
+          padding: 9px 18px;
+          border-radius: 8px;
+          font-size: 0.85rem;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
         @media (max-width: 1024px) {
           .admin-layout {
             grid-template-columns: 1fr;
@@ -3546,6 +5779,12 @@ const AdminDashboard = () => {
           }
           .cms-preview-column {
             position: static;
+          }
+          .approval-card-top {
+            grid-template-columns: 1fr;
+          }
+          .form-grid-3 {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

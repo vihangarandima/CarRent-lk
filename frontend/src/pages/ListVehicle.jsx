@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config";
+import { useToast } from "../context/ToastContext";
+import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import { GoogleMap, useJsApiLoader, MarkerF, CircleF } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight, LocateFixed, Search, Navigation } from "lucide-react";
+import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight, LocateFixed, Search, Navigation, Loader2, X } from "lucide-react";
 
 // Vehicle Type Images
 import bikeeImg from "../assets/images/bikee.jpg";
@@ -169,14 +172,288 @@ const PIN_SVG = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
 </svg>
 `);
 
-const detectDistrict = (address) => {
-  if (!address) return null;
-  const lowerAddr = address.toLowerCase();
-  for (const district of sriLankaDistricts) {
-    if (lowerAddr.includes(district.toLowerCase())) {
-      return district;
+const townToDistrictMap = {
+  // Colombo District
+  boralesgamuwa: "Colombo",
+  maharagama: "Colombo",
+  dehiwala: "Colombo",
+  "mount lavinia": "Colombo",
+  moratuwa: "Colombo",
+  nugegoda: "Colombo",
+  kottawa: "Colombo",
+  homagama: "Colombo",
+  kaduwela: "Colombo",
+  malabe: "Colombo",
+  battaramulla: "Colombo",
+  rajagiriya: "Colombo",
+  "sri jayawardenepura": "Colombo",
+  kotte: "Colombo",
+  kolonnawa: "Colombo",
+  hanwella: "Colombo",
+  avissawella: "Colombo",
+  padukka: "Colombo",
+  piliyandala: "Colombo",
+  kesbewa: "Colombo",
+  ratmalana: "Colombo",
+  wellawatte: "Colombo",
+  bambalapitiya: "Colombo",
+  kollupitiya: "Colombo",
+  borella: "Colombo",
+  cinnamon: "Colombo",
+  dematagoda: "Colombo",
+  maradana: "Colombo",
+  fort: "Colombo",
+  pettah: "Colombo",
+  kotahena: "Colombo",
+  mattakkuliya: "Colombo",
+  angoda: "Colombo",
+  athurugiriya: "Colombo",
+  pannipitiya: "Colombo",
+  hokandara: "Colombo",
+  thalawathugoda: "Colombo",
+  pelawatte: "Colombo",
+  kohuwala: "Colombo",
+  kalubowila: "Colombo",
+  nawala: "Colombo",
+  kirulapone: "Colombo",
+
+  // Gampaha District
+  negombo: "Gampaha",
+  katunayake: "Gampaha",
+  wattala: "Gampaha",
+  "ja-ela": "Gampaha",
+  jaela: "Gampaha",
+  kandana: "Gampaha",
+  kelaniya: "Gampaha",
+  peliyagoda: "Gampaha",
+  kiribathgoda: "Gampaha",
+  kadawatha: "Gampaha",
+  biyagama: "Gampaha",
+  ragama: "Gampaha",
+  gampaha: "Gampaha",
+  minuwangoda: "Gampaha",
+  mirigama: "Gampaha",
+  veyangoda: "Gampaha",
+  nittambuwa: "Gampaha",
+  seeduwa: "Gampaha",
+  mahabage: "Gampaha",
+  yakkala: "Gampaha",
+  divulapitiya: "Gampaha",
+  delgoda: "Gampaha",
+  ganemulla: "Gampaha",
+
+  // Kalutara District
+  panadura: "Kalutara",
+  wadduwa: "Kalutara",
+  kalutara: "Kalutara",
+  beruwala: "Kalutara",
+  aluthgama: "Kalutara",
+  horana: "Kalutara",
+  bandaragama: "Kalutara",
+  matugama: "Kalutara",
+  ingiriya: "Kalutara",
+  agalawatta: "Kalutara",
+
+  // Kandy District
+  kandy: "Kandy",
+  peradeniya: "Kandy",
+  katugastota: "Kandy",
+  gampola: "Kandy",
+  nawalapitiya: "Kandy",
+  kundasale: "Kandy",
+  digana: "Kandy",
+  akurana: "Kandy",
+  kadugannawa: "Kandy",
+  pilimathalawa: "Kandy",
+
+  // Galle District
+  galle: "Galle",
+  hikkaduwa: "Galle",
+  unawatuna: "Galle",
+  ambalangoda: "Galle",
+  karapitiya: "Galle",
+  bentota: "Galle",
+  elpitiya: "Galle",
+  baddegama: "Galle",
+  koggala: "Galle",
+  ahangama: "Galle",
+
+  // Matara District
+  matara: "Matara",
+  mirissa: "Matara",
+  weligama: "Matara",
+  dikwella: "Matara",
+  akuressa: "Matara",
+  deniyaya: "Matara",
+  kamburupitiya: "Matara",
+  dondra: "Matara",
+
+  // Hambantota District
+  tangalle: "Hambantota",
+  hambantota: "Hambantota",
+  beliatta: "Hambantota",
+  tissamaharama: "Hambantota",
+  ambalantota: "Hambantota",
+  kataragama: "Hambantota",
+
+  // Kurunegala District
+  kurunegala: "Kurunegala",
+  kuliyapitiya: "Kurunegala",
+  narammala: "Kurunegala",
+  wariyapola: "Kurunegala",
+  pannala: "Kurunegala",
+  alawwa: "Kurunegala",
+  polgahawela: "Kurunegala",
+
+  // Puttalam District
+  puttalam: "Puttalam",
+  chilaw: "Puttalam",
+  wennappuwa: "Puttalam",
+  marawila: "Puttalam",
+  dankotuwa: "Puttalam",
+  kalpitiya: "Puttalam",
+
+  // Anuradhapura District
+  anuradhapura: "Anuradhapura",
+  kekirawa: "Anuradhapura",
+  medawachchiya: "Anuradhapura",
+  eppawala: "Anuradhapura",
+  tambuttegama: "Anuradhapura",
+  mihintale: "Anuradhapura",
+  habarana: "Anuradhapura",
+
+  // Polonnaruwa District
+  polonnaruwa: "Polonnaruwa",
+  kaduruwela: "Polonnaruwa",
+  hingurakgoda: "Polonnaruwa",
+
+  // Badulla District
+  badulla: "Badulla",
+  bandarawela: "Badulla",
+  ella: "Badulla",
+  welimada: "Badulla",
+  "hali ela": "Badulla",
+  haputale: "Badulla",
+  mahiyanganaya: "Badulla",
+
+  // Monaragala District
+  monaragala: "Monaragala",
+  wellawaya: "Monaragala",
+  buttala: "Monaragala",
+  bibile: "Monaragala",
+
+  // Ratnapura District
+  ratnapura: "Ratnapura",
+  balangoda: "Ratnapura",
+  embilipitiya: "Ratnapura",
+  pelmadulla: "Ratnapura",
+  kuruwita: "Ratnapura",
+  eheliyagoda: "Ratnapura",
+
+  // Kegalle District
+  kegalle: "Kegalle",
+  mawanella: "Kegalle",
+  warakapola: "Kegalle",
+  ruwanwella: "Kegalle",
+  yatiyantota: "Kegalle",
+  rambukkana: "Kegalle",
+
+  // Nuwara Eliya District
+  "nuwara eliya": "Nuwara Eliya",
+  hatton: "Nuwara Eliya",
+  talawakelle: "Nuwara Eliya",
+  ginigathena: "Nuwara Eliya",
+  maskeliya: "Nuwara Eliya",
+
+  // Matale District
+  matale: "Matale",
+  dambulla: "Matale",
+  sigiriya: "Matale",
+  galewela: "Matale",
+
+  // Jaffna District
+  jaffna: "Jaffna",
+  nallur: "Jaffna",
+  chavakachcheri: "Jaffna",
+  "point pedro": "Jaffna",
+  chunnakam: "Jaffna",
+
+  // Kilinochchi District
+  kilinochchi: "Kilinochchi",
+
+  // Mannar District
+  mannar: "Mannar",
+
+  // Vavuniya District
+  vavuniya: "Vavuniya",
+
+  // Mullaitivu District
+  mullaitivu: "Mullaitivu",
+
+  // Batticaloa District
+  batticaloa: "Batticaloa",
+  kattankudy: "Batticaloa",
+
+  // Ampara District
+  ampara: "Ampara",
+  kalmunai: "Ampara",
+  sammanthurai: "Ampara",
+  "arugam bay": "Ampara",
+
+  // Trincomalee District
+  trincomalee: "Trincomalee",
+  kinniya: "Trincomalee",
+  nilaveli: "Trincomalee",
+};
+
+const detectDistrict = (address, lat, lng, googleResult) => {
+  // 1. Check Google address components if provided
+  if (googleResult && Array.isArray(googleResult.address_components)) {
+    for (const comp of googleResult.address_components) {
+      const text = (comp.long_name || comp.short_name || "").toLowerCase();
+      for (const d of sriLankaDistricts) {
+        if (text.includes(d.toLowerCase())) {
+          return d;
+        }
+      }
     }
   }
+
+  // 2. Check full address text for direct district name match
+  if (address && typeof address === "string") {
+    const lowerAddr = address.toLowerCase();
+    for (const d of sriLankaDistricts) {
+      if (lowerAddr.includes(d.toLowerCase())) {
+        return d;
+      }
+    }
+
+    // 3. Check known town / suburb dictionary
+    for (const [town, d] of Object.entries(townToDistrictMap)) {
+      if (lowerAddr.includes(town)) {
+        return d;
+      }
+    }
+  }
+
+  // 4. Geographic coordinates fallback (closest district center)
+  if (typeof lat === "number" && typeof lng === "number" && !isNaN(lat) && !isNaN(lng)) {
+    let closestDistrict = null;
+    let minDistance = Infinity;
+    for (const [d, coords] of Object.entries(districtCenters)) {
+      const dLat = lat - coords.lat;
+      const dLng = (lng - coords.lng) * Math.cos((lat * Math.PI) / 180);
+      const distSq = dLat * dLat + dLng * dLng;
+      if (distSq < minDistance) {
+        minDistance = distSq;
+        closestDistrict = d;
+      }
+    }
+    if (closestDistrict) {
+      return closestDistrict;
+    }
+  }
+
   return null;
 };
 
@@ -201,8 +478,15 @@ const ListVehicle = () => {
     lng: 79.8612,
   });
 
+  const [previewUrls, setPreviewUrls] = useState(["", "", "", "", ""]);
+  const [uploadingSlots, setUploadingSlots] = useState({});
+
   const [mapCenter, setMapCenter] = useState({ lat: 6.9271, lng: 79.8612 });
   const [mapZoom, setMapZoom] = useState(13);
+
+  const navigate = useNavigate();
+  const { toast, showSuccessModal } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Custom inputs for "Other" selections
   const [customBrand, setCustomBrand] = useState("");
@@ -215,6 +499,22 @@ const ListVehicle = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+
+  // Listing needs an account: send guests to sign in first instead of after filling the whole form
+  useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      toast.info("Please sign in or create a lister account to list your vehicle.");
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -275,9 +575,38 @@ const ListVehicle = () => {
     }
   }, []);
 
+  // Auto-detect & sync district whenever location or coordinates are set but district is not yet selected
+  useEffect(() => {
+    if (!formData.district && (formData.location || (formData.lat && formData.lng))) {
+      const detected = detectDistrict(formData.location, formData.lat, formData.lng);
+      if (detected) {
+        setFormData((prev) => (prev.district ? prev : { ...prev, district: detected }));
+      }
+    }
+  }, [formData.location, formData.lat, formData.lng, formData.district]);
+
   const nextStep = (e) => {
     e.preventDefault();
+    if (step === 1 && !formData.vehicleType) {
+      toast.warning("Please choose a vehicle type first.", "Vehicle Type Required");
+      return;
+    }
+    if (step === 2 && !(Number(formData.pricePerDay) > 0)) {
+      toast.warning("Please enter a valid daily price.", "Price Required");
+      return;
+    }
+    if (step === 3) {
+      if (Object.values(uploadingSlots).some(Boolean)) {
+        toast.warning("Please wait for all vehicle photos to finish uploading.", "Upload in Progress");
+        return;
+      }
+      if (!formData.images.some((img) => typeof img === "string" && img.trim() !== "")) {
+        toast.warning("Please upload at least 1 photo of your vehicle.", "Photos Required");
+        return;
+      }
+    }
     setStep(step + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const prevStep = (e) => {
@@ -319,20 +648,134 @@ const ListVehicle = () => {
     setCustomModel("");
   };
 
+  const compressImageForUpload = (file) => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") {
+        return resolve(file);
+      }
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        img.src = e.target.result;
+      };
+      img.onload = () => {
+        const maxDim = 1600;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob && blob.size < file.size) {
+              const compressedFile = new File(
+                [blob],
+                file.name.replace(/\.[^.]+$/, ".jpg"),
+                { type: "image/jpeg" }
+              );
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          "image/jpeg",
+          0.85
+        );
+      };
+      img.onerror = () => resolve(file);
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handlePhotoUpload = async (e, index) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
-    const uploadData = new FormData();
-    uploadData.append("image", file);
+
+    // Validate file type & size (max 10MB)
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file (PNG, JPG, JPEG, WebP).");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Photo size exceeds 10MB limit.");
+      return;
+    }
+
+    // Immediately display the selected image locally for instant feedback
+    const localBlobUrl = URL.createObjectURL(file);
+    setPreviewUrls((prev) => {
+      const updated = [...prev];
+      updated[index] = localBlobUrl;
+      return updated;
+    });
+    setUploadingSlots((prev) => ({ ...prev, [index]: true }));
 
     try {
+      // Compress large phone camera images client-side for lightning-fast uploads
+      const fileToUpload = await compressImageForUpload(file);
+      const uploadData = new FormData();
+      uploadData.append("image", fileToUpload);
+
       const res = await axios.post(`${API_URL}/api/upload`, uploadData);
-      const newImages = [...formData.images];
-      newImages[index] = res.data.url;
-      setFormData({ ...formData, images: newImages });
+      const uploadedUrl = res.data?.url;
+      if (!uploadedUrl) {
+        throw new Error("Upload did not return an image URL.");
+      }
+
+      setFormData((prev) => {
+        const newImages = [...prev.images];
+        newImages[index] = uploadedUrl;
+        return { ...prev, images: newImages };
+      });
+      toast.success(`Photo ${index + 1} uploaded successfully!`);
     } catch (err) {
-      alert(err.response?.data?.msg || "Failed to upload image.");
+      console.error("Photo upload error:", err);
+      toast.error(err.response?.data?.msg || "Failed to upload image. Please try again.");
+      // Roll back local preview and form slot on upload failure
+      setPreviewUrls((prev) => {
+        const updated = [...prev];
+        updated[index] = "";
+        return updated;
+      });
+      setFormData((prev) => {
+        const newImages = [...prev.images];
+        newImages[index] = "";
+        return { ...prev, images: newImages };
+      });
+    } finally {
+      setUploadingSlots((prev) => ({ ...prev, [index]: false }));
+      if (e.target) {
+        e.target.value = "";
+      }
     }
+  };
+
+  const handleRemovePhoto = (index, e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setPreviewUrls((prev) => {
+      const updated = [...prev];
+      updated[index] = "";
+      return updated;
+    });
+    setFormData((prev) => {
+      const newImages = [...prev.images];
+      newImages[index] = "";
+      return { ...prev, images: newImages };
+    });
   };
 
   const fetchNominatimReverse = async (lat, lng) => {
@@ -342,7 +785,7 @@ const ListVehicle = () => {
       if (data && data.display_name) {
         const parts = data.display_name.split(',');
         const shortAddr = parts.slice(0, 4).join(',').trim();
-        const detectedDistrict = detectDistrict(data.display_name);
+        const detectedDistrict = detectDistrict(data.display_name, lat, lng);
         setFormData((prev) => ({
           ...prev,
           lat,
@@ -370,7 +813,7 @@ const ListVehicle = () => {
       geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status === "OK" && results && results[0]) {
           const address = results[0].formatted_address;
-          const detectedDistrict = detectDistrict(address);
+          const detectedDistrict = detectDistrict(address, lat, lng, results[0]);
           setFormData((prev) => ({
             ...prev,
             lat,
@@ -418,7 +861,7 @@ const ListVehicle = () => {
         setMapZoom(15);
         const parts = data[0].display_name.split(',');
         const shortAddr = parts.slice(0, 4).join(',').trim();
-        const detectedDistrict = detectDistrict(data[0].display_name);
+        const detectedDistrict = detectDistrict(data[0].display_name, lat, lng);
         setFormData((prev) => ({
           ...prev,
           lat,
@@ -447,7 +890,7 @@ const ListVehicle = () => {
           const lat = loc.lat();
           const lng = loc.lng();
           const address = results[0].formatted_address;
-          const detectedDistrict = detectDistrict(address);
+          const detectedDistrict = detectDistrict(address, lat, lng, results[0]);
           setMapCenter({ lat, lng });
           setMapZoom(15);
           setFormData((prev) => ({
@@ -507,31 +950,82 @@ const ListVehicle = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("token");
-      if (!token) return alert("Please login first.");
+      if (!token) {
+        toast.warning("Please sign in to list your vehicle.", "Authentication Required");
+        return;
+      }
 
-      if (!startDate || !endDate) return alert("Please select availability dates.");
+      if (!startDate || !endDate) {
+        toast.warning("Please select availability dates.", "Dates Required");
+        return;
+      }
 
       // Use custom brand/model if "Other" is selected
       const finalBrand = formData.brand === "Other" ? customBrand : formData.brand;
       const finalModel = formData.model === "Other" ? customModel : formData.model;
 
-      if (!finalBrand || !finalModel) return alert("Please specify the brand and model.");
+      if (!finalBrand || !finalModel) {
+        toast.warning("Please specify both the brand and model.", "Vehicle Details Required");
+        return;
+      }
 
+      if (Object.values(uploadingSlots).some(Boolean)) {
+        toast.warning("Please wait for all vehicle photos to finish uploading.", "Upload in Progress");
+        return;
+      }
+
+      const validImages = formData.images.filter(img => typeof img === "string" && img.trim() !== "");
+      if (validImages.length === 0) {
+        toast.warning("Please upload at least 1 photo of your vehicle.", "Photos Required");
+        setStep(3);
+        return;
+      }
+
+      setIsSubmitting(true);
       const payload = {
         ...formData,
         brand: finalBrand,
         model: finalModel,
+        images: validImages,
         availableFrom: startDate.toISOString(),
         availableTo: endDate.toISOString(),
       };
 
-      await axios.post(`${API_URL}/api/vehicles`, payload, {
+      const res = await axios.post(`${API_URL}/api/vehicles`, payload, {
         headers: { "Content-Type": "application/json", "x-auth-token": token },
       });
-      alert("Vehicle listed successfully!");
-      window.location.href = "/company-dashboard";
+      // Listing a car turns a renter account into a host account
+      let currentUser = JSON.parse(localStorage.getItem("user") || "null");
+      if (res.data?.listerRole && currentUser && currentUser.role !== res.data.listerRole) {
+        currentUser = { ...currentUser, role: res.data.listerRole };
+        localStorage.setItem("user", JSON.stringify(currentUser));
+        window.dispatchEvent(new Event("user-updated"));
+      }
+      const targetUrl = "/dashboard";
+
+      showSuccessModal({
+        title: "Vehicle Listed Successfully! 🎉",
+        badge: "Live on Yamu",
+        message: `Your ${finalBrand} ${finalModel} is now live and ready for bookings from verified travelers across Sri Lanka.`,
+        vehicleInfo: {
+          brand: finalBrand,
+          model: finalModel,
+          location: formData.district || formData.location || "Sri Lanka",
+          pricePerDay: formData.pricePerDay,
+        },
+        primaryText: "Go to My Dashboard",
+        onPrimary: () => {
+          navigate(targetUrl);
+        },
+        secondaryText: "List Another Vehicle",
+        onSecondary: () => {
+          window.location.reload();
+        },
+      });
     } catch (err) {
-      alert("Error: " + (err.response?.data?.msg || err.message));
+      toast.error(err.response?.data?.msg || err.message, "Listing Failed");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -562,10 +1056,16 @@ const ListVehicle = () => {
         {/* Left Column: Form */}
         <div className="lv-left-col">
           <div className="stepper">
-            {["Details", "Pricing & Dates", "Photos", "Location"].map((label, idx) => (
+            {[
+              { label: "Details", short: "Details" },
+              { label: "Pricing & Dates", short: "Pricing" },
+              { label: "Photos", short: "Photos" },
+              { label: "Location", short: "Location" },
+            ].map((s, idx) => (
               <div key={idx} className={`step ${step === idx + 1 ? "active" : step > idx + 1 ? "completed" : ""}`}>
-                <div className="step-circle">{step > idx + 1 ? <CheckCircle2 size={16} /> : idx + 1}</div>
-                <span>{label}</span>
+                <div className="step-circle">{step > idx + 1 ? <CheckCircle2 size={15} /> : idx + 1}</div>
+                <span className="step-label-full">{s.label}</span>
+                <span className="step-label-short">{s.short}</span>
               </div>
             ))}
           </div>
@@ -627,7 +1127,7 @@ const ListVehicle = () => {
 
                   <div className="form-group">
                     <label>Year *</label>
-                    <input type="number" name="year" value={formData.year} onChange={handleChange} required placeholder="2020" min="1950" max="2026" />
+                    <input type="number" name="year" value={formData.year} onChange={handleChange} required placeholder="2020" min="1950" max={new Date().getFullYear() + 1} />
                   </div>
                 </div>
 
@@ -678,14 +1178,14 @@ const ListVehicle = () => {
                     <label>Price Per Day (LKR) *</label>
                     <div className="input-with-prefix">
                       <span className="prefix">LKR</span>
-                      <input type="number" name="pricePerDay" value={formData.pricePerDay} onChange={handleChange} required placeholder="8000" />
+                      <input type="number" name="pricePerDay" value={formData.pricePerDay} onChange={handleChange} required min="1" placeholder="8000" />
                     </div>
                   </div>
                   <div className="form-group flex-1">
                     <label>Price Per Km After 100km (LKR) *</label>
                     <div className="input-with-prefix">
                       <span className="prefix">LKR</span>
-                      <input type="number" name="pricePerKmAfter100km" value={formData.pricePerKmAfter100km} onChange={handleChange} required placeholder="50" />
+                      <input type="number" name="pricePerKmAfter100km" value={formData.pricePerKmAfter100km} onChange={handleChange} required min="0" placeholder="50" />
                     </div>
                   </div>
                 </div>
@@ -698,7 +1198,7 @@ const ListVehicle = () => {
                       startDate={startDate}
                       endDate={endDate}
                       onChange={(update) => setDateRange(update)}
-                      monthsShown={2}
+                      monthsShown={isMobile ? 1 : 2}
                       minDate={new Date()}
                       inline
                       className="premium-calendar"
@@ -720,25 +1220,78 @@ const ListVehicle = () => {
                 <p className="step-desc">Upload 1 to 5 high-quality photos of your vehicle (at least 1 is required).</p>
 
                 <div className="photo-grid">
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <div key={i} className="photo-upload-box">
-                      {formData.images[i] ? (
-                        <img src={formData.images[i]} alt={`Upload ${i}`} className="uploaded-img" />
-                      ) : (
-                        <div className="upload-placeholder">
-                          <div className="upload-icon">+</div>
-                          <span>Photo {i + 1}</span>
-                        </div>
-                      )}
-                      <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, i)} />
-                    </div>
-                  ))}
+                  {[0, 1, 2, 3, 4].map((i) => {
+                    const currentImg = previewUrls[i] || formData.images[i];
+                    const isUploading = uploadingSlots[i];
+
+                    return (
+                      <div
+                        key={i}
+                        className={`photo-upload-box ${currentImg ? "has-photo" : ""} ${isUploading ? "is-uploading" : ""}`}
+                      >
+                        {currentImg ? (
+                          <>
+                            <img
+                              src={formatVehicleImageUrl(currentImg)}
+                              alt={`Upload ${i + 1}`}
+                              className="uploaded-img"
+                            />
+                            <button
+                              type="button"
+                              className="photo-delete-btn"
+                              title="Remove photo"
+                              onClick={(e) => handleRemovePhoto(i, e)}
+                            >
+                              <X size={14} />
+                            </button>
+                            <div className="photo-change-overlay">
+                              <span>Change Photo</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="upload-placeholder">
+                            <div className="upload-icon">+</div>
+                            <span>Photo {i + 1}</span>
+                          </div>
+                        )}
+
+                        {isUploading && (
+                          <div className="photo-upload-loading">
+                            <Loader2 size={24} className="animate-spin" />
+                            <span>Uploading...</span>
+                          </div>
+                        )}
+
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/jpg, image/webp"
+                          disabled={isUploading}
+                          onChange={(e) => handlePhotoUpload(e, i)}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="form-actions space-between">
                   <button type="button" className="btn-back" onClick={prevStep}>Back</button>
-                  <button type="submit" className="btn-next" disabled={!formData.images.some(img => typeof img === "string" && img.trim() !== "")}>
-                    Continue <ChevronRight size={18} />
+                  <button
+                    type="submit"
+                    className="btn-next"
+                    disabled={
+                      !formData.images.some(img => typeof img === "string" && img.trim() !== "") ||
+                      Object.values(uploadingSlots).some(Boolean)
+                    }
+                  >
+                    {Object.values(uploadingSlots).some(Boolean) ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" /> Uploading Photos...
+                      </>
+                    ) : (
+                      <>
+                        Continue <ChevronRight size={18} />
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -971,8 +1524,17 @@ const ListVehicle = () => {
                 </div>
 
                 <div className="form-actions space-between mt-4">
-                  <button type="button" className="btn-back" onClick={prevStep}>Back</button>
-                  <button type="submit" className="btn-submit">List Vehicle</button>
+                  <button type="button" className="btn-back" onClick={prevStep} disabled={isSubmitting}>Back</button>
+                  <button type="submit" className="btn-submit" disabled={isSubmitting} style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        <span>Listing Vehicle...</span>
+                      </>
+                    ) : (
+                      <span>List Vehicle</span>
+                    )}
+                  </button>
                 </div>
               </form>
             )}
@@ -1390,6 +1952,8 @@ const ListVehicle = () => {
         .step.active .step-circle { background: #f97316; color: white; }
         .step.completed { color: #10b981; }
         .step.completed .step-circle { background: #10b981; color: white; }
+        .step-label-short { display: none; }
+        .step-label-full { display: inline; }
 
         .form-card {
           background: #ffffff;
@@ -1529,9 +2093,16 @@ const ListVehicle = () => {
           overflow: hidden;
           transition: all 0.2s;
         }
+        .photo-upload-box.has-photo {
+          border: 2px solid #e2e8f0;
+          background: #000;
+        }
         .photo-upload-box:hover {
           border-color: #f97316;
           background: #fff7ed;
+        }
+        .photo-upload-box.has-photo:hover {
+          border-color: #f97316;
         }
         .photo-upload-box input {
           position: absolute;
@@ -1539,6 +2110,10 @@ const ListVehicle = () => {
           opacity: 0;
           cursor: pointer;
           z-index: 10;
+        }
+        .photo-upload-box.is-uploading input {
+          cursor: not-allowed;
+          pointer-events: none;
         }
         .upload-placeholder {
           position: absolute;
@@ -1565,6 +2140,65 @@ const ListVehicle = () => {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          display: block;
+        }
+        .photo-delete-btn {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          background: rgba(15, 23, 42, 0.75);
+          color: #fff;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          z-index: 20;
+          transition: all 0.2s;
+          backdrop-filter: blur(4px);
+        }
+        .photo-delete-btn:hover {
+          background: #ef4444;
+          transform: scale(1.1);
+        }
+        .photo-change-overlay {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+          padding: 8px 4px 6px;
+          text-align: center;
+          opacity: 0;
+          transition: opacity 0.2s;
+          pointer-events: none;
+        }
+        .photo-change-overlay span {
+          color: #fff;
+          font-size: 0.72rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+        }
+        .photo-upload-box:hover .photo-change-overlay {
+          opacity: 1;
+        }
+        .photo-upload-loading {
+          position: absolute;
+          inset: 0;
+          background: rgba(255, 255, 255, 0.88);
+          backdrop-filter: blur(4px);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.4rem;
+          color: #f97316;
+          font-size: 0.75rem;
+          font-weight: 700;
+          z-index: 15;
         }
 
         /* Map */
@@ -1742,15 +2376,229 @@ const ListVehicle = () => {
         @media (max-width: 1024px) {
           .lv-container {
             grid-template-columns: 1fr;
+            max-width: 720px;
           }
           .lv-right-col {
             display: none;
           }
-          .lt-cards {
-            grid-template-columns: 1fr;
+          .vehicle-type-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
           }
-          .lt-card-container {
-            padding: 2rem 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+          .lv-page {
+            padding-bottom: 6.5rem;
+          }
+
+          .lv-hero {
+            padding: 105px 1.25rem 2.25rem;
+          }
+
+          .lv-badge {
+            padding: 0.35rem 0.85rem;
+            font-size: 0.78rem;
+            margin-bottom: 0.75rem;
+          }
+
+          .lv-hero h1 {
+            font-size: 1.75rem;
+            line-height: 1.25;
+            margin: 0 0 0.5rem;
+          }
+
+          .lv-hero p {
+            font-size: 0.92rem;
+            line-height: 1.5;
+            max-width: 480px;
+            margin: 0 auto;
+          }
+
+          .lv-container {
+            margin: -1.25rem auto 0;
+            padding: 0 1rem;
+            width: 100%;
+            box-sizing: border-box;
+          }
+
+          .stepper {
+            padding: 0.75rem 0.85rem;
+            border-radius: 0.85rem;
+            gap: 0.25rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+          }
+
+          .step {
+            gap: 0.35rem;
+            font-size: 0.76rem;
+            font-weight: 700;
+          }
+
+          .step-circle {
+            width: 22px;
+            height: 22px;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+          }
+
+          .step-label-full {
+            display: none;
+          }
+
+          .step-label-short {
+            display: inline;
+            font-size: 0.75rem;
+          }
+
+          .form-card {
+            padding: 1.35rem 1rem;
+            border-radius: 1.25rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+          }
+
+          .form-step h2 {
+            font-size: 1.3rem;
+            margin-bottom: 0.25rem;
+          }
+
+          .step-desc {
+            font-size: 0.86rem;
+            margin-bottom: 1.25rem;
+            line-height: 1.4;
+          }
+
+          .form-row {
+            flex-direction: column;
+            gap: 0.85rem;
+            margin-bottom: 0.85rem;
+          }
+
+          .form-group {
+            margin-bottom: 0.85rem;
+            width: 100%;
+          }
+
+          .form-group.mb-4 {
+            margin-bottom: 1.25rem;
+          }
+
+          label {
+            font-size: 0.78rem;
+            letter-spacing: 0.03em;
+          }
+
+          input, select, textarea {
+            padding: 0.85rem 0.95rem;
+            font-size: 0.95rem;
+            border-radius: 0.75rem;
+          }
+
+          .district-select {
+            padding: 0.85rem 1rem;
+            font-size: 0.95rem;
+          }
+
+          .calendar-wrap {
+            padding: 0.5rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .map-wrapper {
+            height: 280px;
+            border-radius: 0.85rem;
+          }
+
+          .form-actions {
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
+          }
+
+          .form-actions.space-between {
+            flex-direction: column-reverse;
+          }
+
+          .btn-next, .btn-submit {
+            width: 100%;
+            justify-content: center;
+            padding: 0.9rem 1.5rem;
+            font-size: 0.98rem;
+          }
+
+          .btn-back {
+            width: 100%;
+            text-align: center;
+            padding: 0.65rem;
+            font-size: 0.92rem;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .vehicle-type-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.65rem;
+          }
+
+          .type-card {
+            padding: 0.85rem 0.5rem;
+            min-height: 96px;
+            border-radius: 0.85rem;
+          }
+
+          .type-card img {
+            width: 50px;
+            height: 34px;
+          }
+
+          .type-card span {
+            font-size: 0.8rem;
+          }
+
+          .photo-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.65rem;
+            margin-bottom: 1.25rem;
+          }
+
+          .photo-upload-box {
+            height: 120px;
+            border-radius: 0.85rem;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .lv-container {
+            padding: 0 0.5rem;
+          }
+
+          .form-card {
+            padding: 1.15rem 0.75rem;
+          }
+
+          .stepper {
+            padding: 0.65rem 0.5rem;
+          }
+
+          .step-circle {
+            width: 20px;
+            height: 20px;
+            font-size: 0.65rem;
+          }
+
+          .step-label-short {
+            font-size: 0.7rem;
+          }
+
+          .type-card {
+            min-height: 88px;
+            padding: 0.65rem 0.35rem;
+          }
+
+          .type-card span {
+            font-size: 0.75rem;
           }
         }
       `}</style>

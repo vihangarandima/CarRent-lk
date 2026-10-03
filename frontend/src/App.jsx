@@ -1,29 +1,72 @@
-import React, { useLayoutEffect } from "react";
+import React, { Suspense, lazy, useLayoutEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Navigate,
   useLocation,
 } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
-import Splash from "./pages/Splash";
-import VehicleListing from "./pages/VehicleListing";
-import VehicleDetail from "./pages/VehicleDetail";
-import ListVehicle from "./pages/ListVehicle";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Profile from "./pages/Profile";
-import WhyUs from "./pages/WhyUs";
-import Companies from "./pages/Companies";
-import CompanyDetail from "./pages/CompanyDetail";
-import CompanyDashboard from "./pages/CompanyDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
-import ChooseListingType from "./pages/ChooseListingType";
 import AnnouncementBar from "./components/AnnouncementBar";
 import WhatsAppFloat from "./components/WhatsAppFloat";
 import { SiteConfigProvider } from "./context/SiteConfigContext";
+import { ToastProvider } from "./context/ToastContext";
+import {
+  DASHBOARD_PATH,
+  isBrowsingAsCustomer,
+  isLister,
+} from "./utils/session";
+
+// Every page except the home page loads on demand, so first visit downloads far less code
+const Splash = lazy(() => import("./pages/Splash"));
+const VehicleListing = lazy(() => import("./pages/VehicleListing"));
+const VehicleDetail = lazy(() => import("./pages/VehicleDetail"));
+const ListVehicle = lazy(() => import("./pages/ListVehicle"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Profile = lazy(() => import("./pages/Profile"));
+const WhyUs = lazy(() => import("./pages/WhyUs"));
+const Companies = lazy(() => import("./pages/Companies"));
+const CompanyDetail = lazy(() => import("./pages/CompanyDetail"));
+const CompanyDashboard = lazy(() => import("./pages/CompanyDashboard"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const ChooseListingType = lazy(() => import("./pages/ChooseListingType"));
+const ReviewsPortal = lazy(() => import("./pages/ReviewsPortal"));
+const QuickAddFleet = lazy(() => import("./pages/QuickAddFleet"));
+
+const PageLoader = () => (
+  <div style={{ minHeight: "60vh", display: "grid", placeItems: "center" }}>
+    <div
+      style={{
+        width: 40,
+        height: 40,
+        border: "3px solid #FFEDD5",
+        borderTopColor: "#F97316",
+        borderRadius: "50%",
+        animation: "app-spin 0.8s linear infinite",
+      }}
+    />
+    <style>{`@keyframes app-spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
+
+
+// Listers (hosts / rent-a-car companies) live in their dashboard. They only see
+// the customer-facing home page after choosing "View site as customer".
+function ListerRedirect({ children }) {
+  if (isLister() && !isBrowsingAsCustomer()) {
+    return <Navigate to={DASHBOARD_PATH} replace />;
+  }
+  return children;
+}
+
+// Old dashboard URL -> new one, keeping any ?query
+function LegacyDashboardRedirect() {
+  const location = useLocation();
+  return <Navigate to={`${DASHBOARD_PATH}${location.search}`} replace />;
+}
 
 function AppContent() {
   const location = useLocation();
@@ -34,6 +77,7 @@ function AppContent() {
     "/choose-listing-type",
     "/select-role",
     "/company-dashboard",
+    DASHBOARD_PATH,
     "/admin",
   ].includes(location.pathname);
 
@@ -43,6 +87,7 @@ function AppContent() {
     "/splash",
     "/admin",
     "/company-dashboard",
+    DASHBOARD_PATH,
   ].includes(location.pathname);
 
   useLayoutEffect(() => {
@@ -155,25 +200,32 @@ function AppContent() {
       `}</style>
 
       <main>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/home" element={<LandingPage />} />
+          <Route path="/" element={<ListerRedirect><LandingPage /></ListerRedirect>} />
+          <Route path="/home" element={<ListerRedirect><LandingPage /></ListerRedirect>} />
           <Route path="/vehicles" element={<VehicleListing />} />
           <Route path="/vehicle/:id" element={<VehicleDetail />} />
           <Route path="/list-my-car" element={<ListVehicle />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile" element={isLister() ? <Navigate to={DASHBOARD_PATH} replace /> : <Profile />} />
           <Route path="/why-us" element={<WhyUs />} />
           <Route path="/splash" element={<Splash />} />
           <Route path="/companies" element={<Companies />} />
           <Route path="/companies/:id" element={<CompanyDetail />} />
-          <Route path="/company-dashboard" element={<CompanyDashboard />} />
+          <Route path={DASHBOARD_PATH} element={<CompanyDashboard />} />
+          <Route path="/company-dashboard" element={<LegacyDashboardRedirect />} />
           <Route path="/company-list-vehicle" element={<ListVehicle />} />
+          <Route path="/fleet/quick-add" element={<QuickAddFleet />} />
           <Route path="/choose-listing-type" element={<ChooseListingType />} />
           <Route path="/select-role" element={<ChooseListingType />} />
+          <Route path="/reviews" element={<ReviewsPortal />} />
+          <Route path="/reviews-portal" element={<ReviewsPortal />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </main>
 
       {!hideFloatingWidgets && <WhatsAppFloat />}
@@ -185,9 +237,11 @@ function AppContent() {
 function App() {
   return (
     <SiteConfigProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <ToastProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </ToastProvider>
     </SiteConfigProvider>
   );
 }

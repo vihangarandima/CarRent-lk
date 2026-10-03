@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { API_URL } from "../config";
+import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import VehicleCard from "../components/VehicleCard";
+import PageHero from "../components/PageHero";
 import {
   GoogleMap,
   useJsApiLoader,
@@ -11,6 +13,7 @@ import {
 } from "@react-google-maps/api";
 import { Link, useSearchParams } from "react-router-dom";
 import { useSiteConfig } from "../context/SiteConfigContext";
+import { useToast } from "../context/ToastContext";
 import {
   MapPin,
   Car,
@@ -202,6 +205,7 @@ const VehicleListing = () => {
   });
 
   const { config } = useSiteConfig();
+  const { toast } = useToast();
   const customThumbs = config?.vehicleListing?.categoryThumbnails || {};
 
   const vehicleTypeCards = [
@@ -402,7 +406,7 @@ const VehicleListing = () => {
   const handleLocateMe = () => {
     setIsLocating(true);
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      toast.warning("Geolocation is not supported by your browser");
       setIsLocating(false);
       return;
     }
@@ -424,17 +428,18 @@ const VehicleListing = () => {
         setFilter({ ...filter, location: "My GPS Location" });
         setViewMode("map");
         setIsLocating(false);
+        toast.info("Filtering vehicles near your GPS location.");
       },
       (error) => {
-        let errorMsg = `Unable to retrieve your location. (Error: ${error.message})`;
+        let errorMsg = `Unable to retrieve your location. (${error.message})`;
         if (error.code === error.PERMISSION_DENIED) {
-           errorMsg = "Location permission denied. Please click the site settings icon near the URL bar to allow location access.";
+           errorMsg = "Location permission denied. Please allow location access in your browser.";
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-           errorMsg = "Location information is unavailable. Please ensure your Windows Location Services are turned on in Settings -> Privacy & Security -> Location.";
+           errorMsg = "Location information is currently unavailable on your device.";
         } else if (error.code === error.TIMEOUT) {
-           errorMsg = "The request to get user location timed out. Please try again.";
+           errorMsg = "The request to get your location timed out. Please try again.";
         }
-        alert(errorMsg);
+        toast.warning(errorMsg, "Location Notice");
         setIsLocating(false);
       },
       { timeout: 15000, maximumAge: 60000 }
@@ -577,20 +582,14 @@ const VehicleListing = () => {
 
   return (
     <div className="listing-page">
-      <div className="modern-header-section">
-        <div className="top-badge">
-          <Sparkles size={13} className="icon-orange-txt" />
-          <span>Sri Lanka's modern car marketplace</span>
-        </div>
-        <h1 className="modern-title">
-          Find the <span className="text-orange">nearest ride</span> in seconds.
-        </h1>
-        <p className="modern-subtitle">
-          Search verified vehicles around you. Filter by brand, price range and fuel — book in a tap.
-        </p>
-      </div>
+      <PageHero
+        badge="Find your ride"
+        title="Find the"
+        highlight="nearest ride in seconds."
+        subtitle="Search verified vehicles across Sri Lanka. Filter by type, location and price, then message the owner on WhatsApp."
+      />
 
-      <div className="container">
+      <div className="container y-overlap">
         <div className="search-card-block">
           <div className="search-card-header">
             <div className="search-card-title-wrap">
@@ -1163,9 +1162,10 @@ const VehicleListing = () => {
                             {curV.images && curV.images[0] && (
                               <div className="map-info-img-wrap">
                                 <img
-                                  src={curV.images[0]}
+                                  src={formatVehicleImageUrl(curV.images, curV.vehicleType)}
                                   alt={`${curV.brand} ${curV.model}`}
                                   className="map-info-img"
+                                  onError={(e) => handleImageError(e, formatVehicleImageUrl(null, curV.vehicleType))}
                                 />
                                 {hasMultiple && (
                                   <span className="map-info-img-badge">
@@ -1286,8 +1286,12 @@ const VehicleListing = () => {
                         onClick={() => handleSidebarVehicleClick(v)}
                       >
                         <div className="map-sidebar-img-wrap">
-                          {v.images && v.images[0] ? (
-                            <img src={v.images[0]} alt={v.brand} />
+                          {v.images && v.images.length > 0 ? (
+                            <img
+                              src={formatVehicleImageUrl(v.images, v.vehicleType)}
+                              alt={v.brand}
+                              onError={(e) => handleImageError(e, formatVehicleImageUrl(null, v.vehicleType))}
+                            />
                           ) : (
                             <div className="map-sidebar-placeholder">
                               <Car size={20} />
@@ -1338,7 +1342,7 @@ const VehicleListing = () => {
         .listing-page {
           min-height: calc(100vh - 68px);
           padding-bottom: 80px;
-          background: #fcfbf9;
+          background: var(--bg);
         }
 
         /* Modern Ultra-Sleek Header */
@@ -1394,7 +1398,7 @@ const VehicleListing = () => {
           border-radius: 1.5rem;
           padding: 1.35rem 1.6rem 1.25rem;
           box-shadow: 0 20px 45px -10px rgba(249, 115, 22, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03);
-          margin-top: 1.25rem;
+          margin-top: 0;
           margin-bottom: 2rem;
           position: relative;
           backdrop-filter: blur(16px);

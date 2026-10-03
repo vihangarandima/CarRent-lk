@@ -23,13 +23,13 @@ export const DEFAULT_CONFIG = {
     },
     whatsAppSupport: {
       enabled: true,
-      phoneNumber: "+94770000000",
+      phoneNumber: "+94702434288",
       greetingMessage: "Hello Yamu Team! I need help with renting a vehicle.",
     },
     contact: {
-      phone: "+94 77 123 4567",
-      email: "hello@yamucarrentals.lk",
-      address: "Colombo, Sri Lanka",
+      phone: "+94 70 243 4288",
+      email: "yamucarrentals@gmail.com",
+      address: "551/1, Thalgahawatta Lane, Wawa Road, Boralasgamuwa",
     },
     socialLinks: {
       tiktok: "https://www.tiktok.com/@yamucarrentals?_r=1&_t=ZS-98SNnP8jRBp",
@@ -65,15 +65,13 @@ export const DEFAULT_CONFIG = {
         id: "suv",
         label: "SUV",
         vehicleType: "premium-car",
-        image:
-          "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&q=80&w=400",
+        image: "/assets/images/suv_category.jpg",
       },
       {
         id: "sedan",
         label: "Sedan",
         vehicleType: "car",
-        image:
-          "https://images.unsplash.com/photo-1555215695-3004980adade?auto=format&fit=crop&q=80&w=400",
+        image: "/assets/images/sedan_category.jpg",
       },
       {
         id: "luxury",
@@ -86,15 +84,13 @@ export const DEFAULT_CONFIG = {
         id: "electric",
         label: "Electric",
         vehicleType: "car",
-        image:
-          "https://images.unsplash.com/photo-1593941707882-a5bba14938bc?auto=format&fit=crop&q=80&w=400",
+        image: "/assets/images/electric_category.jpg",
       },
       {
         id: "van",
         label: "Van",
         vehicleType: "van",
-        image:
-          "https://images.unsplash.com/photo-1527786356703-4b100916cd20?auto=format&fit=crop&q=80&w=400",
+        image: "/assets/images/van_category.jpg",
       },
       {
         id: "coupe",
