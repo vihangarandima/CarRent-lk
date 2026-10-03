@@ -1,5 +1,7 @@
 # 🚗 Yamu Car Rentals: Full System Audit, Bug Report & UX Roadmap
 
+> **Note:** This document is the GitHub technical audit report for the Yamu Car Rentals platform. It is mirrored with [`SYSTEM_AUDIT_AND_IMPROVEMENT_REPORT.md`](./SYSTEM_AUDIT_AND_IMPROVEMENT_REPORT.md).
+
 **Document Type:** Technical & Usability Audit Report  
 **Platform:** Yamu Car Rentals (Sri Lanka Vehicle Rental Marketplace)  
 **Target Audience:** Development Team, Product Owners & Stakeholders  
