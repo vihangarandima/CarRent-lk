@@ -179,6 +179,21 @@ const Register = () => {
     }
   };
 
+  const handleResendOtp = async () => {
+    setSendingOtp(true);
+    setError("");
+    try {
+      await axios.post(`${API_URL}/api/auth/send-otp`, {
+        email: formData.email,
+      });
+      setOtpCode(["", "", "", "", "", ""]);
+    } catch (err) {
+      setError(err.response?.data?.msg || "Failed to resend verification code.");
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
@@ -614,19 +629,6 @@ const Register = () => {
                   </div>
 
                   <div className="input-group">
-                    <label>BUSINESS PHONE NUMBER</label>
-                    <div className="input-wrapper">
-                      <input
-                        type="text"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="+94 77 XXX XXXX"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="input-group">
                     <label>OPERATING ADDRESS / CITY</label>
                     <div className="input-wrapper">
                       <input
@@ -641,13 +643,13 @@ const Register = () => {
                 </div>
               )}
 
-              <button className="btn-register" type="submit" disabled={loading}>
+              <button className="btn-register" type="submit" disabled={loading || sendingOtp}>
                 {loading
                   ? "Processing..."
                   : sendingOtp
                   ? "Sending Code..."
                   : "Verify & Create Account"}
-                {!loading && <span className="arrow">→</span>}
+                {!loading && !sendingOtp && <span className="arrow">→</span>}
               </button>
             </form>
           </div>
@@ -703,13 +705,25 @@ const Register = () => {
                   >
                     {loading ? "Verifying..." : "Verify & Complete Signup"}
                   </button>
-                  <button
-                    type="button"
-                    className="btn-otp-cancel"
-                    onClick={() => setShowOtpModal(false)}
-                  >
-                    Cancel
-                  </button>
+                  <div style={{ display: "flex", gap: "10px", width: "100%", marginTop: "8px" }}>
+                    <button
+                      type="button"
+                      className="btn-otp-cancel"
+                      style={{ flex: 1 }}
+                      onClick={handleResendOtp}
+                      disabled={sendingOtp}
+                    >
+                      {sendingOtp ? "Sending..." : "Resend Code"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-otp-cancel"
+                      style={{ flex: 1 }}
+                      onClick={() => setShowOtpModal(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
