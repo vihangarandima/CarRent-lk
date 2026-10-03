@@ -971,6 +971,14 @@ export default function CompanyDashboard() {
 
                                 {status === "rented" ? (
                                   <span className="cd-fleet-status cd-fleet-rented">🔑 Rented</span>
+                                ) : status === "pending" ? (
+                                  <span className="cd-fleet-status cd-fleet-pending" title="Awaiting Super Admin review and approval before appearing live on the marketplace.">
+                                    ⏳ Pending Approval
+                                  </span>
+                                ) : status === "rejected" ? (
+                                  <span className="cd-fleet-status cd-fleet-rejected" title={v.rejectionReason || "Listing rejected by Super Admin. Please edit and resolve issues."}>
+                                    ❌ Listing Rejected
+                                  </span>
                                 ) : status === "flagged" ? (
                                   <span className="cd-fleet-status cd-fleet-flagged">Under review</span>
                                 ) : (
@@ -1869,6 +1877,22 @@ const dashboardCSS = `
   .cd-rental-status-badge {
     display: inline-block; padding: 3px 10px; border-radius: 100px;
     font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .cd-fleet-pending {
+    background: #fef3c7 !important; color: #b45309 !important; border: 1px solid #fde68a;
+    padding: 4px 10px; border-radius: 100px; font-size: 0.75rem; font-weight: 700;
+  }
+  .cd-fleet-rejected {
+    background: #fee2e2 !important; color: #dc2626 !important; border: 1px solid #fecaca;
+    padding: 4px 10px; border-radius: 100px; font-size: 0.75rem; font-weight: 700;
+  }
+  .cd-fleet-rented {
+    background: #e0f2fe !important; color: #0369a1 !important; border: 1px solid #bae6fd;
+    padding: 4px 10px; border-radius: 100px; font-size: 0.75rem; font-weight: 700;
+  }
+  .cd-fleet-flagged {
+    background: #ffedd5 !important; color: #c2410c !important; border: 1px solid #fed7aa;
+    padding: 4px 10px; border-radius: 100px; font-size: 0.75rem; font-weight: 700;
   }
   .cd-quick-summary {
     display: flex; gap: 12px; align-items: center; flex-wrap: wrap;

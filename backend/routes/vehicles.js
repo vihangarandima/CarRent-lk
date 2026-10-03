@@ -9,8 +9,8 @@ const { auth, escapeRegex } = require("../middleware/auth");
 
 const VEHICLE_TYPES = ["bicycle", "threewheeler", "mini-car", "car", "premium-car", "mini-van", "van", "others"];
 
-// Listings the owner paused or an admin flagged are not shown publicly
-const PUBLIC_STATUS_FILTER = { status: { $nin: ["hidden", "flagged"] } };
+// Only active, approved listings are shown to public browsing customers
+const PUBLIC_STATUS_FILTER = { status: "active" };
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -23,9 +23,8 @@ const cleanImages = (images) =>
 // @desc    Get all vehicles with filters (only active public listings by default)
 router.get("/", async (req, res) => {
   try {
-    const { brand, model, location, minPrice, maxPrice, companyId, vehicleType } = req.query;
-    // Paused, flagged and currently-rented vehicles are never listed publicly
-    let query = { status: { $nin: ["hidden", "flagged", "rented"] } };
+    const { brand, model, location, minPrice, maxPrice, companyId, vehicleType, status } = req.query;
+    let query = { status: status || "active" };
     if (brand) query.brand = new RegExp(escapeRegex(brand), "i");
     if (model) query.model = new RegExp(escapeRegex(model), "i");
     if (location) query.location = new RegExp(escapeRegex(location), "i");
@@ -139,6 +138,7 @@ router.post("/", auth, async (req, res) => {
       if (company) companyId = company._id;
     }
 
+    const isListerAdmin = lister.role === "admin";
     const newVehicle = new Vehicle({
       owner: req.user.id,
       brand,
@@ -157,9 +157,18 @@ router.post("/", auth, async (req, res) => {
       availableFrom,
       availableTo,
       company: companyId,
+      status: isListerAdmin ? "active" : "pending",
+      approvedAt: isListerAdmin ? new Date() : undefined,
     });
     const vehicle = await newVehicle.save();
-    res.json({ ...vehicle.toObject(), listerRole: lister.role });
+    res.json({
+      ...vehicle.toObject(),
+      listerRole: lister.role,
+      requiresApproval: !isListerAdmin,
+      msg: isListerAdmin
+        ? "Vehicle published live."
+        : "Vehicle submitted successfully! It is now pending review by Super Admin.",
+    });
   } catch (err) {
     console.error("Listing Crash Error:", err);
     if (err.name === "ValidationError") {
@@ -196,6 +205,7 @@ router.post("/bulk", auth, async (req, res) => {
 
     const now = new Date();
     const oneYear = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    const isListerAdmin = lister.role === "admin";
     const results = [];
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i] || {};
@@ -232,6 +242,8 @@ router.post("/bulk", auth, async (req, res) => {
           images: cleanImages(row.images),
           availableFrom: now,
           availableTo: oneYear,
+          status: isListerAdmin ? "active" : "pending",
+          approvedAt: isListerAdmin ? new Date() : undefined,
         }).save();
         results.push({ index: i, ok: true, vehicle });
       } catch (rowErr) {

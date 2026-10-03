@@ -27,7 +27,14 @@ const VehicleSchema = new mongoose.Schema({
   availableFrom: { type: Date, required: true },
   availableTo: { type: Date, required: true },
   isFeatured: { type: Boolean, default: false },
-  status: { type: String, enum: ["active", "hidden", "flagged", "rented"], default: "active" },
+  status: {
+    type: String,
+    enum: ["active", "pending", "rejected", "hidden", "flagged", "rented"],
+    default: "pending",
+  },
+  rejectionReason: { type: String, default: "" },
+  approvedAt: { type: Date },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   createdAt: { type: Date, default: Date.now },
 });
 
