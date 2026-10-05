@@ -2,10 +2,303 @@ import React, { useEffect, useRef } from "react";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 
 /**
- * Vesak Festival Celebration Accessories Component
- * Renders the authentic Sri Lankan Octagonal Vesak Kudu (Lantern), Sacred Blooming Lotus,
- * Buddhist Flag, Top Illuminated Festive Garland, and Ascending Golden Light Particles.
- * Non-destructive: Does not alter brand colors or layout.
+ * Modular Vesak SVG Components
+ */
+
+// 1. Octagonal Sri Lankan Vesak Lantern (Vesak Kudu)
+export const VesakKuduSVG = ({
+  width = 155,
+  className = "",
+  style = {},
+}) => (
+  <svg
+    viewBox="0 0 260 320"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ width: `${width}px`, height: "auto", overflow: "visible", ...style }}
+    className={`vesak-lantern-svg ${className}`}
+  >
+    {/* Hanging String & Top Ring */}
+    <line x1="130" y1="0" x2="130" y2="35" stroke="#FDE047" strokeWidth="2" strokeDasharray="4 2" />
+    <circle cx="130" cy="35" r="5" fill="none" stroke="#F59E0B" strokeWidth="2" />
+
+    {/* TOP PYRAMID HOOD */}
+    <polygon points="130,38 90,70 170,70" fill="#EA580C" stroke="#FEF08A" strokeWidth="1.5" />
+    <polygon points="130,38 130,70 170,70" fill="#C2410C" opacity="0.4" />
+
+    {/* INNER GLOWING CANDLE CORE */}
+    <circle
+      className="animate-lantern-core-glow"
+      cx="130"
+      cy="110"
+      r="45"
+      fill="url(#vesakCandleGlow)"
+    />
+
+    {/* OCTAGONAL LANTERN MAIN BODY */}
+    {/* Side Left Panel */}
+    <polygon
+      points="90,70 60,110 90,150 100,110"
+      fill="url(#vesakBluePanel)"
+      stroke="#FEF08A"
+      strokeWidth="1.5"
+    />
+    {/* Side Right Panel */}
+    <polygon
+      points="170,70 200,110 170,150 160,110"
+      fill="url(#vesakPinkPanel)"
+      stroke="#FEF08A"
+      strokeWidth="1.5"
+    />
+    {/* Center Main Panel */}
+    <polygon
+      points="130,70 100,110 130,150 160,110"
+      fill="url(#vesakGoldCore)"
+      stroke="#FFF"
+      strokeWidth="2"
+      filter="url(#vesakLanternGlow)"
+    />
+
+    {/* Surrounding Triangular Petals */}
+    <polygon points="90,70 130,70 100,110" fill="url(#vesakOrangePanel)" stroke="#FEF08A" strokeWidth="1" opacity="0.9" />
+    <polygon points="170,70 130,70 160,110" fill="url(#vesakOrangePanel)" stroke="#FEF08A" strokeWidth="1" opacity="0.9" />
+    <polygon points="90,150 130,150 100,110" fill="url(#vesakOrangePanel)" stroke="#FEF08A" strokeWidth="1" opacity="0.9" />
+    <polygon points="170,150 130,150 160,110" fill="url(#vesakOrangePanel)" stroke="#FEF08A" strokeWidth="1" opacity="0.9" />
+
+    {/* BOTTOM BASE HOOD */}
+    <polygon points="130,180 90,150 170,150" fill="#EA580C" stroke="#FEF08A" strokeWidth="1.5" />
+    <polygon points="130,180 130,150 170,150" fill="#C2410C" opacity="0.4" />
+
+    {/* FLUTTERING PAPER STREAMERS (WALLI) */}
+    {/* Left Outer Streamer */}
+    <g className="animate-streamer-left">
+      <path d="M 65 110 Q 50 190 60 250 Q 55 255 65 255 Q 75 190 70 110 Z" fill="#93C5FD" opacity="0.85" />
+      <polygon points="55,250 60,265 65,250" fill="#FEF08A" />
+    </g>
+
+    {/* Right Outer Streamer */}
+    <g className="animate-streamer-right">
+      <path d="M 195 110 Q 210 190 200 250 Q 205 255 195 255 Q 185 190 190 110 Z" fill="#F472B6" opacity="0.85" />
+      <polygon points="195,250 200,265 205,250" fill="#FEF08A" />
+    </g>
+
+    {/* Center Bottom Main Streamer */}
+    <g className="animate-streamer-right">
+      <path d="M 125 180 Q 115 240 120 290 Q 130 295 135 290 Q 140 240 135 180 Z" fill="#FEF08A" opacity="0.95" />
+      <polygon points="120,290 127,310 135,290" fill="#F59E0B" />
+    </g>
+
+    {/* Bottom Left Streamer */}
+    <g className="animate-streamer-left">
+      <path d="M 100 155 Q 85 220 95 270 Q 105 272 105 270 Q 100 220 110 155 Z" fill="#FED7AA" opacity="0.9" />
+      <polygon points="95,270 100,285 105,270" fill="#F59E0B" />
+    </g>
+
+    {/* Bottom Right Streamer */}
+    <g className="animate-streamer-right">
+      <path d="M 150 155 Q 165 220 155 270 Q 145 272 145 270 Q 150 220 140 155 Z" fill="#BBF7D0" opacity="0.9" />
+      <polygon points="145,270 150,285 155,270" fill="#F59E0B" />
+    </g>
+  </svg>
+);
+
+// 2. Sacred Blooming Lotus Flower
+export const VesakLotusSVG = ({
+  width = 160,
+  className = "",
+  style = {},
+}) => (
+  <svg
+    viewBox="0 0 280 200"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ width: `${width}px`, height: "auto", overflow: "visible", ...style }}
+    className={`vesak-lotus-svg ${className}`}
+  >
+    {/* Concentric Water Ripples */}
+    <g id="water-ripples">
+      <ellipse className="animate-ripple-1" cx="140" cy="155" rx="115" ry="24" fill="url(#vesakRippleGrad)" />
+      <ellipse className="animate-ripple-2" cx="140" cy="155" rx="80" ry="18" fill="url(#vesakRippleGrad)" />
+      <ellipse className="animate-ripple-3" cx="140" cy="155" rx="50" ry="12" fill="url(#vesakRippleGrad)" />
+    </g>
+
+    {/* Radiant Spiritual Aura Backlight */}
+    <circle
+      className="animate-lotus-aura-glow"
+      cx="140"
+      cy="110"
+      r="75"
+      fill="url(#vesakLotusAuraGrad)"
+    />
+
+    {/* Floating Bokeh Pollen Sparks */}
+    <circle className="animate-sparkle-1" cx="65" cy="80" r="3.5" fill="#FEF08A" opacity="0.85" />
+    <circle className="animate-sparkle-2" cx="215" cy="70" r="4" fill="#FDE047" opacity="0.85" />
+    <circle className="animate-sparkle-1" cx="140" cy="35" r="3" fill="#FFF" opacity="0.9" />
+
+    {/* OUTER LOTUS PETALS (Base Pad) */}
+    <g id="outer-petals">
+      {/* Outer Far-Left Petal */}
+      <path
+        d="M 140 145 C 90 145 35 130 45 105 C 60 75 105 110 140 145 Z"
+        fill="url(#vesakPetalGradOuter)"
+        filter="url(#vesakLotusGlow)"
+      />
+      {/* Outer Far-Right Petal */}
+      <path
+        d="M 140 145 C 190 145 245 130 235 105 C 220 75 175 110 140 145 Z"
+        fill="url(#vesakPetalGradOuter)"
+        filter="url(#vesakLotusGlow)"
+      />
+      {/* Bottom Leaf Support */}
+      <ellipse cx="140" cy="152" rx="70" ry="10" fill="#047857" opacity="0.5" />
+    </g>
+
+    {/* MIDDLE LOTUS PETALS */}
+    <g id="mid-petals">
+      {/* Mid Left Petal */}
+      <path
+        d="M 140 145 C 100 135 70 95 85 65 C 105 45 130 95 140 145 Z"
+        fill="url(#vesakPetalGradMid)"
+      />
+      {/* Mid Right Petal */}
+      <path
+        d="M 140 145 C 180 135 210 95 195 65 C 175 45 150 95 140 145 Z"
+        fill="url(#vesakPetalGradMid)"
+      />
+      {/* Center Background Crown Petal */}
+      <path
+        d="M 140 145 C 115 110 120 50 140 28 C 160 50 165 110 140 145 Z"
+        fill="url(#vesakPetalGradOuter)"
+      />
+    </g>
+
+    {/* INNER CORE BLOOM PETALS */}
+    <g id="inner-petals">
+      {/* Inner Left Petal */}
+      <path
+        d="M 140 145 C 115 125 105 85 120 60 C 135 50 145 95 140 145 Z"
+        fill="url(#vesakPetalGradInner)"
+      />
+      {/* Inner Right Petal */}
+      <path
+        d="M 140 145 C 165 125 175 85 160 60 C 145 50 135 95 140 145 Z"
+        fill="url(#vesakPetalGradInner)"
+      />
+      {/* Center Sacred Heart Petal */}
+      <path
+        d="M 140 145 C 128 115 130 75 140 52 C 150 75 152 115 140 145 Z"
+        fill="url(#vesakPetalGradInner)"
+      />
+    </g>
+
+    {/* GOLDEN GLOWING SEED POD CORE */}
+    <ellipse cx="140" cy="132" rx="18" ry="12" fill="url(#vesakLotusCoreGrad)" />
+    <circle cx="134" cy="130" r="2.2" fill="#D97706" />
+    <circle cx="140" cy="128" r="2.2" fill="#D97706" />
+    <circle cx="146" cy="130" r="2.2" fill="#D97706" />
+    <circle cx="137" cy="134" r="2.2" fill="#D97706" />
+    <circle cx="143" cy="134" r="2.2" fill="#D97706" />
+  </svg>
+);
+
+// 3. Authentic Buddhist 6-Stripe Flag
+export const VesakFlagSVG = ({
+  width = 135,
+  className = "",
+  style = {},
+}) => (
+  <svg
+    viewBox="0 0 240 180"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ width: `${width}px`, height: "auto", overflow: "visible", ...style }}
+    className={`vesak-flag-svg ${className}`}
+  >
+    {/* Flag Pole (Golden Brass) */}
+    <line x1="20" y1="10" x2="20" y2="175" stroke="url(#vesakPoleGrad)" strokeWidth="6" strokeLinecap="round" />
+    {/* Pole Top Golden Finial Spear */}
+    <polygon points="20,2 26,12 14,12" fill="url(#vesakGoldFinial)" />
+    <circle cx="20" cy="12" r="4.5" fill="url(#vesakGoldFinial)" />
+
+    {/* Golden Cords & Hanging Tassels */}
+    <path d="M 20 22 Q 10 35 14 50" stroke="#F59E0B" strokeWidth="1.5" fill="none" />
+    <circle cx="14" cy="52" r="2.5" fill="#D97706" />
+
+    {/* WAVING BUDDHIST 6-STRIPE FABRIC */}
+    <g className="animate-flag-fabric">
+      {/* 1. Nila (Sapphire Blue) */}
+      <path d="M 23 20 Q 80 15 135 25 Q 155 27 165 24 L 165 110 Q 155 113 135 111 Q 80 101 23 106 Z" fill="url(#vesakFlagBlue)" />
+
+      {/* 2. Pita (Golden Yellow) */}
+      <path d="M 52 20 Q 80 16 108 22 L 108 108 Q 80 102 52 106 Z" fill="url(#vesakFlagYellow)" />
+
+      {/* 3. Lohita (Crimson Red) */}
+      <path d="M 80 18 Q 94 17 108 20 L 108 106 Q 94 103 80 104 Z" fill="url(#vesakFlagRed)" />
+
+      {/* 4. Odata (Pure White) */}
+      <path d="M 108 20 Q 122 22 136 24 L 136 110 Q 122 108 108 106 Z" fill="url(#vesakFlagWhite)" />
+
+      {/* 5. Manjettha (Deep Orange) */}
+      <path d="M 136 24 Q 150 26 165 24 L 165 110 Q 150 112 136 110 Z" fill="url(#vesakFlagOrange)" />
+
+      {/* 6. Pabasara (Prismatic Combined Stripe - 5 horizontal bands) */}
+      <g id="pabasara-stripe">
+        <path d="M 165 24 Q 185 22 205 26 L 205 43 Q 185 39 165 41 Z" fill="url(#vesakFlagBlue)" />
+        <path d="M 165 41 Q 185 39 205 43 L 205 60 Q 185 56 165 58 Z" fill="url(#vesakFlagYellow)" />
+        <path d="M 165 58 Q 185 56 205 60 L 205 77 Q 185 73 165 75 Z" fill="url(#vesakFlagRed)" />
+        <path d="M 165 75 Q 185 73 205 77 L 205 94 Q 185 90 165 92 Z" fill="url(#vesakFlagWhite)" />
+        <path d="M 165 92 Q 185 90 205 94 L 205 111 Q 185 107 165 109 Z" fill="url(#vesakFlagOrange)" />
+      </g>
+
+      {/* Waving Fabric Ripple Shadows */}
+      <path d="M 23 20 Q 80 15 135 25 Q 185 22 205 26 L 205 111 Q 185 107 135 111 Q 80 101 23 106 Z" fill="url(#vesakFlagShimmer)" />
+    </g>
+  </svg>
+);
+
+// 4. Buddhist Flag Colors Light Garland
+export const BuddhistLightsGarland = ({ count = 22, className = "" }) => {
+  const colors = [
+    { hex: "#2563EB", glow: "rgba(37,99,235,0.8)" },
+    { hex: "#FACC15", glow: "rgba(250,204,21,0.85)" },
+    { hex: "#DC2626", glow: "rgba(220,38,38,0.8)" },
+    { hex: "#FFFFFF", glow: "rgba(255,255,255,0.9)" },
+    { hex: "#EA580C", glow: "rgba(234,88,12,0.85)" },
+  ];
+
+  return (
+    <div className={`vesak-lights-garland ${className}`}>
+      <div className="vesak-lights-wire" />
+      <div className="vesak-bulbs-container">
+        {Array.from({ length: count }).map((_, idx) => {
+          const c = colors[idx % colors.length];
+          return (
+            <div
+              key={idx}
+              className="vesak-bulb-item"
+              style={{ animationDelay: `${(idx % 5) * 0.4}s` }}
+            >
+              <div className="vesak-bulb-cap" />
+              <div
+                className="vesak-bulb-glass"
+                style={{
+                  backgroundColor: c.hex,
+                  boxShadow: `0 0 10px 3px ${c.glow}`,
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Main Vesak Festival Accessories Component
+ * Placed organically across the page flow (Hero, Categories, Why Us & Footer)
+ * so elements scroll naturally with the website instead of feeling glued to the screen.
  */
 const VesakAccessories = ({ previewConfig = null, isVirtualPreview = false }) => {
   const { config: globalConfig } = useSiteConfig();
@@ -18,22 +311,16 @@ const VesakAccessories = ({ previewConfig = null, isVirtualPreview = false }) =>
 
   const vesakOptions = festivalData?.vesak || {
     showLantern: true,
-    lanternPosition: "top-right",
     showLotus: true,
-    lotusPosition: "bottom-left",
     showFlag: true,
-    flagPosition: "top-left",
     showLightString: true,
     showParticles: true,
   };
 
   const {
     showLantern = true,
-    lanternPosition = "top-right",
     showLotus = true,
-    lotusPosition = "bottom-left",
     showFlag = true,
-    flagPosition = "top-left",
     showLightString = true,
     showParticles = true,
   } = vesakOptions;
@@ -50,12 +337,12 @@ const VesakAccessories = ({ previewConfig = null, isVirtualPreview = false }) =>
     const ctx = canvas.getContext("2d");
     let animationFrameId;
     let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    let height = (canvas.height = Math.max(window.innerHeight, document.body.scrollHeight || 2500));
 
     const handleResize = () => {
       if (!canvas) return;
       width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      height = canvas.height = Math.max(window.innerHeight, document.body.scrollHeight || 2500);
     };
 
     window.addEventListener("resize", handleResize);
@@ -69,11 +356,11 @@ const VesakAccessories = ({ previewConfig = null, isVirtualPreview = false }) =>
       "#FFFFFF",
     ];
 
-    const particles = Array.from({ length: 42 }, () => ({
+    const particles = Array.from({ length: 48 }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
       radius: Math.random() * 2.8 + 1.2,
-      speedY: -(Math.random() * 0.9 + 0.35),
+      speedY: -(Math.random() * 0.85 + 0.3),
       speedX: Math.random() * 0.6 - 0.3,
       opacity: Math.random() * 0.75 + 0.25,
       pulseSpeed: Math.random() * 0.025 + 0.01,
@@ -117,507 +404,231 @@ const VesakAccessories = ({ previewConfig = null, isVirtualPreview = false }) =>
 
   return (
     <div
-      className={`vesak-festival-overlay ${isVirtualPreview ? "virtual-preview-mode" : ""}`}
+      className={`vesak-festival-root ${isVirtualPreview ? "virtual-preview-mode" : "live-website-mode"}`}
       aria-hidden="true"
     >
-      {/* 1. Ascending Golden Light Particles Canvas */}
+      {/* Global Shared SVG Defs (ensures all multiple instances render gradients correctly) */}
+      <svg className="vesak-defs-svg" aria-hidden="true">
+        <defs>
+          {/* Lantern Gradients */}
+          <linearGradient id="vesakGoldCore" x1="130" y1="60" x2="130" y2="160" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#FEF08A" />
+            <stop offset="50%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#D97706" />
+          </linearGradient>
+          <linearGradient id="vesakBluePanel" x1="60" y1="80" x2="100" y2="140" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#93C5FD" />
+            <stop offset="60%" stopColor="#3B82F6" />
+            <stop offset="100%" stopColor="#1D4ED8" />
+          </linearGradient>
+          <linearGradient id="vesakPinkPanel" x1="200" y1="80" x2="160" y2="140" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#F472B6" />
+            <stop offset="60%" stopColor="#EC4899" />
+            <stop offset="100%" stopColor="#BE185D" />
+          </linearGradient>
+          <linearGradient id="vesakOrangePanel" x1="130" y1="70" x2="130" y2="150" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#FDE047" />
+            <stop offset="60%" stopColor="#FB923C" />
+            <stop offset="100%" stopColor="#EA580C" />
+          </linearGradient>
+          <radialGradient id="vesakCandleGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="40%" stopColor="#FDE047" />
+            <stop offset="80%" stopColor="#F59E0B" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#D97706" stopOpacity="0" />
+          </radialGradient>
+          <filter id="vesakLanternGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+
+          {/* Lotus Gradients */}
+          <radialGradient id="vesakLotusAuraGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FEF08A" stopOpacity="0.9" />
+            <stop offset="35%" stopColor="#FBBF24" stopOpacity="0.55" />
+            <stop offset="70%" stopColor="#F59E0B" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#EA580C" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id="vesakPetalGradOuter" x1="140" y1="30" x2="140" y2="150" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#FDF2F8" />
+            <stop offset="40%" stopColor="#F472B6" />
+            <stop offset="80%" stopColor="#DB2777" />
+            <stop offset="100%" stopColor="#9D174D" />
+          </linearGradient>
+          <linearGradient id="vesakPetalGradMid" x1="140" y1="40" x2="140" y2="150" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#FFF1F2" />
+            <stop offset="35%" stopColor="#FB7185" />
+            <stop offset="75%" stopColor="#E11D48" />
+            <stop offset="100%" stopColor="#881337" />
+          </linearGradient>
+          <linearGradient id="vesakPetalGradInner" x1="140" y1="50" x2="140" y2="150" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="45%" stopColor="#F43F5E" />
+            <stop offset="100%" stopColor="#BE123C" />
+          </linearGradient>
+          <radialGradient id="vesakLotusCoreGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FEF08A" />
+            <stop offset="50%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#B45309" />
+          </radialGradient>
+          <radialGradient id="vesakRippleGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.4" />
+            <stop offset="60%" stopColor="#0284C7" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#0369A1" stopOpacity="0" />
+          </radialGradient>
+          <filter id="vesakLotusGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="lglow" />
+            <feComposite in="SourceGraphic" in2="lglow" operator="over" />
+          </filter>
+
+          {/* Flag Gradients */}
+          <linearGradient id="vesakFlagBlue" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#1E40AF" />
+            <stop offset="100%" stopColor="#3B82F6" />
+          </linearGradient>
+          <linearGradient id="vesakFlagYellow" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#EAB308" />
+            <stop offset="100%" stopColor="#FDE047" />
+          </linearGradient>
+          <linearGradient id="vesakFlagRed" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#B91C1C" />
+            <stop offset="100%" stopColor="#EF4444" />
+          </linearGradient>
+          <linearGradient id="vesakFlagWhite" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#E2E8F0" />
+            <stop offset="100%" stopColor="#FFFFFF" />
+          </linearGradient>
+          <linearGradient id="vesakFlagOrange" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#C2410C" />
+            <stop offset="100%" stopColor="#FB923C" />
+          </linearGradient>
+          <linearGradient id="vesakPoleGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#FEF08A" />
+            <stop offset="40%" stopColor="#F59E0B" />
+            <stop offset="80%" stopColor="#B45309" />
+            <stop offset="100%" stopColor="#78350F" />
+          </linearGradient>
+          <linearGradient id="vesakGoldFinial" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FEF08A" />
+            <stop offset="100%" stopColor="#D97706" />
+          </linearGradient>
+          <linearGradient id="vesakFlagShimmer" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+            <stop offset="50%" stopColor="#000000" stopOpacity="0.08" />
+            <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.2" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      {/* 1. TOP HEADER SECTION */}
+      {/* Buddhist Flag Lights Garland across the top wire */}
+      {showLightString && (
+        <BuddhistLightsGarland count={isVirtualPreview ? 14 : 26} className="vesak-garland-top" />
+      )}
+
+      {/* Hero Left: Waving Buddhist 6-Stripe Flag standing proudly */}
+      {showFlag && (
+        <div className="vesak-spot-hero-flag" title="Sacred Buddhist Flag">
+          <VesakFlagSVG width={isVirtualPreview ? 85 : 130} />
+        </div>
+      )}
+
+      {/* Hero Right: Majestic Octagonal Vesak Kudu hanging with candle core */}
+      {showLantern && (
+        <div className="vesak-spot-hero-lantern" title="Octagonal Vesak Kudu">
+          <VesakKuduSVG width={isVirtualPreview ? 95 : 155} />
+        </div>
+      )}
+
+      {/* Hero Bottom: Sacred Blooming Lotus with pond ripples */}
+      {showLotus && (
+        <div className="vesak-spot-hero-lotus" title="Sacred Blooming Lotus">
+          <VesakLotusSVG width={isVirtualPreview ? 95 : 150} />
+        </div>
+      )}
+
+      {/* 2. MID-PAGE SECTION (Featured Listings, Categories, Why Us) */}
+      {!isVirtualPreview && (
+        <>
+          {/* Mid-page Left: Secondary charming Vesak Kudu hanging beside Categories */}
+          {showLantern && (
+            <div className="vesak-spot-mid-lantern" title="Vesak Kudu Illumination">
+              <VesakKuduSVG width={125} />
+            </div>
+          )}
+
+          {/* Mid-page Right: Sacred Blooming Lotus resting beside "Why Choose Yamu" */}
+          {showLotus && (
+            <div className="vesak-spot-mid-lotus" title="Sacred Lotus Flower">
+              <VesakLotusSVG width={135} />
+            </div>
+          )}
+
+          {/* Mid-page Lower: Waving Buddhist Flag beside Rental Partners list */}
+          {showFlag && (
+            <div className="vesak-spot-mid-flag" title="Buddhist Flag">
+              <VesakFlagSVG width={120} />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 3. FOOTER & BOTTOM CTA SECTION */}
+      {/* Vesak Kudu hanging beside the bottom CTA banner */}
+      {showLantern && (
+        <div className="vesak-spot-bottom-lantern" title="Vesak Kudu">
+          <VesakKuduSVG width={isVirtualPreview ? 90 : 140} />
+        </div>
+      )}
+
+      {/* Grand Sacred Blooming Lotus floating serenely on footer water line */}
+      {showLotus && (
+        <div className="vesak-spot-bottom-lotus" title="Grand Sacred Lotus">
+          <VesakLotusSVG width={isVirtualPreview ? 105 : 175} />
+        </div>
+      )}
+
+      {/* 4. Ambient Rising Golden Sparks / Pahan Eliya */}
       {showParticles && !isVirtualPreview && (
         <canvas ref={canvasRef} className="vesak-particles-canvas" />
       )}
 
-      {/* 2. Top Illuminated Vesak Torana Garland (Buddhist Sacred Flag Colors) */}
-      {showLightString && (
-        <div className="vesak-lights-garland" title="Vesak Illumination Garland">
-          <div className="vesak-lights-wire" />
-          <div className="vesak-bulbs-container">
-            {Array.from({ length: 22 }).map((_, idx) => {
-              // 6 Buddhist sacred flag colors sequence
-              const colors = [
-                { hex: "#2563EB", glow: "rgba(37,99,235,0.8)", label: "Nila (Blue)" },
-                { hex: "#FACC15", glow: "rgba(250,204,21,0.85)", label: "Pita (Yellow)" },
-                { hex: "#DC2626", glow: "rgba(220,38,38,0.8)", label: "Lohita (Red)" },
-                { hex: "#FFFFFF", glow: "rgba(255,255,255,0.9)", label: "Odata (White)" },
-                { hex: "#EA580C", glow: "rgba(234,88,12,0.85)", label: "Manjettha (Orange)" },
-              ];
-              const c = colors[idx % colors.length];
-              return (
-                <div
-                  key={idx}
-                  className="vesak-bulb-item"
-                  style={{
-                    animationDelay: `${(idx % 5) * 0.45}s`,
-                  }}
-                >
-                  <div className="vesak-bulb-cap" />
-                  <div
-                    className="vesak-bulb-glass"
-                    style={{
-                      backgroundColor: c.hex,
-                      boxShadow: `0 0 10px 2px ${c.glow}`,
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* 3. Waving Buddhist Flag (Sadaham Kodiy) */}
-      {showFlag && (
-        <div
-          className={`vesak-flag-wrapper flag-pos-${flagPosition}`}
-          title="Buddhist Flag (Sadaham Kodiy)"
-        >
-          <svg
-            id="flag-svg-element"
-            className="vesak-flag-svg"
-            viewBox="0 0 280 180"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Flag Pole */}
-            <rect x="12" y="10" width="6" height="160" rx="3" fill="#D1D5DB" />
-            <circle cx="15" cy="10" r="6" fill="#F59E0B" />
-
-            {/* WAVING FLAG FABRIC GROUP */}
-            <g className="animate-flag-fabric">
-              {/* Stripe 1: Blue (Nila) */}
-              <rect x="18" y="20" width="36" height="100" fill="#2563EB" />
-              {/* Stripe 2: Yellow (Pita) */}
-              <rect x="54" y="20" width="36" height="100" fill="#FACC15" />
-              {/* Stripe 3: Red (Lohita) */}
-              <rect x="90" y="20" width="36" height="100" fill="#DC2626" />
-              {/* Stripe 4: White (Odata) */}
-              <rect x="126" y="20" width="36" height="100" fill="#FFFFFF" />
-              {/* Stripe 5: Orange (Manjettha) */}
-              <rect x="162" y="20" width="36" height="100" fill="#EA580C" />
-
-              {/* Stripe 6: Composite (Prabhasvara) - 5 horizontal bars */}
-              <g>
-                <rect x="198" y="20" width="36" height="20" fill="#2563EB" />
-                <rect x="198" y="40" width="36" height="20" fill="#FACC15" />
-                <rect x="198" y="60" width="36" height="20" fill="#DC2626" />
-                <rect x="198" y="80" width="36" height="20" fill="#FFFFFF" />
-                <rect x="198" y="100" width="36" height="20" fill="#EA580C" />
-              </g>
-
-              {/* Cloth Wave Shimmer Overlay */}
-              <path
-                className="animate-shimmer-pass"
-                d="M 18 20 Q 80 10 130 20 Q 180 30 234 20 L 234 120 Q 180 130 130 120 Q 80 110 18 120 Z"
-                fill="white"
-                opacity="0.15"
-              />
-            </g>
-          </svg>
-        </div>
-      )}
-
-      {/* 4. Octagonal Vesak Lantern (Vesak Kudu) */}
-      {showLantern && (
-        <div
-          className={`vesak-lantern-wrapper lantern-pos-${lanternPosition}`}
-          title="Traditional Vesak Lantern"
-        >
-          <svg
-            id="vesak-lantern-svg-element"
-            className="vesak-lantern-svg animate-lantern-body"
-            viewBox="0 0 260 320"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              {/* Panel Gradients */}
-              <linearGradient
-                id="goldCore"
-                x1="130"
-                y1="60"
-                x2="130"
-                y2="160"
-                gradientUnits="userSpaceOnUse"
-              >
-                <stop offset="0%" stopColor="#FEF08A" />
-                <stop offset="50%" stopColor="#F59E0B" />
-                <stop offset="100%" stopColor="#D97706" />
-              </linearGradient>
-
-              <linearGradient
-                id="bluePanel"
-                x1="60"
-                y1="80"
-                x2="100"
-                y2="140"
-                gradientUnits="userSpaceOnUse"
-              >
-                <stop offset="0%" stopColor="#60A5FA" />
-                <stop offset="100%" stopColor="#1D4ED8" />
-              </linearGradient>
-
-              <linearGradient
-                id="pinkPanel"
-                x1="160"
-                y1="80"
-                x2="200"
-                y2="140"
-                gradientUnits="userSpaceOnUse"
-              >
-                <stop offset="0%" stopColor="#F472B6" />
-                <stop offset="100%" stopColor="#BE185D" />
-              </linearGradient>
-
-              <linearGradient
-                id="orangePanel"
-                x1="100"
-                y1="60"
-                x2="160"
-                y2="160"
-                gradientUnits="userSpaceOnUse"
-              >
-                <stop offset="0%" stopColor="#FDBA74" />
-                <stop offset="100%" stopColor="#EA580C" />
-              </linearGradient>
-
-              <radialGradient id="candleGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#FFFFFF" />
-                <stop offset="40%" stopColor="#FDE047" />
-                <stop offset="80%" stopColor="#F59E0B" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#D97706" stopOpacity="0" />
-              </radialGradient>
-
-              <filter id="lanternGlow" x="-30%" y="-30%" width="160%" height="160%">
-                <feGaussianBlur stdDeviation="6" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-            </defs>
-
-            {/* Hanging String & Top Ring */}
-            <line
-              x1="130"
-              y1="0"
-              x2="130"
-              y2="35"
-              stroke="#FDE047"
-              strokeWidth="2"
-              strokeDasharray="4 2"
-            />
-            <circle cx="130" cy="35" r="5" fill="none" stroke="#F59E0B" strokeWidth="2" />
-
-            {/* TOP PYRAMID HOOD */}
-            <polygon
-              points="130,38 90,70 170,70"
-              fill="#EA580C"
-              stroke="#FEF08A"
-              strokeWidth="1.5"
-            />
-            <polygon points="130,38 130,70 170,70" fill="#C2410C" opacity="0.4" />
-
-            {/* INNER GLOWING CANDLE CORE */}
-            <circle
-              className="animate-lantern-core-glow"
-              cx="130"
-              cy="110"
-              r="45"
-              fill="url(#candleGlow)"
-            />
-
-            {/* OCTAGONAL LANTERN MAIN BODY */}
-            {/* Side Left Panel */}
-            <polygon
-              points="90,70 60,110 90,150 100,110"
-              fill="url(#bluePanel)"
-              stroke="#FEF08A"
-              strokeWidth="1.5"
-            />
-            {/* Side Right Panel */}
-            <polygon
-              points="170,70 200,110 170,150 160,110"
-              fill="url(#pinkPanel)"
-              stroke="#FEF08A"
-              strokeWidth="1.5"
-            />
-            {/* Center Main Panel */}
-            <polygon
-              points="130,70 100,110 130,150 160,110"
-              fill="url(#goldCore)"
-              stroke="#FFF"
-              strokeWidth="2"
-              filter="url(#lanternGlow)"
-            />
-
-            {/* Surrounding Triangle Petals (Vesak Flower Cutouts) */}
-            <polygon
-              points="90,70 130,70 100,110"
-              fill="url(#orangePanel)"
-              stroke="#FEF08A"
-              strokeWidth="1"
-              opacity="0.9"
-            />
-            <polygon
-              points="170,70 130,70 160,110"
-              fill="url(#orangePanel)"
-              stroke="#FEF08A"
-              strokeWidth="1"
-              opacity="0.9"
-            />
-            <polygon
-              points="90,150 130,150 100,110"
-              fill="url(#orangePanel)"
-              stroke="#FEF08A"
-              strokeWidth="1"
-              opacity="0.9"
-            />
-            <polygon
-              points="170,150 130,150 160,110"
-              fill="url(#orangePanel)"
-              stroke="#FEF08A"
-              strokeWidth="1"
-              opacity="0.9"
-            />
-
-            {/* BOTTOM BASE HOOD */}
-            <polygon
-              points="130,180 90,150 170,150"
-              fill="#EA580C"
-              stroke="#FEF08A"
-              strokeWidth="1.5"
-            />
-
-            {/* FLOWING TASSELS / STREAMERS */}
-            {/* Left Outer Streamers */}
-            <g className="animate-streamer-left">
-              <path
-                d="M 65 110 Q 55 170 60 270 Q 62 275 65 270 Q 70 170 65 110 Z"
-                fill="#60A5FA"
-                opacity="0.85"
-              />
-              <path
-                d="M 90 150 Q 82 210 85 295 Q 88 300 91 295 Q 96 210 90 150 Z"
-                fill="#F472B6"
-                opacity="0.9"
-              />
-            </g>
-
-            {/* Center Streamer Group */}
-            <g className="animate-streamer-right">
-              <path
-                d="M 110 165 Q 105 230 108 310 Q 111 315 114 310 Q 118 230 110 165 Z"
-                fill="#FEF08A"
-                opacity="0.95"
-              />
-              <path
-                d="M 130 180 Q 128 240 130 320 Q 133 325 136 320 Q 138 240 130 180 Z"
-                fill="#FFFFFF"
-                opacity="0.95"
-              />
-              <path
-                d="M 150 165 Q 152 230 150 310 Q 153 315 156 310 Q 158 230 150 165 Z"
-                fill="#FEF08A"
-                opacity="0.95"
-              />
-            </g>
-
-            {/* Right Outer Streamers */}
-            <g className="animate-streamer-left">
-              <path
-                d="M 170 150 Q 175 210 172 295 Q 175 300 178 295 Q 182 210 170 150 Z"
-                fill="#F472B6"
-                opacity="0.9"
-              />
-              <path
-                d="M 195 110 Q 200 170 195 270 Q 198 275 201 270 Q 205 170 195 110 Z"
-                fill="#60A5FA"
-                opacity="0.85"
-              />
-            </g>
-          </svg>
-        </div>
-      )}
-
-      {/* 5. Sacred Blooming Lotus Flower (Nelum Mala) */}
-      {showLotus && (
-        <div
-          className={`vesak-lotus-wrapper lotus-pos-${lotusPosition}`}
-          title="Sacred Blooming Lotus"
-        >
-          <svg
-            id="lotus-svg-element"
-            className="vesak-lotus-svg animate-lotus-float"
-            viewBox="0 0 260 240"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              <radialGradient id="lotusAura" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#FBCFE8" stopOpacity="0.8" />
-                <stop offset="50%" stopColor="#F472B6" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#DB2777" stopOpacity="0" />
-              </radialGradient>
-
-              <linearGradient
-                id="petalOuter"
-                x1="130"
-                y1="60"
-                x2="130"
-                y2="180"
-                gradientUnits="userSpaceOnUse"
-              >
-                <stop offset="0%" stopColor="#F472B6" />
-                <stop offset="60%" stopColor="#DB2777" />
-                <stop offset="100%" stopColor="#831843" />
-              </linearGradient>
-
-              <linearGradient
-                id="petalInner"
-                x1="130"
-                y1="80"
-                x2="130"
-                y2="170"
-                gradientUnits="userSpaceOnUse"
-              >
-                <stop offset="0%" stopColor="#FFFFFF" />
-                <stop offset="50%" stopColor="#FCE7F3" />
-                <stop offset="100%" stopColor="#F472B6" />
-              </linearGradient>
-
-              <linearGradient
-                id="leafGrad"
-                x1="30"
-                y1="180"
-                x2="230"
-                y2="180"
-                gradientUnits="userSpaceOnUse"
-              >
-                <stop offset="0%" stopColor="#059669" />
-                <stop offset="50%" stopColor="#10B981" />
-                <stop offset="100%" stopColor="#047857" />
-              </linearGradient>
-            </defs>
-
-            {/* WATER RIPPLE RINGS */}
-            <ellipse
-              className="animate-ripple-1"
-              cx="130"
-              cy="180"
-              rx="70"
-              ry="18"
-              fill="none"
-              stroke="#FBCFE8"
-              strokeWidth="1.5"
-              opacity="0.6"
-            />
-            <ellipse
-              className="animate-ripple-2"
-              cx="130"
-              cy="180"
-              rx="70"
-              ry="18"
-              fill="none"
-              stroke="#60A5FA"
-              strokeWidth="1.5"
-              opacity="0.6"
-            />
-
-            {/* AURA GLOW */}
-            <circle cx="130" cy="140" r="85" fill="url(#lotusAura)" />
-
-            {/* GREEN LOTUS LEAF PAD */}
-            <path
-              d="M 30 180 C 30 160 80 150 130 150 C 180 150 230 160 230 180 C 230 200 180 208 130 208 C 80 208 30 200 30 180 Z"
-              fill="url(#leafGrad)"
-            />
-            <path
-              d="M 130 180 L 35 175 M 130 180 L 225 175 M 130 180 L 130 208 M 130 180 L 80 198 M 130 180 L 180 198"
-              stroke="#047857"
-              strokeWidth="1.5"
-              opacity="0.6"
-            />
-
-            {/* OUTER PETALS LAYER */}
-            <g className="animate-petal">
-              <path
-                d="M 130 170 C 70 170 40 140 50 120 C 70 120 100 145 130 170 Z"
-                fill="url(#petalOuter)"
-              />
-              <path
-                d="M 130 170 C 190 170 220 140 210 120 C 190 120 160 145 130 170 Z"
-                fill="url(#petalOuter)"
-              />
-              <path
-                d="M 130 175 C 80 180 50 160 65 138 C 85 140 110 155 130 175 Z"
-                fill="url(#petalOuter)"
-              />
-              <path
-                d="M 130 175 C 180 180 210 160 195 138 C 175 140 150 155 130 175 Z"
-                fill="url(#petalOuter)"
-              />
-            </g>
-
-            {/* MID PETALS LAYER */}
-            <path
-              d="M 130 165 C 80 150 65 105 85 85 C 105 105 118 135 130 165 Z"
-              fill="url(#petalInner)"
-            />
-            <path
-              d="M 130 165 C 180 150 195 105 175 85 C 155 105 142 135 130 165 Z"
-              fill="url(#petalInner)"
-            />
-            <path
-              d="M 130 165 C 90 135 90 90 108 70 C 122 95 125 130 130 165 Z"
-              fill="url(#petalInner)"
-            />
-            <path
-              d="M 130 165 C 170 135 170 90 152 70 C 138 95 135 130 130 165 Z"
-              fill="url(#petalInner)"
-            />
-
-            {/* CENTER INNERMOST PETAL & STAMEN */}
-            <path
-              d="M 130 165 C 110 125 115 75 130 55 C 145 75 150 125 130 165 Z"
-              fill="#FFFFFF"
-            />
-            <path
-              d="M 130 165 C 118 130 122 85 130 65 C 138 85 142 130 130 165 Z"
-              fill="#FCE7F3"
-            />
-
-            {/* Golden Stamen Core */}
-            <circle cx="130" cy="142" r="10" fill="#F59E0B" />
-            <circle cx="130" cy="142" r="6" fill="#FEF08A" />
-          </svg>
-        </div>
-      )}
-
-      {/* Scoped CSS Animations and Styles */}
       <style>{`
-        .vesak-festival-overlay {
-          position: fixed;
+        /* Vesak Root Container - Stretches with the natural document height */
+        .vesak-festival-root {
+          position: absolute;
           inset: 0;
           pointer-events: none;
-          z-index: 998;
+          z-index: 45;
           overflow: hidden;
         }
 
-        /* 1. Canvas Light Particles */
+        .vesak-defs-svg {
+          position: absolute;
+          width: 0;
+          height: 0;
+          overflow: hidden;
+          pointer-events: none;
+        }
+
+        /* Ambient Pahan Embers Canvas */
         .vesak-particles-canvas {
-          position: fixed;
-          top: 0;
-          left: 0;
+          position: absolute;
+          inset: 0;
           width: 100%;
           height: 100%;
           pointer-events: none;
-          z-index: 995;
+          z-index: 2;
         }
 
-        /* 2. Top Garland Illuminated Light Bulbs */
-        .vesak-lights-garland {
-          position: fixed;
+        /* 1. TOP GARLAND LIGHT WIRE */
+        .vesak-garland-top {
+          position: absolute;
           top: 0;
           left: 0;
           right: 0;
-          height: 24px;
-          z-index: 999;
-          pointer-events: none;
+          height: 22px;
+          z-index: 50;
         }
         .vesak-lights-wire {
           position: absolute;
@@ -625,8 +636,8 @@ const VesakAccessories = ({ previewConfig = null, isVirtualPreview = false }) =>
           left: 0;
           right: 0;
           height: 2px;
-          background: linear-gradient(90deg, #FDE047, #EA580C, #2563EB, #FDE047);
-          opacity: 0.65;
+          background: linear-gradient(90deg, #2563EB, #FACC15, #DC2626, #FFFFFF, #EA580C, #2563EB);
+          opacity: 0.7;
         }
         .vesak-bulbs-container {
           display: flex;
@@ -639,116 +650,172 @@ const VesakAccessories = ({ previewConfig = null, isVirtualPreview = false }) =>
           display: flex;
           flex-direction: column;
           align-items: center;
-          animation: bulb-pulse 2.2s infinite ease-in-out alternate;
+          animation: bulb-pulse 2.4s infinite ease-in-out alternate;
         }
         .vesak-bulb-cap {
           width: 4px;
           height: 3px;
-          background: #334155;
+          background: #475569;
           border-radius: 1px;
         }
         .vesak-bulb-glass {
           width: 7px;
           height: 10px;
           border-radius: 50% 50% 40% 40%;
-          transition: transform 0.2s;
         }
         @keyframes bulb-pulse {
-          0% {
-            opacity: 0.5;
-            transform: scale(0.9);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1.15);
+          0% { opacity: 0.65; transform: scale(0.92); }
+          100% { opacity: 1; transform: scale(1.12); filter: brightness(1.25); }
+        }
+
+        /* 2. NATURAL SCROLL POSITIONED ACCESSORIES */
+        /* Hero Flag (Top-Left) */
+        .vesak-spot-hero-flag {
+          position: absolute;
+          top: 25px;
+          left: 18px;
+          z-index: 46;
+          filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.22));
+          animation: float-gentle 4.8s ease-in-out infinite;
+        }
+        @media (min-width: 768px) {
+          .vesak-spot-hero-flag {
+            top: 35px;
+            left: 45px;
           }
         }
 
-        /* 3. Waving Buddhist Flag */
-        .vesak-flag-wrapper {
-          position: fixed;
-          z-index: 997;
-          pointer-events: auto;
-          filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.28));
-          transition: all 0.3s ease;
+        /* Hero Lantern (Top-Right) */
+        .vesak-spot-hero-lantern {
+          position: absolute;
+          top: 15px;
+          right: 18px;
+          z-index: 46;
+          filter: drop-shadow(0 16px 36px rgba(245, 158, 11, 0.4));
+          animation: lantern-sway 4.5s ease-in-out infinite alternate;
+          transform-origin: top center;
         }
-        .flag-pos-top-left {
-          top: 80px;
+        @media (min-width: 768px) {
+          .vesak-spot-hero-lantern {
+            top: 25px;
+            right: 48px;
+          }
+        }
+
+        /* Hero Lotus (Bottom-Left) */
+        .vesak-spot-hero-lotus {
+          position: absolute;
+          top: 500px;
+          left: 18px;
+          z-index: 46;
+          filter: drop-shadow(0 14px 28px rgba(219, 39, 119, 0.35));
+          animation: float-gentle 4.2s ease-in-out infinite 0.8s;
+        }
+        @media (min-width: 768px) {
+          .vesak-spot-hero-lotus {
+            top: 520px;
+            left: 45px;
+          }
+        }
+
+        /* Mid-Page Lantern (Near Categories) */
+        .vesak-spot-mid-lantern {
+          position: absolute;
+          top: 1040px;
+          left: 18px;
+          z-index: 45;
+          filter: drop-shadow(0 14px 28px rgba(245, 158, 11, 0.35));
+          animation: lantern-sway 4.8s ease-in-out infinite alternate 0.5s;
+          transform-origin: top center;
+        }
+        @media (min-width: 768px) {
+          .vesak-spot-mid-lantern {
+            left: 45px;
+          }
+        }
+
+        /* Mid-Page Lotus (Near Why Us Promise) */
+        .vesak-spot-mid-lotus {
+          position: absolute;
+          top: 1720px;
+          right: 18px;
+          z-index: 45;
+          filter: drop-shadow(0 14px 28px rgba(219, 39, 119, 0.35));
+          animation: float-gentle 4.6s ease-in-out infinite 1.2s;
+        }
+        @media (min-width: 768px) {
+          .vesak-spot-mid-lotus {
+            right: 48px;
+          }
+        }
+
+        /* Mid-Page Flag (Near Rental Partners) */
+        .vesak-spot-mid-flag {
+          position: absolute;
+          top: 2420px;
+          left: 18px;
+          z-index: 45;
+          filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.22));
+          animation: float-gentle 5s ease-in-out infinite 1.6s;
+        }
+        @media (min-width: 768px) {
+          .vesak-spot-mid-flag {
+            left: 45px;
+          }
+        }
+
+        /* Bottom Lantern (Beside bottom CTA card) */
+        .vesak-spot-bottom-lantern {
+          position: absolute;
+          bottom: 150px;
           left: 20px;
-          width: 130px;
+          z-index: 46;
+          filter: drop-shadow(0 16px 36px rgba(245, 158, 11, 0.42));
+          animation: lantern-sway 4.2s ease-in-out infinite alternate 1s;
+          transform-origin: top center;
         }
-        .flag-pos-top-right {
-          top: 80px;
+        @media (min-width: 768px) {
+          .vesak-spot-bottom-lantern {
+            bottom: 170px;
+            left: 55px;
+          }
+        }
+
+        /* Bottom Grand Lotus (Floating in footer pond water line) */
+        .vesak-spot-bottom-lotus {
+          position: absolute;
+          bottom: 70px;
           right: 20px;
-          width: 130px;
+          z-index: 46;
+          filter: drop-shadow(0 16px 36px rgba(219, 39, 119, 0.45));
+          animation: float-gentle 4.4s ease-in-out infinite;
         }
-        .vesak-flag-svg {
-          width: 100%;
-          height: auto;
-          overflow: visible;
+        @media (min-width: 768px) {
+          .vesak-spot-bottom-lotus {
+            bottom: 85px;
+            right: 60px;
+          }
         }
+
+        /* ANIMATIONS FOR VESAK ACCESSORIES */
         .animate-flag-fabric {
-          transform-origin: 18px 20px;
-          animation: flag-wave 3.5s ease-in-out infinite;
-        }
-        .animate-shimmer-pass {
-          animation: shimmer-pass 2.8s ease-in-out infinite alternate;
+          transform-origin: 20px 20px;
+          animation: flag-wave 3.6s ease-in-out infinite;
         }
         @keyframes flag-wave {
-          0%, 100% {
-            transform: skewY(0deg) scaleX(1);
-          }
-          50% {
-            transform: skewY(-2.5deg) scaleX(0.97);
-          }
-        }
-        @keyframes shimmer-pass {
-          0% {
-            opacity: 0.1;
-            transform: translateX(-12px);
-          }
-          100% {
-            opacity: 0.4;
-            transform: translateX(14px);
-          }
+          0%, 100% { transform: skewY(0deg) scaleX(1); }
+          50% { transform: skewY(-2.5deg) scaleX(0.97); }
         }
 
-        /* 4. Octagonal Vesak Lantern (Vesak Kudu) */
-        .vesak-lantern-wrapper {
-          position: fixed;
-          z-index: 999;
-          pointer-events: auto;
-          transition: all 0.3s ease;
-          filter: drop-shadow(0 16px 32px rgba(245, 158, 11, 0.35));
-        }
-        .lantern-pos-top-right {
-          top: 65px;
-          right: 24px;
-          width: 155px;
-        }
-        .lantern-pos-top-left {
-          top: 65px;
-          left: 24px;
-          width: 155px;
-        }
-        .lantern-pos-bottom-right {
-          bottom: 96px;
-          right: 24px;
-          width: 155px;
-        }
-        .vesak-lantern-svg {
-          width: 100%;
-          height: auto;
-          overflow: visible;
-        }
-        .animate-lantern-body {
-          transform-origin: 130px 10px;
-          animation: lantern-sway 4.5s ease-in-out infinite alternate;
-        }
         .animate-lantern-core-glow {
           transform-origin: 130px 110px;
           animation: candle-flicker 2.4s ease-in-out infinite alternate;
         }
+        @keyframes candle-flicker {
+          0% { transform: scale(0.92); opacity: 0.75; }
+          100% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 16px #FEF08A); }
+        }
+
         .animate-streamer-left {
           transform-origin: 65px 110px;
           animation: streamer-wave-l 3.8s ease-in-out infinite alternate;
@@ -757,200 +824,78 @@ const VesakAccessories = ({ previewConfig = null, isVirtualPreview = false }) =>
           transform-origin: 130px 180px;
           animation: streamer-wave-r 4.2s ease-in-out infinite alternate;
         }
-        @keyframes lantern-sway {
-          0% {
-            transform: translateY(0) rotate(-2.5deg);
-          }
-          100% {
-            transform: translateY(-8px) rotate(2.5deg);
-          }
-        }
-        @keyframes candle-flicker {
-          0% {
-            transform: scale(0.92);
-            opacity: 0.75;
-          }
-          100% {
-            transform: scale(1.18);
-            opacity: 1;
-            filter: drop-shadow(0 0 16px #FEF08A);
-          }
-        }
         @keyframes streamer-wave-l {
-          0% {
-            transform: rotate(-3deg) skewX(-2deg);
-          }
-          100% {
-            transform: rotate(4deg) skewX(3deg);
-          }
+          0% { transform: rotate(-3deg) skewX(-2deg); }
+          100% { transform: rotate(4deg) skewX(3deg); }
         }
         @keyframes streamer-wave-r {
-          0% {
-            transform: rotate(3deg) skewX(2deg);
-          }
-          100% {
-            transform: rotate(-4deg) skewX(-3deg);
-          }
+          0% { transform: rotate(3deg) skewX(2deg); }
+          100% { transform: rotate(-4deg) skewX(-3deg); }
         }
 
-        /* 5. Sacred Blooming Lotus Flower */
-        .vesak-lotus-wrapper {
-          position: fixed;
-          z-index: 997;
-          pointer-events: auto;
-          transition: all 0.3s ease;
-          filter: drop-shadow(0 14px 28px rgba(219, 39, 119, 0.3));
+        .animate-lotus-aura-glow {
+          transform-origin: 140px 110px;
+          animation: lotus-aura-pulse 3.4s ease-in-out infinite alternate;
         }
-        .lotus-pos-bottom-left {
-          bottom: 24px;
-          left: 24px;
-          width: 165px;
-        }
-        .lotus-pos-bottom-right {
-          bottom: 96px;
-          right: 24px;
-          width: 165px;
-        }
-        .vesak-lotus-svg {
-          width: 100%;
-          height: auto;
-          overflow: visible;
-        }
-        .animate-lotus-float {
-          transform-origin: 130px 180px;
-          animation: lotus-bob 4.5s ease-in-out infinite alternate;
-        }
-        .animate-petal {
-          transform-origin: 130px 170px;
-          animation: petal-breathe 3.6s ease-in-out infinite alternate;
-        }
-        .animate-ripple-1 {
-          transform-origin: 130px 180px;
-          animation: ripple 3s ease-out infinite;
-        }
-        .animate-ripple-2 {
-          transform-origin: 130px 180px;
-          animation: ripple 3s ease-out infinite 1.5s;
-        }
-        @keyframes lotus-bob {
-          0% {
-            transform: translateY(0) rotate(-1.5deg);
-          }
-          100% {
-            transform: translateY(-8px) rotate(1.5deg);
-          }
-        }
-        @keyframes petal-breathe {
-          0% {
-            transform: scale(0.97);
-          }
-          100% {
-            transform: scale(1.04);
-          }
-        }
-        @keyframes ripple {
-          0% {
-            transform: scale(0.85);
-            opacity: 0.8;
-          }
-          100% {
-            transform: scale(1.3);
-            opacity: 0;
-          }
+        @keyframes lotus-aura-pulse {
+          0% { transform: scale(0.88); opacity: 0.55; }
+          100% { transform: scale(1.16); opacity: 0.95; }
         }
 
-        /* Virtual Split-Screen Preview Mode in Admin Dashboard */
-        .vesak-festival-overlay.virtual-preview-mode {
-          position: absolute !important;
-          inset: 0 !important;
-          width: 100% !important;
-          height: 100% !important;
-          overflow: hidden !important;
-          pointer-events: none !important;
-          z-index: 10 !important;
-        }
-        .vesak-festival-overlay.virtual-preview-mode .vesak-lantern-wrapper {
-          position: absolute !important;
-          width: 75px !important;
-          z-index: 12 !important;
-        }
-        .vesak-festival-overlay.virtual-preview-mode .lantern-pos-top-right {
-          top: 36px !important;
-          right: 10px !important;
-        }
-        .vesak-festival-overlay.virtual-preview-mode .lantern-pos-top-left {
-          top: 36px !important;
-          left: 10px !important;
-        }
-        .vesak-festival-overlay.virtual-preview-mode .lantern-pos-bottom-right {
-          bottom: 12px !important;
-          right: 12px !important;
-        }
-        .vesak-festival-overlay.virtual-preview-mode .vesak-lotus-wrapper {
-          position: absolute !important;
-          width: 80px !important;
-          z-index: 12 !important;
-        }
-        .vesak-festival-overlay.virtual-preview-mode .lotus-pos-bottom-left {
-          bottom: 12px !important;
-          left: 12px !important;
-        }
-        .vesak-festival-overlay.virtual-preview-mode .lotus-pos-bottom-right {
-          bottom: 12px !important;
-          right: 12px !important;
-        }
-        .vesak-festival-overlay.virtual-preview-mode .vesak-flag-wrapper {
-          position: absolute !important;
-          width: 65px !important;
-          z-index: 12 !important;
-        }
-        .vesak-festival-overlay.virtual-preview-mode .flag-pos-top-left {
-          top: 36px !important;
-          left: 10px !important;
-        }
-        .vesak-festival-overlay.virtual-preview-mode .flag-pos-top-right {
-          top: 36px !important;
-          right: 10px !important;
-        }
-        .vesak-festival-overlay.virtual-preview-mode .vesak-lights-garland {
-          position: absolute !important;
+        .animate-ripple-1 { animation: ripple-pulse 3.8s ease-in-out infinite; transform-origin: 140px 155px; }
+        .animate-ripple-2 { animation: ripple-pulse 3.8s ease-in-out infinite 1.2s; transform-origin: 140px 155px; }
+        .animate-ripple-3 { animation: ripple-pulse 3.8s ease-in-out infinite 2.4s; transform-origin: 140px 155px; }
+        @keyframes ripple-pulse {
+          0% { transform: scale(0.85); opacity: 0.6; }
+          50% { transform: scale(1.08); opacity: 0.25; }
+          100% { transform: scale(1.25); opacity: 0; }
         }
 
-        /* Mobile Responsive Adjustments */
-        @media (max-width: 768px) {
-          .vesak-lantern-wrapper {
-            width: 100px;
-          }
-          .lantern-pos-top-right {
-            top: 70px;
-            right: 12px;
-          }
-          .lantern-pos-top-left {
-            top: 70px;
-            left: 12px;
-          }
-          .vesak-lotus-wrapper {
-            width: 110px;
-          }
-          .lotus-pos-bottom-left {
-            bottom: 16px;
-            left: 12px;
-          }
-          .lotus-pos-bottom-right {
-            bottom: 84px;
-            right: 16px;
-          }
-          .vesak-flag-wrapper {
-            width: 90px;
-          }
-          .flag-pos-top-left {
-            top: 70px;
-            left: 12px;
-          }
-          .flag-pos-top-right {
-            top: 70px;
-            right: 12px;
-          }
+        .animate-sparkle-1 {
+          animation: sparkle-twinkle 2s infinite ease-in-out alternate;
+        }
+        .animate-sparkle-2 {
+          animation: sparkle-twinkle 2.5s infinite ease-in-out alternate 0.8s;
+        }
+        @keyframes sparkle-twinkle {
+          0% { transform: scale(0.6); opacity: 0.35; }
+          100% { transform: scale(1.2); opacity: 0.95; filter: drop-shadow(0 0 6px #FEF08A); }
+        }
+
+        @keyframes lantern-sway {
+          0% { transform: translateY(0) rotate(-2deg); }
+          100% { transform: translateY(-7px) rotate(2.5deg); }
+        }
+
+        @keyframes float-gentle {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+
+        /* VIRTUAL SPLIT-SCREEN PREVIEW MODE (Inside Admin CMS) */
+        .vesak-festival-root.virtual-preview-mode {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        .vesak-festival-root.virtual-preview-mode .vesak-garland-top {
+          top: 0;
+        }
+        .vesak-festival-root.virtual-preview-mode .vesak-spot-hero-flag {
+          top: 15px;
+          left: 10px;
+        }
+        .vesak-festival-root.virtual-preview-mode .vesak-spot-hero-lantern {
+          top: 15px;
+          right: 10px;
+        }
+        .vesak-festival-root.virtual-preview-mode .vesak-spot-bottom-lotus {
+          bottom: 15px;
+          right: 12px;
+        }
+        .vesak-festival-root.virtual-preview-mode .vesak-spot-bottom-lantern {
+          bottom: 15px;
+          left: 12px;
         }
       `}</style>
     </div>
