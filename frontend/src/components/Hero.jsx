@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Search, ChevronDown, MapPin } from "lucide-react";
 import fleetCutoutImg from "../assets/images/yamu_fleet_cutout.png";
 import { useSiteConfig } from "../context/SiteConfigContext";
+import { FestivalHeroDecorations } from "./festivals/FestivalAccessoriesManager";
 
 const VEHICLE_TYPES = [
   { id: "", label: "All Vehicle Types" },
@@ -61,6 +62,7 @@ const Hero = () => {
 
   return (
     <section className="yamu-exact-hero">
+      <FestivalHeroDecorations />
       {/* Radiant Orange Gradient Background with Atmospheric Light Source */}
       <div className="hero-gradient-overlay" />
       <div className="hero-light-glow" />

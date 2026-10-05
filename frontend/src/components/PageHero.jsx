@@ -1,10 +1,12 @@
 import React from "react";
+import { FestivalHeroDecorations } from "./festivals/FestivalAccessoriesManager";
 
 // Orange header band used at the top of every inner page so they all match the home page.
 // `children` renders below the title (e.g. a search box or stat strip).
 const PageHero = ({ badge, title, highlight, subtitle, actions, children, compact = false }) => (
-  <section className={`y-hero ${compact ? "y-hero-compact" : ""}`}>
-    <div className="container y-hero-inner">
+  <section className={`y-hero ${compact ? "y-hero-compact" : ""}`} style={{ position: "relative", overflow: "hidden" }}>
+    <FestivalHeroDecorations compact={true} />
+    <div className="container y-hero-inner" style={{ position: "relative", zIndex: 2 }}>
       {badge && <span className="y-badge y-badge-light">{badge}</span>}
       <h1 className="y-hero-title">
         {title}
