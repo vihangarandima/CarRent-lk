@@ -38,6 +38,16 @@ export const DEFAULT_CONFIG = {
       linkedin: "https://www.linkedin.com",
       youtube: "https://www.youtube.com",
     },
+    festivalTheme: {
+      active: "none",
+      christmas: {
+        showTree: true,
+        treePosition: "bottom-left",
+        showBells: true,
+        showOrnaments: true,
+        showSnow: true,
+      },
+    },
   },
 
   hero: {
@@ -360,7 +370,18 @@ export const SiteConfigProvider = ({ children }) => {
         const merged = {
           ...DEFAULT_CONFIG,
           ...res.data,
-          global: { ...DEFAULT_CONFIG.global, ...res.data.global },
+          global: {
+            ...DEFAULT_CONFIG.global,
+            ...res.data.global,
+            festivalTheme: {
+              ...DEFAULT_CONFIG.global.festivalTheme,
+              ...(res.data.global?.festivalTheme || {}),
+              christmas: {
+                ...DEFAULT_CONFIG.global.festivalTheme.christmas,
+                ...(res.data.global?.festivalTheme?.christmas || {}),
+              },
+            },
+          },
           hero: { ...DEFAULT_CONFIG.hero, ...res.data.hero },
           home: { ...DEFAULT_CONFIG.home, ...res.data.home },
           vehicleListing: {

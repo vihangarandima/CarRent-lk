@@ -11,6 +11,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import AnnouncementBar from "./components/AnnouncementBar";
 import WhatsAppFloat from "./components/WhatsAppFloat";
+import FestivalAccessoriesManager from "./components/festivals/FestivalAccessoriesManager";
 import { SiteConfigProvider } from "./context/SiteConfigContext";
 import { ToastProvider } from "./context/ToastContext";
 import {
@@ -229,6 +230,7 @@ function AppContent() {
       </main>
 
       {!hideFloatingWidgets && <WhatsAppFloat />}
+      {!hideFloatingWidgets && <FestivalAccessoriesManager />}
       {!hideNavAndFooter && <Footer />}
     </div>
   );
