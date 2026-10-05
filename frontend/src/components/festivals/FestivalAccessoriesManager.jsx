@@ -1,6 +1,7 @@
 import React from "react";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import ChristmasAccessories from "./ChristmasAccessories";
+import VesakAccessories from "./VesakAccessories";
 
 /**
  * Global Festival Accessories Manager
@@ -16,7 +17,11 @@ const FestivalAccessoriesManager = ({ previewConfig = null, isVirtualPreview = f
     return <ChristmasAccessories previewConfig={config} isVirtualPreview={isVirtualPreview} />;
   }
 
-  // Future festivals (Avurudu, Vesak, etc.) will be added here one by one!
+  if (activeFestival === "vesak") {
+    return <VesakAccessories previewConfig={config} isVirtualPreview={isVirtualPreview} />;
+  }
+
+  // Future festivals (Avurudu, etc.) will be added here one by one!
   return null;
 };
 

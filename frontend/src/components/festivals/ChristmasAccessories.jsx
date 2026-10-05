@@ -50,6 +50,38 @@ const ChristmasAccessories = ({ previewConfig = null, isVirtualPreview = false }
       className={`xmas-festival-overlay ${isVirtualPreview ? "virtual-preview-mode" : ""}`}
       aria-hidden="true"
     >
+      {/* Holiday Fairy Lights Top Wire */}
+      <div className="xmas-lights-garland">
+        <div className="xmas-lights-wire" />
+        <div className="xmas-bulbs-container">
+          {Array.from({ length: 22 }).map((_, idx) => {
+            const colors = [
+              { hex: "#EF4444", glow: "rgba(239,68,68,0.85)" },
+              { hex: "#10B981", glow: "rgba(16,185,129,0.85)" },
+              { hex: "#F59E0B", glow: "rgba(245,158,11,0.9)" },
+              { hex: "#3B82F6", glow: "rgba(59,130,246,0.85)" },
+            ];
+            const c = colors[idx % colors.length];
+            return (
+              <div
+                key={idx}
+                className="xmas-bulb-item"
+                style={{ animationDelay: `${(idx % 4) * 0.5}s` }}
+              >
+                <div className="xmas-bulb-cap" />
+                <div
+                  className="xmas-bulb-glass"
+                  style={{
+                    backgroundColor: c.hex,
+                    boxShadow: `0 0 10px 2px ${c.glow}`,
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 1. Hanging Ornaments / Baubles (Pinned at top edge) */}
       {showOrnaments && (
         <div className="xmas-ornaments-wrapper" title="Festive Baubles">
@@ -318,6 +350,50 @@ const ChristmasAccessories = ({ previewConfig = null, isVirtualPreview = false }
           overflow: hidden;
         }
 
+        /* Holiday Fairy Lights Garland */
+        .xmas-lights-garland {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 22px;
+          z-index: 999;
+          pointer-events: none;
+        }
+        .xmas-lights-wire {
+          position: absolute;
+          top: 2px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, #10B981, #EF4444, #F59E0B, #3B82F6, #10B981);
+          opacity: 0.65;
+        }
+        .xmas-bulbs-container {
+          display: flex;
+          justify-content: space-around;
+          align-items: flex-start;
+          width: 100%;
+          padding: 0 10px;
+        }
+        .xmas-bulb-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          animation: bulb-pulse 2.2s infinite ease-in-out alternate;
+        }
+        .xmas-bulb-cap {
+          width: 4px;
+          height: 3px;
+          background: #334155;
+          border-radius: 1px;
+        }
+        .xmas-bulb-glass {
+          width: 7px;
+          height: 10px;
+          border-radius: 50% 50% 40% 40%;
+        }
+
         /* 1. Hanging Ornaments */
         .xmas-ornaments-wrapper {
           position: fixed;
@@ -530,6 +606,9 @@ const ChristmasAccessories = ({ previewConfig = null, isVirtualPreview = false }
           overflow: hidden !important;
           pointer-events: none !important;
           z-index: 10 !important;
+        }
+        .xmas-festival-overlay.virtual-preview-mode .xmas-lights-garland {
+          position: absolute !important;
         }
         .xmas-festival-overlay.virtual-preview-mode .xmas-ornaments-wrapper {
           position: absolute !important;

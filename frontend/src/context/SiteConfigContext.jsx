@@ -47,6 +47,16 @@ export const DEFAULT_CONFIG = {
         showOrnaments: true,
         showSnow: true,
       },
+      vesak: {
+        showLantern: true,
+        lanternPosition: "top-right",
+        showLotus: true,
+        lotusPosition: "bottom-left",
+        showFlag: true,
+        flagPosition: "top-left",
+        showLightString: true,
+        showParticles: true,
+      },
     },
   },
 
@@ -379,6 +389,10 @@ export const SiteConfigProvider = ({ children }) => {
               christmas: {
                 ...DEFAULT_CONFIG.global.festivalTheme.christmas,
                 ...(res.data.global?.festivalTheme?.christmas || {}),
+              },
+              vesak: {
+                ...DEFAULT_CONFIG.global.festivalTheme.vesak,
+                ...(res.data.global?.festivalTheme?.vesak || {}),
               },
             },
           },

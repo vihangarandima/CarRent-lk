@@ -1342,16 +1342,38 @@ const AdminDashboard = () => {
                           <span className="festival-badge-soon">Coming Soon</span>
                         </div>
 
-                        {/* Vesak (Upcoming) */}
-                        <div className="festival-card disabled">
+                        {/* Vesak Poya Celebration */}
+                        <div
+                          className={`festival-card ${
+                            draftConfig?.global?.festivalTheme?.active === "vesak"
+                              ? "selected active-vesak"
+                              : ""
+                          }`}
+                          onClick={() => handleDraftChange("global.festivalTheme.active", "vesak")}
+                        >
                           <div className="festival-card-header">
-                            <span className="festival-icon">🪔</span>
+                            <span className="festival-icon">🏮</span>
                             <div>
-                              <h4>Vesak Poya</h4>
-                              <p>Lanterns & oil lamps</p>
+                              <h4>Vesak Poya Celebration</h4>
+                              <p>Vesak kudu, blooming lotus, flag & light garland</p>
                             </div>
                           </div>
-                          <span className="festival-badge-soon">Coming Soon</span>
+                          {draftConfig?.global?.festivalTheme?.active === "vesak" ? (
+                            <span className="festival-badge-active" style={{ background: "#D97706" }}>
+                              Active
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn-select-festival"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDraftChange("global.festivalTheme.active", "vesak");
+                              }}
+                            >
+                              Activate
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -1519,10 +1541,240 @@ const AdminDashboard = () => {
                             </div>
                           </div>
                         </div>
+                      ) : draftConfig?.global?.festivalTheme?.active === "vesak" ? (
+                        <div className="festival-customization-panel">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h4 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span>☸️</span> Sacred Vesak Accessories Customization
+                              </h4>
+                              <p className="text-sm text-gray-500">
+                                Toggle sacred Vesak celebration accessories on or off to create your desired festival mood.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn-text-danger"
+                              onClick={() => handleDraftChange("global.festivalTheme.active", "none")}
+                            >
+                              Turn Off Vesak Mode
+                            </button>
+                          </div>
+
+                          <div className="accessory-toggles-list">
+                            {/* Accessory 1: Octagonal Vesak Lantern */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.vesak?.showLantern !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.showLantern",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>🏮 Octagonal Vesak Lantern (Vesak Kudu)</strong>
+                                  <div className="text-muted text-sm">
+                                    Traditional Sri Lankan hanging paper lantern with candle flame core glow, colorful octagonal panels, surrounding petals, and flowing waving streamers.
+                                  </div>
+                                </div>
+                              </div>
+
+                              {draftConfig?.global?.festivalTheme?.vesak?.showLantern !== false && (
+                                <div className="mt-3 pl-12">
+                                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">
+                                    Lantern Screen Position:
+                                  </label>
+                                  <select
+                                    className="festival-select"
+                                    value={
+                                      draftConfig?.global?.festivalTheme?.vesak?.lanternPosition ||
+                                      "top-right"
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.lanternPosition",
+                                        e.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="top-right">Top Right (Hanging near navigation)</option>
+                                    <option value="top-left">Top Left (Hanging from top bar)</option>
+                                    <option value="bottom-right">Bottom Right (Above WhatsApp button)</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Accessory 2: Sacred Blooming Lotus */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.vesak?.showLotus !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.showLotus",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>🪷 Sacred Blooming Lotus Flower (Nelum Mala)</strong>
+                                  <div className="text-muted text-sm">
+                                    Sacred pink & golden lotus floating gracefully on green pad with water ripple rings, radiating peaceful aura, and breathing petals.
+                                  </div>
+                                </div>
+                              </div>
+
+                              {draftConfig?.global?.festivalTheme?.vesak?.showLotus !== false && (
+                                <div className="mt-3 pl-12">
+                                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">
+                                    Lotus Placement:
+                                  </label>
+                                  <select
+                                    className="festival-select"
+                                    value={
+                                      draftConfig?.global?.festivalTheme?.vesak?.lotusPosition ||
+                                      "bottom-left"
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.lotusPosition",
+                                        e.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="bottom-left">Bottom Left (Floating serenely - Recommended)</option>
+                                    <option value="bottom-right">Bottom Right (Floating on water)</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Accessory 3: Buddhist Flag */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.vesak?.showFlag !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.showFlag",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>☸️ Waving Six-Color Buddhist Flag (Sadaham Kodiy)</strong>
+                                  <div className="text-muted text-sm">
+                                    Authentic Buddhist flag fluttering gently on silver flagpole with gold finial and cloth wave shimmer.
+                                  </div>
+                                </div>
+                              </div>
+
+                              {draftConfig?.global?.festivalTheme?.vesak?.showFlag !== false && (
+                                <div className="mt-3 pl-12">
+                                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">
+                                    Flag Placement:
+                                  </label>
+                                  <select
+                                    className="festival-select"
+                                    value={
+                                      draftConfig?.global?.festivalTheme?.vesak?.flagPosition ||
+                                      "top-left"
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.flagPosition",
+                                        e.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="top-left">Top Left (Opposite lantern)</option>
+                                    <option value="top-right">Top Right</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Accessory 4: Illuminated Light Garland */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.vesak?.showLightString !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.showLightString",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>💡 Illuminated Top Vesak Garland (Buddhist Flag Bulbs)</strong>
+                                  <div className="text-muted text-sm">
+                                    Delicate string of pulsating illuminated light bulbs in the 6 sacred Buddhist flag colors (Blue, Yellow, Red, White, Orange) across the top of the screen.
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Accessory 5: Golden Light Particles */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.vesak?.showParticles !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.showParticles",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>✨ Ascending Golden Pahan Embers / Light Particles</strong>
+                                  <div className="text-muted text-sm">
+                                    Luminous floating golden clay lamp embers and warm bokeh particles gently ascending upward across the entire webpage.
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       ) : (
                         <div className="festival-empty-notice">
                           <p className="text-gray-500 text-sm">
-                            Click <strong>Christmas Celebration</strong> above to activate and configure animated accessories.
+                            Click <strong>Christmas Celebration</strong> or <strong>Vesak Poya Celebration</strong> above to activate and configure animated festival accessories.
                           </p>
                         </div>
                       )}
@@ -1533,21 +1785,21 @@ const AdminDashboard = () => {
                   {cmsSection === "theme" && (
                     <div className="cms-form-section">
                       {/* Festive accessories banner */}
-                      <div className="p-4 mb-5 rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/70 dark:bg-emerald-950/20 flex items-center justify-between">
+                      <div className="p-4 mb-5 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-gradient-to-r from-amber-50/70 to-emerald-50/70 dark:from-amber-950/20 dark:to-emerald-950/20 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <span className="text-2xl">🎄</span>
+                          <span className="text-2xl">🏮</span>
                           <div>
-                            <div className="font-semibold text-emerald-900 dark:text-emerald-200 text-sm">
-                              Looking for Christmas Celebration Accessories?
+                            <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                              Looking for Vesak or Christmas Celebration Accessories?
                             </div>
-                            <div className="text-xs text-emerald-700 dark:text-emerald-400">
-                              Add the animated floating tree, golden bells, ornaments & snowfall without changing brand colors!
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              Toggle animated Vesak lanterns, lotus, flags, or Christmas trees without changing your brand palette!
                             </div>
                           </div>
                         </div>
                         <button
                           type="button"
-                          className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition"
+                          className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition"
                           onClick={() => setCmsSection("festivals")}
                         >
                           Open Festival Accessories →
