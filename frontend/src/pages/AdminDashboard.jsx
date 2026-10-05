@@ -267,16 +267,20 @@ const AdminDashboard = () => {
     setSaveError("");
     setSaveSuccess(false);
     try {
-      await updateConfig(
+      const res = await updateConfig(
         draftConfig,
         `CMS Update (${cmsSection})`,
         `Saved changes to ${cmsSection} section`
       );
+      if (res?.config) {
+        setDraftConfig(res.config);
+      }
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
+      toast.success("Changes published live successfully!");
     } catch (err) {
       setSaveError(
-        err.response?.data?.msg || "Failed to save configuration. Are you logged in as Admin?"
+        err.response?.data?.msg || "Failed to save configuration."
       );
     } finally {
       setSaving(false);
