@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Phone, Mail, MapPin, ArrowUpRight } from "lucide-react";
 import logo from "../assets/images/logo.png";
 import { useSiteConfig } from "../context/SiteConfigContext";
+import { FestivalFooterDecorations } from "./festivals/FestivalAccessoriesManager";
 
 const socialIcons = [
   {
@@ -53,8 +54,9 @@ const Footer = () => {
 
   return (
     <footer className="site-footer">
-      <div className="footer-cta-banner">
-        <div className="container footer-cta-inner">
+      <div className="footer-cta-banner" style={{ position: "relative", overflow: "hidden" }}>
+        <FestivalFooterDecorations />
+        <div className="container footer-cta-inner" style={{ position: "relative", zIndex: 2 }}>
           <div className="footer-cta-text">
             <h2>Ready to hit the road?</h2>
             <p>

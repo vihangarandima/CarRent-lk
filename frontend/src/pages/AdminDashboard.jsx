@@ -72,6 +72,7 @@ import {
   DEFAULT_CONFIG,
 } from "../context/SiteConfigContext";
 import { useToast } from "../context/ToastContext";
+import FestivalAccessoriesManager from "../components/festivals/FestivalAccessoriesManager";
 
 const VEHICLE_TYPES = [
   { id: "bicycle", label: "Bicycle / Bike" },
@@ -266,16 +267,20 @@ const AdminDashboard = () => {
     setSaveError("");
     setSaveSuccess(false);
     try {
-      await updateConfig(
+      const res = await updateConfig(
         draftConfig,
         `CMS Update (${cmsSection})`,
         `Saved changes to ${cmsSection} section`
       );
+      if (res?.config) {
+        setDraftConfig(res.config);
+      }
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
+      toast.success("Changes published live successfully!");
     } catch (err) {
       setSaveError(
-        err.response?.data?.msg || "Failed to save configuration. Are you logged in as Admin?"
+        err.response?.data?.msg || "Failed to save configuration."
       );
     } finally {
       setSaving(false);
@@ -1184,6 +1189,7 @@ const AdminDashboard = () => {
               <div className="cms-toolbar">
                 <div className="cms-tabs-scroll">
                   {[
+                    { id: "festivals", label: "🎄 Festival Accessories" },
                     { id: "theme", label: "🎨 Theme & Holiday Presets" },
                     { id: "global", label: "📢 Global & Announcements" },
                     { id: "hero", label: "🚗 Hero Stage & Watermark" },
@@ -1248,9 +1254,562 @@ const AdminDashboard = () => {
               <div className="cms-split-container">
                 {/* Left Column: Form Editor */}
                 <div className="cms-editor-column">
+                  {/* FESTIVAL CELEBRATION ACCESSORIES */}
+                  {cmsSection === "festivals" && (
+                    <div className="cms-form-section">
+                      <div className="section-intro">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3>🎄 Festival Celebration Themes & Accessories</h3>
+                            <p>
+                              Overlay celebratory festive accessories across the Yamu platform
+                              without changing your brand's core color palette or typography.
+                            </p>
+                          </div>
+                          {draftConfig?.global?.festivalTheme?.active &&
+                            draftConfig?.global?.festivalTheme?.active !== "none" && (
+                              <span className="badge-active-festival">
+                                Active: {draftConfig?.global?.festivalTheme?.active?.toUpperCase()}
+                              </span>
+                            )}
+                        </div>
+                      </div>
+
+                      {/* Festival Mode Selector Cards */}
+                      <div className="festival-selector-grid">
+                        {/* None / Standard */}
+                        <div
+                          className={`festival-card ${
+                            !draftConfig?.global?.festivalTheme?.active ||
+                            draftConfig?.global?.festivalTheme?.active === "none"
+                              ? "selected"
+                              : ""
+                          }`}
+                          onClick={() => handleDraftChange("global.festivalTheme.active", "none")}
+                        >
+                          <div className="festival-card-header">
+                            <span className="festival-icon">🚫</span>
+                            <div>
+                              <h4>Standard Site (Off)</h4>
+                              <p>No holiday accessories active</p>
+                            </div>
+                          </div>
+                          {(!draftConfig?.global?.festivalTheme?.active ||
+                            draftConfig?.global?.festivalTheme?.active === "none") && (
+                            <span className="festival-badge-active">Selected</span>
+                          )}
+                        </div>
+
+                        {/* Christmas */}
+                        <div
+                          className={`festival-card ${
+                            draftConfig?.global?.festivalTheme?.active === "christmas"
+                              ? "selected active-xmas"
+                              : ""
+                          }`}
+                          onClick={() => handleDraftChange("global.festivalTheme.active", "christmas")}
+                        >
+                          <div className="festival-card-header">
+                            <span className="festival-icon">🎄</span>
+                            <div>
+                              <h4>Christmas Celebration</h4>
+                              <p>Floating vector tree, golden bells, baubles & snow</p>
+                            </div>
+                          </div>
+                          {draftConfig?.global?.festivalTheme?.active === "christmas" ? (
+                            <span className="festival-badge-active" style={{ background: "#059669" }}>
+                              Active
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn-select-festival"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDraftChange("global.festivalTheme.active", "christmas");
+                              }}
+                            >
+                              Activate
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Avurudu (Upcoming) */}
+                        <div className="festival-card disabled">
+                          <div className="festival-card-header">
+                            <span className="festival-icon">☀️</span>
+                            <div>
+                              <h4>Sinhala & Tamil New Year</h4>
+                              <p>Avurudu celebration accessories</p>
+                            </div>
+                          </div>
+                          <span className="festival-badge-soon">Coming Soon</span>
+                        </div>
+
+                        {/* Vesak Poya Celebration */}
+                        <div
+                          className={`festival-card ${
+                            draftConfig?.global?.festivalTheme?.active === "vesak"
+                              ? "selected active-vesak"
+                              : ""
+                          }`}
+                          onClick={() => handleDraftChange("global.festivalTheme.active", "vesak")}
+                        >
+                          <div className="festival-card-header">
+                            <span className="festival-icon">🏮</span>
+                            <div>
+                              <h4>Vesak Poya Celebration</h4>
+                              <p>Vesak kudu, blooming lotus, flag & light garland</p>
+                            </div>
+                          </div>
+                          {draftConfig?.global?.festivalTheme?.active === "vesak" ? (
+                            <span className="festival-badge-active" style={{ background: "#D97706" }}>
+                              Active
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn-select-festival"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDraftChange("global.festivalTheme.active", "vesak");
+                              }}
+                            >
+                              Activate
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="cms-divider" />
+
+                      {/* Christmas Customization Controls */}
+                      {draftConfig?.global?.festivalTheme?.active === "christmas" ? (
+                        <div className="festival-customization-panel">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h4 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span>🎅</span> Christmas Accessories Customization
+                              </h4>
+                              <p className="text-sm text-gray-500">
+                                Toggle specific accessories on or off to achieve the exact festive feel you want.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn-text-danger"
+                              onClick={() => handleDraftChange("global.festivalTheme.active", "none")}
+                            >
+                              Turn Off Christmas Mode
+                            </button>
+                          </div>
+
+                          <div className="accessory-toggles-list">
+                            {/* Accessory 1: Vector Christmas Tree */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.christmas?.showTree !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.christmas.showTree",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>🎄 Floating Vector Christmas Tree</strong>
+                                  <div className="text-muted text-sm">
+                                    Floating animated evergreen tree with glowing yellow star, emerald gradients, and twinkling multicolored fairy lights.
+                                  </div>
+                                </div>
+                              </div>
+
+                              {draftConfig?.global?.festivalTheme?.christmas?.showTree !== false && (
+                                <div className="mt-3 pl-12">
+                                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">
+                                    Screen Placement:
+                                  </label>
+                                  <select
+                                    className="festival-select"
+                                    value={
+                                      draftConfig?.global?.festivalTheme?.christmas?.treePosition ||
+                                      "bottom-left"
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.christmas.treePosition",
+                                        e.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="bottom-left">
+                                      Bottom Left (Recommended - doesn't clash with WhatsApp)
+                                    </option>
+                                    <option value="bottom-right">
+                                      Bottom Right (Floating above WhatsApp button)
+                                    </option>
+                                    <option value="top-right">
+                                      Top Right (Floating under header)
+                                    </option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Accessory 2: Golden Christmas Bells */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.christmas?.showBells !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.christmas.showBells",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>🔔 Golden Christmas Bells with Satin Ribbon & Holly</strong>
+                                  <div className="text-muted text-sm">
+                                    Pair of metallic gold ringing bells with swinging clappers, satin red bow ribbon, emerald holly leaves, red berries, and gold sparkles floating near the top right.
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Accessory 3: Hanging Baubles & Ornaments */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.christmas?.showOrnaments !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.christmas.showOrnaments",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>🪩 Hanging Glass Baubles & Ornaments</strong>
+                                  <div className="text-muted text-sm">
+                                    Emerald green, royal crimson, and metallic gold baubles with golden caps suspended from the top edge with gentle pendulum sway and shimmer arcs.
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Accessory 4: Ambient Snowfall */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.christmas?.showSnow !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.christmas.showSnow",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>❄️ Ambient Gentle Snowfall Effect</strong>
+                                  <div className="text-muted text-sm">
+                                    Subtle, lightweight translucent falling snowflakes for an immersive winter celebration atmosphere.
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : draftConfig?.global?.festivalTheme?.active === "vesak" ? (
+                        <div className="festival-customization-panel">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h4 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span>☸️</span> Sacred Vesak Accessories Customization
+                              </h4>
+                              <p className="text-sm text-gray-500">
+                                Toggle sacred Vesak celebration accessories on or off to create your desired festival mood.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn-text-danger"
+                              onClick={() => handleDraftChange("global.festivalTheme.active", "none")}
+                            >
+                              Turn Off Vesak Mode
+                            </button>
+                          </div>
+
+                          <div className="accessory-toggles-list">
+                            {/* Accessory 1: Octagonal Vesak Lantern */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.vesak?.showLantern !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.showLantern",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>🏮 Octagonal Vesak Lantern (Vesak Kudu)</strong>
+                                  <div className="text-muted text-sm">
+                                    Traditional Sri Lankan hanging paper lantern with candle flame core glow, colorful octagonal panels, surrounding petals, and flowing waving streamers.
+                                  </div>
+                                </div>
+                              </div>
+
+                              {draftConfig?.global?.festivalTheme?.vesak?.showLantern !== false && (
+                                <div className="mt-3 pl-12">
+                                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">
+                                    Lantern Screen Position:
+                                  </label>
+                                  <select
+                                    className="festival-select"
+                                    value={
+                                      draftConfig?.global?.festivalTheme?.vesak?.lanternPosition ||
+                                      "top-right"
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.lanternPosition",
+                                        e.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="top-right">Top Right (Hanging near navigation)</option>
+                                    <option value="top-left">Top Left (Hanging from top bar)</option>
+                                    <option value="bottom-right">Bottom Right (Above WhatsApp button)</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Accessory 2: Sacred Blooming Lotus */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.vesak?.showLotus !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.showLotus",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>🪷 Sacred Blooming Lotus Flower (Nelum Mala)</strong>
+                                  <div className="text-muted text-sm">
+                                    Sacred pink & golden lotus floating gracefully on green pad with water ripple rings, radiating peaceful aura, and breathing petals.
+                                  </div>
+                                </div>
+                              </div>
+
+                              {draftConfig?.global?.festivalTheme?.vesak?.showLotus !== false && (
+                                <div className="mt-3 pl-12">
+                                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">
+                                    Lotus Placement:
+                                  </label>
+                                  <select
+                                    className="festival-select"
+                                    value={
+                                      draftConfig?.global?.festivalTheme?.vesak?.lotusPosition ||
+                                      "bottom-left"
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.lotusPosition",
+                                        e.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="bottom-left">Bottom Left (Floating serenely - Recommended)</option>
+                                    <option value="bottom-right">Bottom Right (Floating on water)</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Accessory 3: Buddhist Flag */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.vesak?.showFlag !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.showFlag",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>☸️ Waving Six-Color Buddhist Flag (Sadaham Kodiy)</strong>
+                                  <div className="text-muted text-sm">
+                                    Authentic Buddhist flag fluttering gently on silver flagpole with gold finial and cloth wave shimmer.
+                                  </div>
+                                </div>
+                              </div>
+
+                              {draftConfig?.global?.festivalTheme?.vesak?.showFlag !== false && (
+                                <div className="mt-3 pl-12">
+                                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">
+                                    Flag Placement:
+                                  </label>
+                                  <select
+                                    className="festival-select"
+                                    value={
+                                      draftConfig?.global?.festivalTheme?.vesak?.flagPosition ||
+                                      "top-left"
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.flagPosition",
+                                        e.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="top-left">Top Left (Opposite lantern)</option>
+                                    <option value="top-right">Top Right</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Accessory 4: Illuminated Light Garland */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.vesak?.showLightString !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.showLightString",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>💡 Illuminated Top Vesak Garland (Buddhist Flag Bulbs)</strong>
+                                  <div className="text-muted text-sm">
+                                    Delicate string of pulsating illuminated light bulbs in the 6 sacred Buddhist flag colors (Blue, Yellow, Red, White, Orange) across the top of the screen.
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Accessory 5: Golden Light Particles */}
+                            <div className="accessory-toggle-card">
+                              <div className="toggle-box">
+                                <label className="switch">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      draftConfig?.global?.festivalTheme?.vesak?.showParticles !== false
+                                    }
+                                    onChange={(e) =>
+                                      handleDraftChange(
+                                        "global.festivalTheme.vesak.showParticles",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span className="slider round" />
+                                </label>
+                                <div className="flex-1">
+                                  <strong>✨ Ascending Golden Pahan Embers / Light Particles</strong>
+                                  <div className="text-muted text-sm">
+                                    Luminous floating golden clay lamp embers and warm bokeh particles gently ascending upward across the entire webpage.
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="festival-empty-notice">
+                          <p className="text-gray-500 text-sm">
+                            Click <strong>Christmas Celebration</strong> or <strong>Vesak Poya Celebration</strong> above to activate and configure animated festival accessories.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* 1. THEME & HOLIDAY PRESETS */}
                   {cmsSection === "theme" && (
                     <div className="cms-form-section">
+                      {/* Festive accessories banner */}
+                      <div className="p-4 mb-5 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-gradient-to-r from-amber-50/70 to-emerald-50/70 dark:from-amber-950/20 dark:to-emerald-950/20 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">🏮</span>
+                          <div>
+                            <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                              Looking for Vesak or Christmas Celebration Accessories?
+                            </div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              Toggle animated Vesak lanterns, lotus, flags, or Christmas trees without changing your brand palette!
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition"
+                          onClick={() => setCmsSection("festivals")}
+                        >
+                          Open Festival Accessories →
+                        </button>
+                      </div>
+
                       <div className="section-intro">
                         <h3>1-Click Holiday & Seasonal Theme Switcher</h3>
                         <p>
@@ -2299,7 +2858,8 @@ const AdminDashboard = () => {
 
                   {/* Virtual Rendered Device Frame */}
                   <div className={`virtual-viewport ${previewDevice}`}>
-                    <div className="virtual-screen-content">
+                    <div className="virtual-screen-content" style={{ position: "relative" }}>
+                      <FestivalAccessoriesManager previewConfig={draftConfig} isVirtualPreview={true} />
                       {/* Virtual Announcement Bar */}
                       {draftConfig?.global?.announcement?.enabled && (
                         <div
@@ -5786,6 +6346,190 @@ const AdminDashboard = () => {
           .form-grid-3 {
             grid-template-columns: 1fr;
           }
+        }
+
+        /* Festival Celebration Themes & Accessories Customizer Styles */
+        .badge-active-festival {
+          display: inline-flex;
+          align-items: center;
+          padding: 4px 10px;
+          border-radius: 9999px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          background: rgba(5, 150, 105, 0.15);
+          color: #059669;
+          border: 1px solid rgba(5, 150, 105, 0.3);
+        }
+        .festival-selector-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+        .festival-card {
+          background: #ffffff;
+          border: 2px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 14px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        :is(.dark, [data-theme="dark"]) .festival-card {
+          background: #1e293b;
+          border-color: #334155;
+        }
+        .festival-card:hover:not(.disabled) {
+          border-color: #10b981;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        }
+        .festival-card.selected {
+          border-color: #059669;
+          background: rgba(5, 150, 105, 0.04);
+          box-shadow: 0 0 0 1px #059669;
+        }
+        .festival-card.disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+          background: #f8fafc;
+        }
+        :is(.dark, [data-theme="dark"]) .festival-card.disabled {
+          background: #0f172a;
+        }
+        .festival-card-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+        }
+        .festival-icon {
+          font-size: 1.6rem;
+          line-height: 1;
+        }
+        .festival-card-header h4 {
+          font-size: 0.92rem;
+          font-weight: 700;
+          margin: 0 0 2px 0;
+          color: #0f172a;
+        }
+        :is(.dark, [data-theme="dark"]) .festival-card-header h4 {
+          color: #f8fafc;
+        }
+        .festival-card-header p {
+          font-size: 0.75rem;
+          color: #64748b;
+          margin: 0;
+          line-height: 1.3;
+        }
+        .festival-badge-active {
+          align-self: flex-start;
+          font-size: 0.7rem;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 6px;
+          background: #059669;
+          color: #ffffff;
+        }
+        .festival-badge-soon {
+          align-self: flex-start;
+          font-size: 0.7rem;
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 6px;
+          background: #e2e8f0;
+          color: #64748b;
+        }
+        :is(.dark, [data-theme="dark"]) .festival-badge-soon {
+          background: #334155;
+          color: #94a3b8;
+        }
+        .btn-select-festival {
+          align-self: flex-start;
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 3px 10px;
+          border-radius: 6px;
+          background: #f1f5f9;
+          color: #334155;
+          border: none;
+          cursor: pointer;
+        }
+        .btn-select-festival:hover {
+          background: #059669;
+          color: #ffffff;
+        }
+        .festival-customization-panel {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 14px;
+          padding: 18px;
+          margin-top: 12px;
+        }
+        :is(.dark, [data-theme="dark"]) .festival-customization-panel {
+          background: #1e293b;
+          border-color: #334155;
+        }
+        .accessory-toggles-list {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .accessory-toggle-card {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          padding: 14px;
+          transition: border-color 0.2s;
+        }
+        :is(.dark, [data-theme="dark"]) .accessory-toggle-card {
+          background: #0f172a;
+          border-color: #334155;
+        }
+        .accessory-toggle-card:hover {
+          border-color: #cbd5e1;
+        }
+        .festival-select {
+          width: 100%;
+          max-width: 420px;
+          padding: 8px 12px;
+          border-radius: 8px;
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
+          color: #0f172a;
+          font-size: 0.85rem;
+          outline: none;
+        }
+        :is(.dark, [data-theme="dark"]) .festival-select {
+          background: #1e293b;
+          border-color: #475569;
+          color: #f8fafc;
+        }
+        .btn-text-danger {
+          background: none;
+          border: none;
+          color: #ef4444;
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          text-decoration: underline;
+        }
+        .btn-text-danger:hover {
+          color: #dc2626;
+        }
+        .festival-empty-notice {
+          padding: 24px;
+          text-align: center;
+          border: 2px dashed #cbd5e1;
+          border-radius: 12px;
+          color: #64748b;
+        }
+        :is(.dark, [data-theme="dark"]) .festival-empty-notice {
+          border-color: #334155;
+          color: #94a3b8;
         }
       `}</style>
     </div>

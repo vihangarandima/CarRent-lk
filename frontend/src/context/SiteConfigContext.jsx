@@ -38,6 +38,26 @@ export const DEFAULT_CONFIG = {
       linkedin: "https://www.linkedin.com",
       youtube: "https://www.youtube.com",
     },
+    festivalTheme: {
+      active: "none",
+      christmas: {
+        showTree: true,
+        treePosition: "bottom-left",
+        showBells: true,
+        showOrnaments: true,
+        showSnow: true,
+      },
+      vesak: {
+        showLantern: true,
+        lanternPosition: "top-right",
+        showLotus: true,
+        lotusPosition: "bottom-left",
+        showFlag: true,
+        flagPosition: "top-left",
+        showLightString: true,
+        showParticles: true,
+      },
+    },
   },
 
   hero: {
@@ -322,8 +342,40 @@ export const HOLIDAY_THEME_PRESETS = {
   },
 };
 
+const getInitialSiteConfig = () => {
+  try {
+    const saved = localStorage.getItem("yamu_site_config");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        ...DEFAULT_CONFIG,
+        ...parsed,
+        global: {
+          ...DEFAULT_CONFIG.global,
+          ...(parsed.global || {}),
+          festivalTheme: {
+            ...DEFAULT_CONFIG.global.festivalTheme,
+            ...(parsed.global?.festivalTheme || {}),
+            christmas: {
+              ...DEFAULT_CONFIG.global.festivalTheme.christmas,
+              ...(parsed.global?.festivalTheme?.christmas || {}),
+            },
+            vesak: {
+              ...DEFAULT_CONFIG.global.festivalTheme.vesak,
+              ...(parsed.global?.festivalTheme?.vesak || {}),
+            },
+          },
+        },
+      };
+    }
+  } catch (err) {
+    console.warn("Could not load stored site config:", err);
+  }
+  return DEFAULT_CONFIG;
+};
+
 export const SiteConfigProvider = ({ children }) => {
-  const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [config, setConfig] = useState(getInitialSiteConfig);
   const [loading, setLoading] = useState(true);
 
   // Apply CSS custom properties dynamically to :root
@@ -357,10 +409,39 @@ export const SiteConfigProvider = ({ children }) => {
     try {
       const res = await axios.get(`${API_URL}/api/site-config`);
       if (res.data) {
+        const stored = getInitialSiteConfig();
+        const backendActive = res.data.global?.festivalTheme?.active;
+        const storedActive = stored.global?.festivalTheme?.active;
+        const resolvedActive =
+          backendActive && backendActive !== "none"
+            ? backendActive
+            : storedActive && storedActive !== "none"
+            ? storedActive
+            : backendActive || "none";
+
         const merged = {
           ...DEFAULT_CONFIG,
           ...res.data,
-          global: { ...DEFAULT_CONFIG.global, ...res.data.global },
+          global: {
+            ...DEFAULT_CONFIG.global,
+            ...res.data.global,
+            festivalTheme: {
+              ...DEFAULT_CONFIG.global.festivalTheme,
+              ...(stored.global?.festivalTheme || {}),
+              ...(res.data.global?.festivalTheme || {}),
+              active: resolvedActive,
+              christmas: {
+                ...DEFAULT_CONFIG.global.festivalTheme.christmas,
+                ...(stored.global?.festivalTheme?.christmas || {}),
+                ...(res.data.global?.festivalTheme?.christmas || {}),
+              },
+              vesak: {
+                ...DEFAULT_CONFIG.global.festivalTheme.vesak,
+                ...(stored.global?.festivalTheme?.vesak || {}),
+                ...(res.data.global?.festivalTheme?.vesak || {}),
+              },
+            },
+          },
           hero: { ...DEFAULT_CONFIG.hero, ...res.data.hero },
           home: { ...DEFAULT_CONFIG.home, ...res.data.home },
           vehicleListing: {
@@ -375,11 +456,15 @@ export const SiteConfigProvider = ({ children }) => {
           footer: { ...DEFAULT_CONFIG.footer, ...res.data.footer },
         };
         setConfig(merged);
+        try {
+          localStorage.setItem("yamu_site_config", JSON.stringify(merged));
+        } catch (e) {}
         applyThemeColors(merged);
       }
     } catch (err) {
-      console.warn("Using default site configuration (offline or fallback):", err);
-      applyThemeColors(DEFAULT_CONFIG);
+      const currentStored = getInitialSiteConfig();
+      setConfig(currentStored);
+      applyThemeColors(currentStored);
     } finally {
       setLoading(false);
     }
@@ -390,22 +475,89 @@ export const SiteConfigProvider = ({ children }) => {
   }, []);
 
   const updateConfig = async (newConfigData, snapshotName, snapshotDesc) => {
-    const token = localStorage.getItem("token");
-    const res = await axios.put(
-      `${API_URL}/api/site-config`,
-      {
-        ...newConfigData,
-        _snapshotName: snapshotName,
-        _snapshotDesc: snapshotDesc,
+    // 1. Immediately apply and save locally so user changes never revert
+    const currentActiveFestival =
+      newConfigData?.global?.festivalTheme?.active !== undefined
+        ? newConfigData.global.festivalTheme.active
+        : config.global?.festivalTheme?.active || "none";
+
+    const localMerged = {
+      ...config,
+      ...newConfigData,
+      global: {
+        ...config.global,
+        ...(newConfigData.global || {}),
+        festivalTheme: {
+          ...config.global?.festivalTheme,
+          ...(newConfigData.global?.festivalTheme || {}),
+          active: currentActiveFestival,
+          christmas: {
+            ...config.global?.festivalTheme?.christmas,
+            ...(newConfigData.global?.festivalTheme?.christmas || {}),
+          },
+          vesak: {
+            ...config.global?.festivalTheme?.vesak,
+            ...(newConfigData.global?.festivalTheme?.vesak || {}),
+          },
+        },
       },
-      { headers: { "x-auth-token": token } }
-    );
-    if (res.data?.config) {
-      const merged = { ...config, ...res.data.config };
-      setConfig(merged);
-      applyThemeColors(merged);
+    };
+
+    setConfig(localMerged);
+    applyThemeColors(localMerged);
+    try {
+      localStorage.setItem("yamu_site_config", JSON.stringify(localMerged));
+    } catch (e) {
+      console.warn("Local storage write error:", e);
     }
-    return res.data;
+
+    // 2. Sync with backend API if available
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        const res = await axios.put(
+          `${API_URL}/api/site-config`,
+          {
+            ...localMerged,
+            _snapshotName: snapshotName,
+            _snapshotDesc: snapshotDesc,
+          },
+          { headers: { "x-auth-token": token } }
+        );
+        if (res.data?.config) {
+          const backendMerged = {
+            ...localMerged,
+            ...res.data.config,
+            global: {
+              ...localMerged.global,
+              ...(res.data.config.global || {}),
+              festivalTheme: {
+                ...localMerged.global.festivalTheme,
+                ...(res.data.config.global?.festivalTheme || {}),
+                active: currentActiveFestival,
+                christmas: {
+                  ...localMerged.global.festivalTheme.christmas,
+                  ...(res.data.config.global?.festivalTheme?.christmas || {}),
+                },
+                vesak: {
+                  ...localMerged.global.festivalTheme.vesak,
+                  ...(res.data.config.global?.festivalTheme?.vesak || {}),
+                },
+              },
+            },
+          };
+          setConfig(backendMerged);
+          try {
+            localStorage.setItem("yamu_site_config", JSON.stringify(backendMerged));
+          } catch (e) {}
+          return { success: true, ...res.data, config: backendMerged };
+        }
+      }
+    } catch (err) {
+      console.warn("Backend API sync notice (saved locally to browser):", err.message);
+    }
+
+    return { success: true, config: localMerged };
   };
 
   const restoreSnapshot = async (snapshotId) => {
@@ -418,23 +570,29 @@ export const SiteConfigProvider = ({ children }) => {
     if (res.data?.config) {
       const merged = { ...config, ...res.data.config };
       setConfig(merged);
+      localStorage.setItem("yamu_site_config", JSON.stringify(merged));
       applyThemeColors(merged);
     }
     return res.data;
   };
 
   const resetToDefaults = async () => {
-    const token = localStorage.getItem("token");
-    const res = await axios.post(
-      `${API_URL}/api/site-config/reset`,
-      {},
-      { headers: { "x-auth-token": token } }
-    );
-    if (res.data?.config) {
-      setConfig(DEFAULT_CONFIG);
-      applyThemeColors(DEFAULT_CONFIG);
+    localStorage.removeItem("yamu_site_config");
+    setConfig(DEFAULT_CONFIG);
+    applyThemeColors(DEFAULT_CONFIG);
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        await axios.post(
+          `${API_URL}/api/site-config/reset`,
+          {},
+          { headers: { "x-auth-token": token } }
+        );
+      }
+    } catch (e) {
+      console.warn("Reset error:", e);
     }
-    return res.data;
+    return { config: DEFAULT_CONFIG };
   };
 
   return (

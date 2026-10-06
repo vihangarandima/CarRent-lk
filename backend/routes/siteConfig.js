@@ -82,23 +82,64 @@ router.put("/", auth, adminOnly, async (req, res) => {
     await snapshot.save();
 
     // Apply updates
-    if (updateData.global) config.global = { ...config.global.toObject(), ...updateData.global };
-    if (updateData.hero) config.hero = { ...config.hero.toObject(), ...updateData.hero };
-    if (updateData.home) config.home = { ...config.home.toObject(), ...updateData.home };
+    if (updateData.global) {
+      const prevGlobal = config.global ? (config.global.toObject ? config.global.toObject() : config.global) : {};
+      const newActive =
+        updateData.global.festivalTheme?.active !== undefined
+          ? updateData.global.festivalTheme.active
+          : (prevGlobal.festivalTheme?.active || "none");
+
+      config.global = {
+        ...prevGlobal,
+        ...updateData.global,
+        festivalTheme: {
+          ...(prevGlobal.festivalTheme || {}),
+          ...(updateData.global.festivalTheme || {}),
+          active: newActive,
+          christmas: {
+            ...(prevGlobal.festivalTheme?.christmas || {}),
+            ...(updateData.global.festivalTheme?.christmas || {}),
+          },
+          vesak: {
+            ...(prevGlobal.festivalTheme?.vesak || {}),
+            ...(updateData.global.festivalTheme?.vesak || {}),
+          },
+        },
+      };
+      config.markModified("global");
+      config.markModified("global.festivalTheme");
+      config.markModified("global.festivalTheme.active");
+    }
+    if (updateData.hero) {
+      config.hero = { ...config.hero.toObject(), ...updateData.hero };
+      config.markModified("hero");
+    }
+    if (updateData.home) {
+      config.home = { ...config.home.toObject(), ...updateData.home };
+      config.markModified("home");
+    }
     if (updateData.vehicleListing) {
       config.vehicleListing = {
         ...config.vehicleListing.toObject(),
         ...updateData.vehicleListing,
       };
+      config.markModified("vehicleListing");
     }
     if (updateData.companies) {
       config.companies = {
         ...config.companies.toObject(),
         ...updateData.companies,
       };
+      config.markModified("companies");
     }
-    if (updateData.whyUs) config.whyUs = { ...config.whyUs.toObject(), ...updateData.whyUs };
-    if (updateData.footer) config.footer = { ...config.footer.toObject(), ...updateData.footer };
+    if (updateData.whyUs) {
+      config.whyUs = { ...config.whyUs.toObject(), ...updateData.whyUs };
+      config.markModified("whyUs");
+    }
+    if (updateData.footer) {
+      config.footer = { ...config.footer.toObject(), ...updateData.footer };
+      config.markModified("footer");
+    }
 
     config.updatedBy = req.user.id;
     config.updatedAt = Date.now();

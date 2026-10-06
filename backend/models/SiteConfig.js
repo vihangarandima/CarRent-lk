@@ -66,6 +66,46 @@ const SiteConfigSchema = new mongoose.Schema(
         linkedin: { type: String, default: "https://www.linkedin.com" },
         youtube: { type: String, default: "https://www.youtube.com" },
       },
+      festivalTheme: {
+        active: {
+          type: String,
+          enum: ["none", "christmas", "avurudu", "vesak", "diwali"],
+          default: "none",
+        },
+        christmas: {
+          showTree: { type: Boolean, default: true },
+          treePosition: {
+            type: String,
+            enum: ["bottom-left", "bottom-right", "top-right"],
+            default: "bottom-left",
+          },
+          showBells: { type: Boolean, default: true },
+          showOrnaments: { type: Boolean, default: true },
+          showSnow: { type: Boolean, default: true },
+        },
+        vesak: {
+          showLantern: { type: Boolean, default: true },
+          lanternPosition: {
+            type: String,
+            enum: ["top-right", "top-left", "bottom-right"],
+            default: "top-right",
+          },
+          showLotus: { type: Boolean, default: true },
+          lotusPosition: {
+            type: String,
+            enum: ["bottom-left", "bottom-right"],
+            default: "bottom-left",
+          },
+          showFlag: { type: Boolean, default: true },
+          flagPosition: {
+            type: String,
+            enum: ["top-left", "top-right"],
+            default: "top-left",
+          },
+          showLightString: { type: Boolean, default: true },
+          showParticles: { type: Boolean, default: true },
+        },
+      },
     },
 
     hero: {
