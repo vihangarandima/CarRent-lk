@@ -458,25 +458,31 @@ const detectDistrict = (address, lat, lng, googleResult) => {
 };
 
 
+const INITIAL_FORM_DATA = {
+  brand: "",
+  model: "",
+  year: "",
+  pricePerDay: "",
+  pricePerKmAfter100km: "",
+  rentMode: "self-drive",
+  seats: "",
+  kmPerDay: "100",
+  minRentalDays: "1",
+  fuelType: "",
+  transmission: "",
+  vehicleType: "",
+  district: "",
+  location: "",
+  description: "",
+  images: ["", "", "", "", ""],
+  lat: 6.9271,
+  lng: 79.8612,
+};
+
 const ListVehicle = () => {
   const [step, setStep] = useState(1);
   const [listerType, setListerType] = useState('personal');
-  const [formData, setFormData] = useState({
-    brand: "",
-    model: "",
-    year: "",
-    pricePerDay: "",
-    pricePerKmAfter100km: "",
-    fuelType: "",
-    transmission: "",
-    vehicleType: "",
-    district: "",
-    location: "",
-    description: "",
-    images: ["", "", "", "", ""],
-    lat: 6.9271,
-    lng: 79.8612,
-  });
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
 
   const [previewUrls, setPreviewUrls] = useState(["", "", "", "", ""]);
   const [uploadingSlots, setUploadingSlots] = useState({});
@@ -500,6 +506,88 @@ const ListVehicle = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+
+  const [hasDraft, setHasDraft] = useState(false);
+  const [draftData, setDraftData] = useState(null);
+
+  // Check for saved draft on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("yamu_listing_draft");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          parsed?.formData &&
+          (parsed.formData.brand ||
+            parsed.formData.vehicleType ||
+            parsed.formData.pricePerDay ||
+            (parsed.formData.images && parsed.formData.images.some(Boolean)))
+        ) {
+          setDraftData(parsed);
+          setHasDraft(true);
+        }
+      }
+    } catch (_) {}
+  }, []);
+
+  // Auto-save draft on form changes
+  useEffect(() => {
+    try {
+      const hasAnyData =
+        formData.brand ||
+        formData.model ||
+        formData.vehicleType ||
+        formData.pricePerDay ||
+        (formData.images && formData.images.some(Boolean));
+      if (hasAnyData) {
+        const draft = {
+          formData,
+          customBrand,
+          customModel,
+          step,
+          savedAt: Date.now(),
+        };
+        sessionStorage.setItem("yamu_listing_draft", JSON.stringify(draft));
+      }
+    } catch (_) {}
+  }, [formData, customBrand, customModel, step]);
+
+  const handleRestoreDraft = () => {
+    if (draftData?.formData) {
+      setFormData(draftData.formData);
+      if (draftData.customBrand) setCustomBrand(draftData.customBrand);
+      if (draftData.customModel) setCustomModel(draftData.customModel);
+      if (draftData.step) setStep(draftData.step);
+      if (Array.isArray(draftData.formData.images)) {
+        setPreviewUrls(draftData.formData.images);
+      }
+      setHasDraft(false);
+      toast.success("Resumed your unfinished vehicle listing draft! 🚗", "Draft Restored");
+    }
+  };
+
+  const handleDiscardDraft = () => {
+    try {
+      sessionStorage.removeItem("yamu_listing_draft");
+    } catch (_) {}
+    setHasDraft(false);
+    setDraftData(null);
+    toast.info("Draft discarded.");
+  };
+
+  const handleResetForm = () => {
+    setFormData(INITIAL_FORM_DATA);
+    setPreviewUrls(["", "", "", "", ""]);
+    setUploadingSlots({});
+    setCustomBrand("");
+    setCustomModel("");
+    setDateRange([new Date(), new Date(new Date().setFullYear(new Date().getFullYear() + 1))]);
+    setStep(1);
+    try {
+      sessionStorage.removeItem("yamu_listing_draft");
+    } catch (_) {}
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // Listing needs an account: send guests to sign in first instead of after filling the whole form
   useEffect(() => {
@@ -1018,9 +1106,7 @@ const ListVehicle = () => {
           navigate(targetUrl);
         },
         secondaryText: "List Another Vehicle",
-        onSecondary: () => {
-          window.location.reload();
-        },
+        onSecondary: handleResetForm,
       });
     } catch (err) {
       toast.error(err.response?.data?.msg || err.message, "Listing Failed");
@@ -1055,6 +1141,28 @@ const ListVehicle = () => {
 
         {/* Left Column: Form */}
         <div className="lv-left-col">
+          {hasDraft && (
+            <div className="lv-draft-banner">
+              <div className="lv-draft-info">
+                <Sparkles size={18} className="text-orange flex-shrink-0" />
+                <div>
+                  <strong>We saved your unfinished vehicle listing draft!</strong>
+                  <p>
+                    {draftData?.formData?.brand || ""} {draftData?.formData?.model || "Vehicle"} (Step {draftData?.step || 1} of 4)
+                  </p>
+                </div>
+              </div>
+              <div className="lv-draft-actions">
+                <button type="button" onClick={handleRestoreDraft} className="lv-draft-resume-btn">
+                  Resume Draft →
+                </button>
+                <button type="button" onClick={handleDiscardDraft} className="lv-draft-discard-btn">
+                  Discard
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="stepper">
             {[
               { label: "Details", short: "Details" },
@@ -1182,11 +1290,57 @@ const ListVehicle = () => {
                     </div>
                   </div>
                   <div className="form-group flex-1">
-                    <label>Price Per Km After 100km (LKR) *</label>
+                    <label>Extra charge per km (LKR)</label>
                     <div className="input-with-prefix">
                       <span className="prefix">LKR</span>
-                      <input type="number" name="pricePerKmAfter100km" value={formData.pricePerKmAfter100km} onChange={handleChange} required min="0" placeholder="50" />
+                      <input type="number" name="pricePerKmAfter100km" value={formData.pricePerKmAfter100km} onChange={handleChange} min="0" placeholder="50" />
                     </div>
+                  </div>
+                </div>
+
+                {/* How it can be rented — shown on every card and used in search */}
+                <div className="form-group mb-4">
+                  <label>How can customers rent it? *</label>
+                  <div className="lv-mode-options">
+                    {[
+                      { id: "self-drive", label: "Self-drive", hint: "Customer drives" },
+                      { id: "with-driver", label: "With driver", hint: "You provide a driver" },
+                      { id: "both", label: "Both", hint: "Customer chooses" },
+                    ].map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        className={`lv-mode-option ${formData.rentMode === m.id ? "active" : ""}`}
+                        onClick={() => setFormData((prev) => ({ ...prev, rentMode: m.id }))}
+                      >
+                        <strong>{m.label}</strong>
+                        <span>{m.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="form-row mb-4">
+                  <div className="form-group flex-1">
+                    <label>Free km per day</label>
+                    <select name="kmPerDay" value={formData.kmPerDay} onChange={handleChange}>
+                      <option value="100">100 km/day</option>
+                      <option value="150">150 km/day</option>
+                      <option value="200">200 km/day</option>
+                      <option value="0">Unlimited</option>
+                    </select>
+                  </div>
+                  <div className="form-group flex-1">
+                    <label>Minimum rental</label>
+                    <select name="minRentalDays" value={formData.minRentalDays} onChange={handleChange}>
+                      {[1, 2, 3, 5, 7, 14, 30].map((d) => (
+                        <option key={d} value={d}>{d} day{d > 1 ? "s" : ""}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group flex-1">
+                    <label>Seats</label>
+                    <input type="number" name="seats" value={formData.seats} onChange={handleChange} min="1" max="60" placeholder="5" />
                   </div>
                 </div>
 
@@ -1622,6 +1776,18 @@ const ListVehicle = () => {
       </div>
 
       <style>{`
+        .lv-mode-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .lv-mode-option {
+          display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+          padding: 12px 14px; border-radius: 12px; border: 1.5px solid #e2e8f0; background: #fff; cursor: pointer;
+          transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        .lv-mode-option strong { font-size: 0.95rem; color: #0f172a; }
+        .lv-mode-option span { font-size: 0.78rem; color: #64748b; }
+        .lv-mode-option.active { border-color: #f97316; background: #fff7ed; }
+        .lv-mode-option.active strong { color: #c2410c; }
+        @media (max-width: 560px) { .lv-mode-options { grid-template-columns: 1fr; } }
+
         /* Centered Lister Type Modal */
         .lt-wrapper {
           min-height: calc(100vh - 80px); /* Adjust for navbar */
@@ -1913,6 +2079,77 @@ const ListVehicle = () => {
           display: flex;
           flex-direction: column;
           gap: 1.5rem;
+        }
+
+        /* Draft Recovery Banner */
+        .lv-draft-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+          border: 1.5px solid #fdba74;
+          border-radius: 1rem;
+          padding: 1rem 1.25rem;
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.08);
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+
+        .lv-draft-info {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .lv-draft-info strong {
+          display: block;
+          font-size: 0.92rem;
+          color: #9a3412;
+        }
+
+        .lv-draft-info p {
+          margin: 2px 0 0;
+          font-size: 0.8rem;
+          color: #c2410c;
+        }
+
+        .lv-draft-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .lv-draft-resume-btn {
+          background: #ea580c;
+          color: #ffffff;
+          border: none;
+          padding: 0.45rem 1rem;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .lv-draft-resume-btn:hover {
+          background: #c2410c;
+          transform: translateY(-1px);
+        }
+
+        .lv-draft-discard-btn {
+          background: transparent;
+          color: #78350f;
+          border: 1px solid #fdba74;
+          padding: 0.45rem 0.85rem;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .lv-draft-discard-btn:hover {
+          background: rgba(254, 215, 170, 0.4);
         }
 
         .lv-right-col {

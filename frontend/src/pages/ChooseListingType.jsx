@@ -62,6 +62,9 @@ const ChooseListingType = () => {
       </div>
 
       <p className="auth-footer-text">
+        Wondering what you could earn? <Link to="/earnings-calculator">Try the earnings calculator</Link>
+      </p>
+      <p className="auth-footer-text" style={{ marginTop: "0.5rem" }}>
         Already have an account? <Link to="/login">Sign in</Link>
       </p>
 

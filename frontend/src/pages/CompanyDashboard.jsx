@@ -43,6 +43,7 @@ import {
   Users,
   Wallet,
   X,
+  MessageSquare,
 } from "lucide-react";
 import {
   Area,
@@ -59,6 +60,7 @@ const navItems = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Fleet", icon: CarFront },
   { label: "Bookings", icon: CalendarCheck },
+  { label: "Inquiries & Bids", icon: MessageSquare },
 ];
 
 const greeting = () => {
@@ -266,8 +268,13 @@ export default function CompanyDashboard() {
       pricePerDay: v.pricePerDay || "",
       pricePerKmAfter100km: v.pricePerKmAfter100km || 0,
       vehicleType: v.vehicleType || "car",
-      fuelType: v.fuelType || "Petrol",
-      transmission: v.transmission || "Auto",
+      fuelType: v.fuelType || "",
+      // older listings stored "Auto"; normalise to the value the forms use
+      transmission: v.transmission === "Auto" ? "Automatic" : v.transmission || "",
+      rentMode: v.rentMode || "self-drive",
+      seats: v.seats || "",
+      kmPerDay: v.kmPerDay === 0 ? "0" : String(v.kmPerDay || 100),
+      minRentalDays: String(v.minRentalDays || 1),
       location: v.location || "",
       description: v.description || "",
       status: v.status || "active",
@@ -472,6 +479,20 @@ export default function CompanyDashboard() {
       toast.success("Rental cancelled.");
     } catch (err) {
       toast.error("Failed to cancel rental: " + (err.response?.data?.msg || err.message));
+    }
+  };
+
+  const handleUpdateBidStatus = async (bidId, newStatus) => {
+    try {
+      const res = await axios.put(
+        `${API_URL}/api/bids/${bidId}`,
+        { status: newStatus },
+        { headers: { "x-auth-token": token } }
+      );
+      setBids((prev) => prev.map((b) => (b._id === bidId ? res.data : b)));
+      toast.success(`Inquiry offer marked as ${newStatus}`);
+    } catch (err) {
+      toast.error(err.response?.data?.msg || "Could not update offer status");
     }
   };
 
@@ -1115,6 +1136,130 @@ export default function CompanyDashboard() {
               </section>
             )}
 
+            {/* ── INQUIRIES & BIDS TAB ── */}
+            {activeTab === "Inquiries & Bids" && (
+              <section className="cd-card" style={{ marginTop: 24 }}>
+                <div className="cd-card-head">
+                  <div>
+                    <h2 className="cd-card-title">Customer Inquiries & Price Bids</h2>
+                    <p className="cd-card-desc">
+                      {bids.length} total inquiries · {bids.filter((b) => b.status === "pending").length} pending offers · {bids.filter((b) => b.status === "accepted").length} accepted
+                    </p>
+                  </div>
+                </div>
+                <div className="cd-card-body" style={{ padding: 0 }}>
+                  {bids.length === 0 ? (
+                    <div className="cd-empty-state">
+                      <MessageSquare size={24} style={{ color: "#f97316" }} />
+                      <h3>No inquiries or bids yet</h3>
+                      <p>When customers send price offers or booking inquiries on your vehicles, they will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="cd-table-wrap">
+                      <table className="cd-table">
+                        <thead>
+                          <tr>
+                            <th>Vehicle</th>
+                            <th>Customer</th>
+                            <th>Offered Price</th>
+                            <th>Customer Message</th>
+                            <th>Status</th>
+                            <th style={{ textAlign: "right" }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bids.map((b) => {
+                            const veh = b.vehicle;
+                            const statusColors = { pending: "#f59e0b", accepted: "#10b981", rejected: "#ef4444" };
+                            const statusLabels = { pending: "Pending Offer", accepted: "Accepted", rejected: "Declined" };
+                            const renterPhone = b.renter?.phone || "";
+                            const waDigits = String(renterPhone).replace(/[^0-9]/g, "").replace(/^0/, "94");
+                            const waMsg = encodeURIComponent(
+                              `Hello ${b.renter?.name || "Customer"}, regarding your inquiry for ${veh?.brand || "the vehicle"} ${veh?.model || ""} on Yamu Car Rentals...`
+                            );
+                            const waLink = waDigits ? `https://wa.me/${waDigits}?text=${waMsg}` : null;
+
+                            return (
+                              <tr key={b._id}>
+                                <td>
+                                  <div className="cd-cell-vehicle">
+                                    <div>
+                                      <span className="cd-vehicle-name">{veh?.brand || "—"} {veh?.model || ""}</span>
+                                      <span className="cd-vehicle-year">{veh?.year ? `${veh.year} · ` : ""}{veh?.pricePerDay ? `Listed: ${formatLKR(veh.pricePerDay)}/day` : ""}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div>
+                                    <span style={{ fontWeight: 600, display: "block", color: "#09090b" }}>{b.renter?.name || "Customer"}</span>
+                                    <span style={{ fontSize: "0.75rem", color: "#71717a" }}>{b.renter?.phone || b.renter?.email || "No direct phone"}</span>
+                                  </div>
+                                </td>
+                                <td className="cd-cell-price">
+                                  <div>
+                                    <span style={{ fontWeight: 700, color: "#ea580c" }}>{formatLKR(b.offerPrice)}</span>
+                                    <span style={{ fontSize: "0.72rem", color: "#71717a", display: "block" }}>
+                                      {new Date(b.createdAt).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="cd-cell-muted" style={{ maxWidth: 220 }}>
+                                  <p style={{ margin: 0, fontSize: "0.82rem", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={b.message || ""}>
+                                    {b.message || "Direct price inquiry"}
+                                  </p>
+                                </td>
+                                <td>
+                                  <span className="cd-rental-status-badge" style={{ background: `${statusColors[b.status || "pending"]}15`, color: statusColors[b.status || "pending"] }}>
+                                    {statusLabels[b.status || "pending"] || b.status}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div className="cd-cell-actions" style={{ justifyContent: "flex-end", gap: 6 }}>
+                                    {waLink && (
+                                      <a
+                                        href={waLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="cd-action-icon-btn"
+                                        style={{ background: "#22c55e", color: "#fff", borderColor: "#22c55e" }}
+                                        title="Chat on WhatsApp"
+                                      >
+                                        <Phone size={13} />
+                                      </a>
+                                    )}
+                                    {b.status !== "accepted" && (
+                                      <button
+                                        type="button"
+                                        className="cd-action-icon-btn cd-view-btn"
+                                        onClick={() => handleUpdateBidStatus(b._id, "accepted")}
+                                        title="Accept Offer"
+                                      >
+                                        <CheckCircle size={14} />
+                                      </button>
+                                    )}
+                                    {b.status !== "rejected" && (
+                                      <button
+                                        type="button"
+                                        className="cd-action-icon-btn cd-delete-btn"
+                                        onClick={() => handleUpdateBidStatus(b._id, "rejected")}
+                                        title="Decline Offer"
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
           </main>
         </div>
       </div>
@@ -1281,9 +1426,10 @@ export default function CompanyDashboard() {
                   <div className="cd-form-group">
                     <label>Fuel Type</label>
                     <select
-                      value={vehicleEditData.fuelType || "Petrol"}
+                      value={vehicleEditData.fuelType || ""}
                       onChange={(e) => setVehicleEditData({ ...vehicleEditData, fuelType: e.target.value })}
                     >
+                      <option value="">Not set</option>
                       <option value="Petrol">Petrol</option>
                       <option value="Diesel">Diesel</option>
                       <option value="Hybrid">Hybrid</option>
@@ -1293,11 +1439,63 @@ export default function CompanyDashboard() {
                   <div className="cd-form-group">
                     <label>Transmission</label>
                     <select
-                      value={vehicleEditData.transmission || "Auto"}
+                      value={vehicleEditData.transmission || ""}
                       onChange={(e) => setVehicleEditData({ ...vehicleEditData, transmission: e.target.value })}
                     >
-                      <option value="Auto">Automatic</option>
+                      <option value="">Not set</option>
+                      <option value="Automatic">Automatic</option>
                       <option value="Manual">Manual</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="cd-form-row">
+                  <div className="cd-form-group">
+                    <label>How can it be rented?</label>
+                    <select
+                      value={vehicleEditData.rentMode || "self-drive"}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, rentMode: e.target.value })}
+                    >
+                      <option value="self-drive">Self-drive</option>
+                      <option value="with-driver">With driver</option>
+                      <option value="both">Both</option>
+                    </select>
+                  </div>
+                  <div className="cd-form-group">
+                    <label>Seats</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      placeholder="5"
+                      value={vehicleEditData.seats ?? ""}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, seats: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="cd-form-row">
+                  <div className="cd-form-group">
+                    <label>Free km per day</label>
+                    <select
+                      value={vehicleEditData.kmPerDay ?? "100"}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, kmPerDay: e.target.value })}
+                    >
+                      <option value="100">100 km/day</option>
+                      <option value="150">150 km/day</option>
+                      <option value="200">200 km/day</option>
+                      <option value="0">Unlimited</option>
+                    </select>
+                  </div>
+                  <div className="cd-form-group">
+                    <label>Minimum rental</label>
+                    <select
+                      value={vehicleEditData.minRentalDays ?? "1"}
+                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, minRentalDays: e.target.value })}
+                    >
+                      {[1, 2, 3, 5, 7, 14, 30].map((d) => (
+                        <option key={d} value={d}>{d} day{d > 1 ? "s" : ""}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -1645,7 +1843,7 @@ const dashboardCSS = `
   .cd-btn-logout { color: #EF4444 !important; border-color: rgba(239,68,68,0.3) !important; }
   .cd-mobile-tabs { display: none; }
   .cd-mobile-tab {
-    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    flex: 1 0 auto; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     padding: 10px 8px; border: none; border-radius: 999px; background: transparent;
     color: #71717a; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit;
   }
@@ -1661,6 +1859,7 @@ const dashboardCSS = `
   @media (max-width: 1024px) {
     .cd-mobile-tabs {
       display: flex; gap: 4px; margin-top: 16px; padding: 4px; background: #fff;
+      overflow-x: auto; scrollbar-width: none; max-width: 100%;
       border: 1px solid rgba(228,228,231,0.8); border-radius: 999px;
       position: sticky; top: 8px; z-index: 20; box-shadow: 0 4px 14px rgba(0,0,0,0.05);
     }

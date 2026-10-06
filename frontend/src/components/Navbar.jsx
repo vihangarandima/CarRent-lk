@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/images/logo.png";
+import { useCurrency } from "../context/CurrencyContext";
 import {
   DASHBOARD_PATH,
   isBrowsingAsCustomer,
@@ -12,7 +13,8 @@ import {
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const token = localStorage.getItem("token");
+  const { currency, setCurrency, currencies } = useCurrency();
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [user, setUser] = useState(() =>
     JSON.parse(localStorage.getItem("user") || "null")
   );
@@ -21,6 +23,7 @@ const Navbar = () => {
 
   useEffect(() => {
     const handleUserUpdate = () => {
+      setToken(localStorage.getItem("token"));
       setUser(JSON.parse(localStorage.getItem("user") || "null"));
     };
     window.addEventListener("user-updated", handleUserUpdate);
@@ -58,7 +61,7 @@ const Navbar = () => {
 
   // Pages that start with the orange header band get the transparent white navbar
   const onOrangeHeader =
-    ["/", "/home", "/vehicles", "/companies", "/reviews", "/reviews-portal", "/why-us"].includes(location.pathname) ||
+    ["/", "/home", "/vehicles", "/companies", "/reviews", "/reviews-portal", "/why-us", "/earnings-calculator"].includes(location.pathname) ||
     location.pathname.startsWith("/companies/");
 
   const lister = Boolean(token) && isLister(user);
@@ -121,6 +124,21 @@ const Navbar = () => {
         )}
 
         <div className="nav-actions hidden-mobile">
+          <div className="nav-currency-picker" title="Change currency">
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="nav-currency-select"
+              aria-label="Display currency"
+            >
+              {Object.values(currencies).map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.code}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {token ? (
             <>
               {lister ? (
@@ -274,6 +292,21 @@ const Navbar = () => {
               </Link>
             </>
           )}
+
+          <div className="mobile-currency-row">
+            <span style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: 600 }}>Display Currency:</span>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="mobile-currency-select"
+            >
+              {Object.values(currencies).map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -405,6 +438,62 @@ const Navbar = () => {
           box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3);
           white-space: nowrap;
           border: none;
+        }
+
+        .nav-currency-picker {
+          display: flex;
+          align-items: center;
+        }
+
+        .nav-currency-select {
+          background: rgba(255, 255, 255, 0.9);
+          border: 1.5px solid rgba(226, 232, 240, 0.8);
+          border-radius: 999px;
+          padding: 0.35rem 0.65rem;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #0f172a;
+          cursor: pointer;
+          outline: none;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+
+        .hero-nav.on-dark:not(.scrolled) .nav-currency-select {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.4);
+          color: #ffffff;
+        }
+
+        .hero-nav.on-dark:not(.scrolled) .nav-currency-select option {
+          color: #0f172a;
+          background: #ffffff;
+        }
+
+        .nav-currency-select:hover {
+          border-color: #f97316;
+        }
+
+        .mobile-currency-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1rem 0 0.5rem;
+          border-top: 1px solid #f1f5f9;
+          margin-top: 0.5rem;
+        }
+
+        .mobile-currency-select {
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 0.4rem 0.75rem;
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: #0f172a;
+          cursor: pointer;
+          outline: none;
+          font-family: inherit;
         }
 
         .nav-btn:hover {

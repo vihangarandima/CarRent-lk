@@ -46,6 +46,8 @@ export const saveSession = (data) => {
   localStorage.setItem("token", data.token);
   localStorage.setItem("user", JSON.stringify(user));
   localStorage.removeItem(MODE_KEY);
+  window.dispatchEvent(new Event("user-updated"));
+  window.dispatchEvent(new Event("storage"));
   return user;
 };
 

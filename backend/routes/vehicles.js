@@ -14,6 +14,19 @@ const PUBLIC_STATUS_FILTER = { status: "active" };
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
+// Optional listing details shared by single and bulk create
+const listingExtras = (src = {}) => {
+  const out = {};
+  if (["self-drive", "with-driver", "both"].includes(src.rentMode)) out.rentMode = src.rentMode;
+  const seats = Number(src.seats);
+  if (seats >= 1 && seats <= 60) out.seats = Math.round(seats);
+  if (src.kmPerDay !== undefined && src.kmPerDay !== "" && Number(src.kmPerDay) >= 0) out.kmPerDay = Number(src.kmPerDay);
+  const minDays = Number(src.minRentalDays);
+  if (minDays >= 1 && minDays <= 60) out.minRentalDays = Math.round(minDays);
+  return out;
+};
+
+
 const cleanImages = (images) =>
   Array.isArray(images)
     ? images.filter((img) => typeof img === "string" && img.trim() !== "").slice(0, 5)
@@ -23,8 +36,12 @@ const cleanImages = (images) =>
 // @desc    Get all vehicles with filters (only active public listings by default)
 router.get("/", async (req, res) => {
   try {
-    const { brand, model, location, minPrice, maxPrice, companyId, vehicleType, status } = req.query;
-    let query = { status: status || "active" };
+    const { brand, model, location, minPrice, maxPrice, companyId, vehicleType, mode } = req.query;
+    // Only approved, live listings are public — the query string can't widen this
+    let query = { status: "active" };
+    // "self-drive" also matches vehicles offered both ways (and older listings without a mode)
+    if (mode === "self-drive") query.rentMode = { $in: ["self-drive", "both", null] };
+    else if (mode === "with-driver") query.rentMode = { $in: ["with-driver", "both"] };
     if (brand) query.brand = new RegExp(escapeRegex(brand), "i");
     if (model) query.model = new RegExp(escapeRegex(model), "i");
     if (location) query.location = new RegExp(escapeRegex(location), "i");
@@ -40,7 +57,7 @@ router.get("/", async (req, res) => {
     }
 
     const vehicles = await Vehicle.find(query)
-      .populate("owner", "name role")
+      .populate("owner", "name role phone")
       .populate("company", "companyName logo address phone contactEmail isVerified")
       .sort({ isFeatured: -1, createdAt: -1 })
       .lean();
@@ -140,6 +157,7 @@ router.post("/", auth, async (req, res) => {
 
     const isListerAdmin = lister.role === "admin";
     const newVehicle = new Vehicle({
+      ...listingExtras(req.body),
       owner: req.user.id,
       brand,
       model,
@@ -228,6 +246,7 @@ router.post("/bulk", auth, async (req, res) => {
 
       try {
         const vehicle = await new Vehicle({
+          ...listingExtras(row),
           owner: req.user.id,
           company: companyId,
           brand,
@@ -266,8 +285,8 @@ router.get("/:id", async (req, res) => {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Vehicle not found" });
     // Owner phone is public on purpose: customers contact hosts directly on WhatsApp
     const vehicle = await Vehicle.findById(req.params.id)
-      .populate("owner", "name phone")
-      .populate("company", "companyName logo phone contactEmail address");
+      .populate("owner", "name phone createdAt")
+      .populate("company", "companyName logo phone contactEmail address createdAt");
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
     res.json(vehicle);
   } catch (err) {
@@ -296,6 +315,7 @@ const handleVehicleUpdate = async (req, res) => {
     const editable = [
       "brand", "model", "year", "pricePerDay", "pricePerKmAfter100km", "fuelType",
       "transmission", "description", "location", "lat", "lng", "availableFrom", "availableTo",
+      "rentMode", "seats", "kmPerDay", "minRentalDays",
     ];
     for (const key of editable) {
       if (req.body[key] !== undefined && req.body[key] !== "") vehicle[key] = req.body[key];
@@ -324,6 +344,9 @@ const handleVehicleUpdate = async (req, res) => {
         vehicle.status = nextStatus;
       } else if (!["active", "hidden"].includes(nextStatus)) {
         return res.status(400).json({ msg: "Invalid status" });
+      } else if (vehicle.status === "pending" || vehicle.status === "rejected") {
+        // Owners can't approve their own listing
+        return res.status(403).json({ msg: "This listing is waiting for admin approval." });
       } else if (vehicle.status === "flagged") {
         return res.status(403).json({ msg: "This listing was flagged by an admin. Please contact support." });
       } else if (vehicle.status === "rented") {

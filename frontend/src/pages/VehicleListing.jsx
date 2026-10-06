@@ -181,10 +181,14 @@ const VehicleListing = () => {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [activeClusterIndex, setActiveClusterIndex] = useState(0);
-  const [filterShow, setFilterShow] = useState("nearest");
+  const [filterShow, setFilterShow] = useState(
+    searchParams.get("sort") || "nearest"
+  );
   const [filterFuel, setFilterFuel] = useState(
     searchParams.get("fuel") || "any"
   );
+  // "" = any, "self-drive", "with-driver" (vehicles offered "both" ways match either)
+  const [filterMode, setFilterMode] = useState(searchParams.get("mode") || "");
   
   // GPS & Radius Search States
   const [userLocation, setUserLocation] = useState(null);
@@ -228,6 +232,8 @@ const VehicleListing = () => {
     if (filter.maxPrice) params.set("maxPrice", filter.maxPrice);
     if (vehicleType) params.set("type", vehicleType);
     if (filterFuel && filterFuel !== "any") params.set("fuel", filterFuel);
+    if (filterMode) params.set("mode", filterMode);
+    if (filterShow && filterShow !== "nearest") params.set("sort", filterShow);
     if (viewMode && viewMode !== "grid") params.set("view", viewMode);
     if (radius && radius !== 20) params.set("radius", radius);
     if (pinnedLocation) {
@@ -239,7 +245,7 @@ const VehicleListing = () => {
     if (paramStr !== searchParams.toString()) {
       setSearchParams(params, { replace: true });
     }
-  }, [filter, vehicleType, filterFuel, viewMode, radius, pinnedLocation]);
+  }, [filter, vehicleType, filterFuel, filterMode, filterShow, viewMode, radius, pinnedLocation]);
 
   // Sync back when browser back/forward buttons are pressed
   useEffect(() => {
@@ -249,6 +255,8 @@ const VehicleListing = () => {
     const maxPParam = searchParams.get("maxPrice") || "";
     const typeParam = searchParams.get("type") || searchParams.get("vehicleType") || "";
     const fuelParam = searchParams.get("fuel") || "any";
+    const modeParam = searchParams.get("mode") || "";
+    const sortParam = searchParams.get("sort") || "nearest";
     const viewParam = searchParams.get("view") || "grid";
     const radiusParam = parseInt(searchParams.get("radius")) || 20;
 
@@ -268,6 +276,8 @@ const VehicleListing = () => {
     });
     setVehicleType((prev) => (prev === typeParam ? prev : typeParam));
     setFilterFuel((prev) => (prev === fuelParam ? prev : fuelParam));
+    setFilterMode((prev) => (prev === modeParam ? prev : modeParam));
+    setFilterShow((prev) => (prev === sortParam ? prev : sortParam));
     setViewMode((prev) => (prev === viewParam ? prev : viewParam));
     setRadius((prev) => (prev === radiusParam ? prev : radiusParam));
 
@@ -339,6 +349,7 @@ const VehicleListing = () => {
     });
     setFilterShow("nearest");
     setFilterFuel("any");
+    setFilterMode("");
     setVehicleType("");
     setUserLocation(null);
     setPinnedLocation(null);
@@ -483,15 +494,20 @@ const VehicleListing = () => {
           companyName.includes(searchLocation);
       }
 
+      const brandTerm = (filter.brand || "").toLowerCase().trim();
       const matchBrand =
-        !filter.brand ||
-        v.brand?.toLowerCase().includes(filter.brand.toLowerCase());
+        !brandTerm ||
+        v.brand?.toLowerCase().includes(brandTerm) ||
+        v.model?.toLowerCase().includes(brandTerm) ||
+        `${v.brand || ""} ${v.model || ""}`.toLowerCase().includes(brandTerm);
       const matchMinPrice =
         !filter.minPrice || v.pricePerDay >= parseInt(filter.minPrice);
       const matchMaxPrice =
         !filter.maxPrice || v.pricePerDay <= parseInt(filter.maxPrice);
       const matchFuel =
         filterFuel === "any" || v.fuelType?.toLowerCase() === filterFuel;
+      const vMode = v.rentMode || "self-drive";
+      const matchMode = !filterMode || vMode === "both" || vMode === filterMode;
       const matchType =
         !vehicleType ||
         v.vehicleType?.toLowerCase() === vehicleType.toLowerCase();
@@ -501,14 +517,29 @@ const VehicleListing = () => {
         matchMinPrice &&
         matchMaxPrice &&
         matchFuel &&
+        matchMode &&
         matchType
       );
     })
     .sort((a, b) => {
+      if (filterShow === "price-asc") {
+        return (a.pricePerDay || 0) - (b.pricePerDay || 0);
+      }
+      if (filterShow === "price-desc") {
+        return (b.pricePerDay || 0) - (a.pricePerDay || 0);
+      }
+      if (filterShow === "newest") {
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      }
+      if (filterShow === "top-rated") {
+        const rA = Number(a.rating) || 5;
+        const rB = Number(b.rating) || 5;
+        return rB - rA;
+      }
       if (activeCenter && a.distanceFromCenter !== null && b.distanceFromCenter !== null) {
         return a.distanceFromCenter - b.distanceFromCenter;
       }
-      return 0;
+      return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
     });
 
   // Dynamic clustering threshold based on real map zoom level
@@ -603,7 +634,7 @@ const VehicleListing = () => {
               )}
             </div>
             <div className="search-card-header-actions">
-              {(filter.location || filter.brand || filter.minPrice || filter.maxPrice || vehicleType || filterFuel !== "any" || pinnedLocation) && (
+              {(filter.location || filter.brand || filter.minPrice || filter.maxPrice || vehicleType || filterFuel !== "any" || filterMode || pinnedLocation) && (
                 <button
                   className="reset-btn"
                   onClick={handleReset}
@@ -816,6 +847,23 @@ const VehicleListing = () => {
             </div>
 
             <div className="filter-group fuel-group">
+              <span className="filter-label">RENT:</span>
+              {[
+                { id: "", label: "Any" },
+                { id: "self-drive", label: "Self-drive" },
+                { id: "with-driver", label: "With driver" },
+              ].map((m) => (
+                <button
+                  key={m.label}
+                  className={`filter-pill fuel-pill ${filterMode === m.id ? "active-fuel" : ""}`}
+                  onClick={() => setFilterMode(m.id)}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="filter-group fuel-group">
               <span className="filter-label">FUEL:</span>
               {["any", "petrol", "diesel", "hybrid", "electric"].map((f) => (
                 <button
@@ -845,6 +893,23 @@ const VehicleListing = () => {
             <p>{filtered.length} verified vehicles · live availability</p>
           </div>
           <div className="results-header-actions">
+            <div className="sort-dropdown-wrap">
+              <span className="sort-label">Sort:</span>
+              <select
+                id="vehicle-sort-select"
+                value={filterShow}
+                onChange={(e) => setFilterShow(e.target.value)}
+                className="sort-select-input"
+                aria-label="Sort vehicles"
+              >
+                <option value="nearest">📍 Nearest / Recommended</option>
+                <option value="price-asc">💰 Price: Low to High</option>
+                <option value="price-desc">💎 Price: High to Low</option>
+                <option value="newest">🆕 Newest First</option>
+                <option value="top-rated">⭐ Top Rated</option>
+              </select>
+            </div>
+
             <div className="view-toggle">
               <button
                 className={`view-toggle-btn ${viewMode === "grid" ? "active-view" : ""}`}
@@ -1838,6 +1903,8 @@ const VehicleListing = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: wrap;
+          gap: 0.75rem;
           margin-bottom: 1.5rem;
         }
 
@@ -1857,7 +1924,48 @@ const VehicleListing = () => {
         .results-header-actions {
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+          min-width: 0;
+          max-width: 100%;
+        }
+
+        .sort-dropdown-wrap {
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 100px;
+          padding: 0.25rem 0.65rem 0.25rem 0.85rem;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+          transition: all 0.2s ease;
+        }
+
+        .sort-dropdown-wrap:focus-within {
+          border-color: #f97316;
+          box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+        }
+
+        .sort-label {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+          white-space: nowrap;
+        }
+
+        .sort-select-input {
+          border: none;
+          background: transparent;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #0f172a;
+          cursor: pointer;
+          outline: none;
+          font-family: inherit;
+          padding-right: 0.25rem;
         }
 
         .view-toggle {

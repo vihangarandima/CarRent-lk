@@ -125,6 +125,7 @@ const Footer = () => {
           <div className="footer-col">
             <h4>Host</h4>
             <Link to="/choose-listing-type">List Your Vehicle</Link>
+            <Link to="/earnings-calculator">Earnings Calculator</Link>
             <Link to="/register?role=owner">Become a Host</Link>
             <Link to="/dashboard">Lister Dashboard</Link>
             <Link to="/why-us">Host Benefits</Link>

@@ -28,6 +28,7 @@ let rowSeq = 0;
 const newRow = (defaults = {}) => ({
   key: ++rowSeq,
   vehicleType: "car",
+  rentMode: "self-drive",
   brand: "",
   model: "",
   year: "",
@@ -150,6 +151,7 @@ export default function QuickAddFleet() {
           pricePerDay: Number(r.pricePerDay),
           fuelType: r.fuelType,
           transmission: r.transmission,
+          rentMode: r.rentMode,
           location: r.location,
           images: r.image ? [r.image] : [],
         })),
@@ -215,6 +217,7 @@ export default function QuickAddFleet() {
             <span>Price / day (LKR)</span>
             <span>Fuel</span>
             <span>Gear</span>
+            <span>Rent</span>
             <span>Location</span>
             <span />
           </div>
@@ -285,6 +288,14 @@ export default function QuickAddFleet() {
                 </select>
               </label>
               <label className="qa-cell">
+                <span className="qa-mobile-label">Rent</span>
+                <select className="qa-input" value={r.rentMode} onChange={(e) => update(r.key, { rentMode: e.target.value })}>
+                  <option value="self-drive">Self-drive</option>
+                  <option value="with-driver">With driver</option>
+                  <option value="both">Both</option>
+                </select>
+              </label>
+              <label className="qa-cell">
                 <span className="qa-mobile-label">Location</span>
                 <input className="qa-input" value={r.location} placeholder="Colombo 03"
                   onChange={(e) => update(r.key, { location: e.target.value })} />
@@ -322,7 +333,7 @@ export default function QuickAddFleet() {
 
       <style>{`
         .qa-page { background: var(--bg); min-height: 100vh; padding: 110px 0 4rem; }
-        .qa-container { max-width: 1320px; margin: 0 auto; padding: 0 1.25rem; }
+        .qa-container { max-width: 1400px; margin: 0 auto; padding: 0 1.25rem; }
         .qa-head { display: flex; flex-direction: column; align-items: flex-start; gap: 0.6rem; margin-bottom: 1.5rem; }
         .qa-head h1 { font-size: clamp(1.75rem, 3.5vw, 2.4rem); font-weight: 800; }
         .qa-head p { max-width: 720px; }
@@ -338,7 +349,7 @@ export default function QuickAddFleet() {
         .qa-sheet { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); overflow: hidden; }
         .qa-row {
           display: grid;
-          grid-template-columns: 52px 130px minmax(110px, 1fr) minmax(110px, 1fr) 84px 130px 104px 112px minmax(120px, 1.1fr) 76px;
+          grid-template-columns: 52px 120px minmax(100px, 1fr) minmax(100px, 1fr) 76px 120px 96px 108px 122px minmax(110px, 1.1fr) 76px;
           gap: 8px; align-items: center; padding: 8px 12px; border-top: 1px solid #f1f5f9;
         }
         .qa-row-head {

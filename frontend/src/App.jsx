@@ -13,6 +13,7 @@ import AnnouncementBar from "./components/AnnouncementBar";
 import WhatsAppFloat from "./components/WhatsAppFloat";
 import { SiteConfigProvider } from "./context/SiteConfigContext";
 import { ToastProvider } from "./context/ToastContext";
+import { CurrencyProvider } from "./context/CurrencyContext";
 import {
   DASHBOARD_PATH,
   isBrowsingAsCustomer,
@@ -35,6 +36,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const ChooseListingType = lazy(() => import("./pages/ChooseListingType"));
 const ReviewsPortal = lazy(() => import("./pages/ReviewsPortal"));
 const QuickAddFleet = lazy(() => import("./pages/QuickAddFleet"));
+const EarningsCalculator = lazy(() => import("./pages/EarningsCalculator"));
 
 const PageLoader = () => (
   <div style={{ minHeight: "60vh", display: "grid", placeItems: "center" }}>
@@ -218,6 +220,7 @@ function AppContent() {
           <Route path="/company-dashboard" element={<LegacyDashboardRedirect />} />
           <Route path="/company-list-vehicle" element={<ListVehicle />} />
           <Route path="/fleet/quick-add" element={<QuickAddFleet />} />
+          <Route path="/earnings-calculator" element={<EarningsCalculator />} />
           <Route path="/choose-listing-type" element={<ChooseListingType />} />
           <Route path="/select-role" element={<ChooseListingType />} />
           <Route path="/reviews" element={<ReviewsPortal />} />
@@ -238,9 +241,11 @@ function App() {
   return (
     <SiteConfigProvider>
       <ToastProvider>
-        <Router>
-          <AppContent />
-        </Router>
+        <CurrencyProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </CurrencyProvider>
       </ToastProvider>
     </SiteConfigProvider>
   );

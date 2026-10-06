@@ -8,8 +8,11 @@ import {
   Settings2,
   Building2,
   ArrowRight,
+  KeyRound,
+  Gauge,
 } from "lucide-react";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
+import { useCurrency } from "../context/CurrencyContext";
 
 const TYPE_LABELS = {
   bicycle: "Bike",
@@ -22,11 +25,28 @@ const TYPE_LABELS = {
   others: "Other",
 };
 
+const RENT_MODE_LABELS = {
+  "self-drive": "Self-drive",
+  "with-driver": "With driver",
+  both: "Self-drive or with driver",
+};
+
+// km included per day: undefined = platform default (100), 0 = unlimited
+export const kmAllowanceLabel = (kmPerDay) => {
+  if (kmPerDay === 0) return "Unlimited km";
+  return `${kmPerDay || 100} km/day included`;
+};
+
+const isRecent = (createdAt) =>
+  createdAt && Date.now() - new Date(createdAt).getTime() < 14 * 24 * 60 * 60 * 1000;
+
 const VehicleCard = ({ vehicle, index = 0 }) => {
+  const { formatPrice, formatRawPrice, activeCurrency } = useCurrency();
   const coverImage = formatVehicleImageUrl(vehicle?.images, vehicle?.vehicleType);
 
   const year = vehicle.year;
   const typeLabel = TYPE_LABELS[vehicle.vehicleType] || vehicle.vehicleType;
+  const modeLabel = RENT_MODE_LABELS[vehicle.rentMode || "self-drive"];
 
   return (
     <motion.div
@@ -47,6 +67,7 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         />
         <div className="v-card-badges">
           {year && <span className="v-year-badge">{year}</span>}
+          {isRecent(vehicle.createdAt) && <span className="v-new-badge">New</span>}
           {vehicle.distanceFromCenter !== null &&
             vehicle.distanceFromCenter !== undefined && (
               <span className="v-dist-badge">
@@ -75,8 +96,10 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         </div>
 
         {/* Only show specs the lister actually entered */}
-        {(vehicle.seats || vehicle.fuelType || vehicle.transmission) && (
-          <div className="v-specs">
+        <div className="v-specs">
+            <span className="v-mode-chip">
+              <KeyRound size={13} /> {modeLabel}
+            </span>
             {vehicle.seats && (
               <span>
                 <Users size={14} /> {vehicle.seats} seats
@@ -92,8 +115,13 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
                 <Settings2 size={14} /> {vehicle.transmission}
               </span>
             )}
-          </div>
-        )}
+        </div>
+        <div className="v-km-line">
+          <Gauge size={13} /> {kmAllowanceLabel(vehicle.kmPerDay)}
+          {Number(vehicle.pricePerKmAfter100km) > 0 && (
+            <> · +{formatPrice(vehicle.pricePerKmAfter100km)}/extra km</>
+          )}
+        </div>
 
         <div className="v-card-footer">
           <div className="v-location">
@@ -102,13 +130,11 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           </div>
           <div className="v-pricing">
             <div className="v-price-main">
-              LKR {Number(vehicle.pricePerDay || 0).toLocaleString("en-LK")}
+              {formatPrice(vehicle.pricePerDay || 0)}
               <small>/day</small>
             </div>
-            {Number(vehicle.pricePerKmAfter100km) > 0 && (
-              <div className="v-price-extra">
-                +LKR {Number(vehicle.pricePerKmAfter100km).toLocaleString("en-LK")}/km after 100km
-              </div>
+            {vehicle.minRentalDays > 1 && (
+              <div className="v-price-extra">Min. {vehicle.minRentalDays} days</div>
             )}
           </div>
         </div>
@@ -119,6 +145,18 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
       </div>
 
       <style>{`
+        .v-new-badge {
+          background: #16a34a; color: #fff; font-size: 0.7rem; font-weight: 800;
+          padding: 3px 9px; border-radius: 999px; letter-spacing: 0.03em;
+        }
+        .v-specs .v-mode-chip {
+          padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(249,115,22,0.25);
+          background: #fff7ed; color: #c2410c; font-weight: 700;
+        }
+        .v-km-line {
+          display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+          font-size: 0.78rem; color: #64748b; margin: 0 0 0.75rem;
+        }
         .v-card {
           background: #ffffff;
           border-radius: 20px;

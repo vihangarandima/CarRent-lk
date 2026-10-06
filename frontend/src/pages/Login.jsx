@@ -40,8 +40,7 @@ const Login = () => {
 
   const finishSignIn = (data) => {
     const user = saveSession(data);
-    // Full reload so the navbar and every page pick up the new session
-    window.location.href = redirectTo || homePathFor(user);
+    navigate(redirectTo || homePathFor(user), { replace: true });
   };
 
   const handleChange = (e) => {

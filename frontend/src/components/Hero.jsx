@@ -42,6 +42,7 @@ const Hero = () => {
   const [location, setLocation] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [rentMode, setRentMode] = useState(""); // "" = any, "self-drive", "with-driver"
   const [activeSlide, setActiveSlide] = useState(0);
 
   const handleSearch = () => {
@@ -50,6 +51,7 @@ const Hero = () => {
     if (location && location.trim()) params.set("location", location.trim());
     if (minPrice) params.set("minPrice", minPrice);
     if (maxPrice) params.set("maxPrice", maxPrice);
+    if (rentMode) params.set("mode", rentMode);
     navigate(`/vehicles${params.toString() ? `?${params.toString()}` : ""}`);
   };
 
@@ -176,7 +178,25 @@ const Hero = () => {
 
         {/* Pure White Search Card Bar */}
         <div className="hero-search-bar" onKeyDown={handleKeyDown}>
-          <span className="search-lead-label">I'm Looking for</span>
+          {/* Self-drive / with driver — the first thing most Sri Lankan renters decide */}
+          <div className="search-mode" role="radiogroup" aria-label="Rental type">
+            {[
+              { id: "self-drive", label: "Self-drive" },
+              { id: "", label: "Any" },
+              { id: "with-driver", label: "With driver" },
+            ].map((m) => (
+              <button
+                key={m.label}
+                type="button"
+                role="radio"
+                aria-checked={rentMode === m.id}
+                className={`search-mode-btn ${rentMode === m.id ? "active" : ""}`}
+                onClick={() => setRentMode(m.id)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
 
           {/* Vehicle Type Select */}
           <div className="search-field-pill">
@@ -520,6 +540,24 @@ const Hero = () => {
         }
 
         /* Pure White Search Card Bar */
+        .search-mode {
+          display: inline-flex; flex-shrink: 0; padding: 4px; gap: 2px;
+          background: #fff7ed; border: 1px solid rgba(249, 115, 22, 0.22); border-radius: 999px;
+        }
+        .search-mode-btn {
+          padding: 0.45rem 0.8rem; border-radius: 999px; background: transparent;
+          font-size: 0.8rem; font-weight: 700; color: #9a3412; white-space: nowrap; cursor: pointer;
+          transition: background 0.2s ease, color 0.2s ease;
+        }
+        .search-mode-btn.active {
+          background: linear-gradient(135deg, #ff8800 0%, #ea580c 100%); color: #fff;
+          box-shadow: 0 4px 12px -4px rgba(249, 115, 22, 0.6);
+        }
+        @media (max-width: 900px) {
+          .search-mode { width: 100%; }
+          .search-mode-btn { flex: 1; padding: 0.55rem 0.4rem; }
+        }
+
         .hero-search-bar {
           background: #ffffff;
           border-radius: 0 16px 16px 16px;

@@ -35,11 +35,13 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast, confirm } = useToast();
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "null") || {
-    name: "User",
-    email: "",
-    role: "renter",
-  };
+  const [user, setUser] = useState(() => {
+    return JSON.parse(localStorage.getItem("user") || "null") || {
+      name: "User",
+      email: "",
+      role: "renter",
+    };
+  });
 
   const [activeTab, setActiveTab] = useState("overview");
   const [showEditModal, setShowEditModal] = useState(false);
@@ -99,6 +101,7 @@ const Profile = () => {
         profileImage: uploadedUrl,
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
       setProfileImage(uploadedUrl);
       window.dispatchEvent(new Event("user-updated"));
       window.dispatchEvent(new Event("storage"));
@@ -132,6 +135,7 @@ const Profile = () => {
         profileImage: "",
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
       setProfileImage("");
       window.dispatchEvent(new Event("user-updated"));
       window.dispatchEvent(new Event("storage"));
@@ -269,16 +273,20 @@ const Profile = () => {
         },
       );
 
-      // Update localStorage
-      const updatedUser = { ...user, name: res.data.user.name };
+      // Update localStorage & state
+      const updatedUser = {
+        ...user,
+        name: res.data?.user?.name || editName.trim(),
+        phone: editPhone.trim(),
+      };
       localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      window.dispatchEvent(new Event("user-updated"));
+      window.dispatchEvent(new Event("storage"));
 
-      // Close modal and refresh
+      // Close modal
       setShowEditModal(false);
       toast.success("Profile updated successfully!");
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
     } catch (err) {
       toast.error(
         "Failed to update profile: " + (err.response?.data?.msg || err.message),
@@ -302,9 +310,17 @@ const Profile = () => {
         name: editName.trim(),
         phone: editPhone.trim(),
       });
-      const updatedUser = { ...user, name: res.data.user.name, phone: editPhone.trim() };
+      const updatedUser = {
+        ...user,
+        name: res.data?.user?.name || editName.trim(),
+        phone: editPhone.trim(),
+      };
       localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      window.dispatchEvent(new Event("user-updated"));
+      window.dispatchEvent(new Event("storage"));
       setSettingsStatus("Settings saved successfully!");
+      toast.success("Settings saved successfully!");
     } catch (err) {
       setSettingsStatus(
         "Failed to save: " + (err.response?.data?.msg || err.message)

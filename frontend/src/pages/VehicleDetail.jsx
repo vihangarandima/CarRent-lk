@@ -13,6 +13,7 @@ import {
   Phone,
   Gauge,
   Calendar,
+  KeyRound,
   Building2,
 } from "lucide-react";
 import axios from "axios";
@@ -23,8 +24,10 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useToast } from "../context/ToastContext";
 import { useSiteConfig } from "../context/SiteConfigContext";
+import { useCurrency } from "../context/CurrencyContext";
 import { getStoredUser } from "../utils/session";
 import ReviewSection from "../components/ReviewSection";
+import VehicleCard, { kmAllowanceLabel } from "../components/VehicleCard";
 
 const detailMapContainerStyle = {
   width: "100%",
@@ -45,6 +48,7 @@ const VehicleDetail = () => {
   const { id } = useParams();
   const { toast } = useToast();
   const { config } = useSiteConfig();
+  const { formatPrice, formatRawPrice, currency } = useCurrency();
   
   // Booking State
   const [dateRange, setDateRange] = useState([null, null]);
@@ -55,8 +59,10 @@ const VehicleDetail = () => {
   const [sent, setSent] = useState(false);
   const [vehicle, setVehicle] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [bookedIntervals, setBookedIntervals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [similar, setSimilar] = useState([]);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -65,12 +71,30 @@ const VehicleDetail = () => {
   useEffect(() => {
     const fetchVehicleData = async () => {
       try {
-        const [vehicleRes, reviewsRes] = await Promise.all([
+        const [vehicleRes, reviewsRes, rentalsRes] = await Promise.all([
           axios.get(`${API_URL}/api/vehicles/${id}`),
-          axios.get(`${API_URL}/api/vehicles/${id}/reviews`)
+          axios.get(`${API_URL}/api/vehicles/${id}/reviews`),
+          axios.get(`${API_URL}/api/rentals/vehicle/${id}`).catch(() => ({ data: [] })),
         ]);
         setVehicle(vehicleRes.data);
         setReviews(reviewsRes.data);
+        setActiveImageIndex(0);
+        // "You might also like": same type, live listings, excluding this one
+        axios
+          .get(`${API_URL}/api/vehicles`, { params: { vehicleType: vehicleRes.data.vehicleType } })
+          .then((res) => {
+            const others = (Array.isArray(res.data) ? res.data : []).filter((v) => v._id !== vehicleRes.data._id);
+            setSimilar(others.slice(0, 4));
+          })
+          .catch(() => setSimilar([]));
+        if (Array.isArray(rentalsRes.data)) {
+          setBookedIntervals(
+            rentalsRes.data.map((r) => ({
+              start: new Date(r.pickupDate),
+              end: new Date(r.returnDate),
+            }))
+          );
+        }
       } catch (err) {
         console.error("Error fetching vehicle data:", err);
         // A 404 means the listing is gone; anything else is a connection problem
@@ -98,6 +122,11 @@ const VehicleDetail = () => {
       return;
     }
 
+    if (belowMinDays) {
+      toast.warning(`This vehicle is rented for at least ${minDays} days. Please choose a longer period.`, "Minimum Rental");
+      return;
+    }
+
     if (!waNumber) {
       toast.error(
         "This host has not added a contact number yet. Please use the WhatsApp support button and we will connect you.",
@@ -106,7 +135,7 @@ const VehicleDetail = () => {
       return;
     }
     const dateStr = `${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
-    const msg = `Hello! I would like to book the ${vehicle.brand} ${vehicle.model} (${vehicle.year}) listed on Yamu Car Rentals for dates ${dateStr}. Is it available?\n${window.location.href}`;
+    const msg = `Hello! I would like to rent the ${vehicle.brand} ${vehicle.model} (${vehicle.year}) listed on Yamu Car Rentals (${rentModeLabel.toLowerCase()}) for ${dateStr}. Is it available?\n${window.location.href}`;
     const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
 
     // Try posting bid/inquiry if logged in
@@ -165,12 +194,18 @@ const VehicleDetail = () => {
     vehicle.company?.phone ||
     vehicle.owner?.phone ||
     config?.global?.whatsAppSupport?.phoneNumber ||
-    "";
+    "+94702434288";
   const waNumber = toWhatsAppNumber(hostPhone);
   const directPhone = vehicle.company?.phone || vehicle.owner?.phone || "";
   const viewer = getStoredUser();
   const isOwnListing = Boolean(viewer && vehicle.owner?._id && (viewer.id || viewer._id) === vehicle.owner._id);
-  const isUnavailable = ["hidden", "flagged", "rented"].includes(vehicle.status);
+  const isUnavailable = ["hidden", "flagged", "rented", "pending", "rejected"].includes(vehicle.status);
+  const rentModeLabel = { "self-drive": "Self-drive", "with-driver": "With driver", both: "Self-drive or with driver" }[vehicle.rentMode || "self-drive"];
+  const kmPerDay = vehicle.kmPerDay === 0 ? 0 : vehicle.kmPerDay || 100;
+  const minDays = vehicle.minRentalDays || 1;
+  const hostSince = (vehicle.company?.createdAt || vehicle.owner?.createdAt)
+    ? new Date(vehicle.company?.createdAt || vehicle.owner?.createdAt).toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+    : null;
 
   const rawImages = Array.isArray(vehicle.images) && vehicle.images.length > 0
     ? vehicle.images.filter(img => typeof img === "string" && img.trim() !== "")
@@ -181,6 +216,13 @@ const VehicleDetail = () => {
     : [formatVehicleImageUrl(null, vehicle.vehicleType)];
 
   const currentImage = images[activeImageIndex] || images[0];
+
+  const diffTime = startDate && endDate ? Math.abs(new Date(endDate).setHours(0,0,0,0) - new Date(startDate).setHours(0,0,0,0)) : 0;
+  const tripDays = startDate && endDate ? Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24))) : 0;
+  const baseCost = tripDays * (vehicle.pricePerDay || 0);
+  const freeKm = kmPerDay === 0 ? null : tripDays * kmPerDay;
+  const belowMinDays = tripDays > 0 && tripDays < minDays;
+  const extraKmRate = vehicle.pricePerKmAfter100km || 0;
 
   return (
     <div className="detail-wrap">
@@ -216,6 +258,15 @@ const VehicleDetail = () => {
                 />
                 <span>{vehicle.location}</span>
               </div>
+              {images.length > 1 && (
+                <>
+                  <span className="photo-counter">{activeImageIndex + 1} of {images.length}</span>
+                  <button type="button" className="photo-nav photo-prev" aria-label="Previous photo"
+                    onClick={() => setActiveImageIndex((i) => (i - 1 + images.length) % images.length)}>‹</button>
+                  <button type="button" className="photo-nav photo-next" aria-label="Next photo"
+                    onClick={() => setActiveImageIndex((i) => (i + 1) % images.length)}>›</button>
+                </>
+              )}
             </div>
 
             {/* Multiple Photos Thumbnails Gallery */}
@@ -253,11 +304,9 @@ const VehicleDetail = () => {
             <div className="vehicle-header">
               <div>
                 <span className="vehicle-year-chip">{vehicle.year}</span>
-                {vehicle.vehicleType && (
-                  <span className="vehicle-year-chip" style={{ marginLeft: 6, background: "rgba(249,115,22,0.12)", color: "#ea580c" }}>
-                    {vehicle.vehicleType}
-                  </span>
-                )}
+                <span className="vehicle-year-chip" style={{ marginLeft: 6, background: "rgba(249,115,22,0.12)", color: "#ea580c" }}>
+                  {rentModeLabel}
+                </span>
                 <h1>
                   {vehicle.brand} {vehicle.model}
                 </h1>
@@ -280,60 +329,35 @@ const VehicleDetail = () => {
               </div>
             </div>
 
-            {/* Key Specs Card */}
-            <div className="specs-overview-card" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, marginBottom: "2rem", background: "#ffffff", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Fuel size={18} color="#ea580c" />
-                <div>
-                  <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>FUEL</div>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{vehicle.fuelType || "Ask host"}</div>
+            {/* Key specs */}
+            <div className="specs-grid">
+              {[
+                { icon: KeyRound, label: "RENT MODE", value: rentModeLabel },
+                { icon: Calendar, label: "YEAR", value: vehicle.year || "—" },
+                { icon: Settings2, label: "GEARBOX", value: vehicle.transmission || "Ask owner" },
+                { icon: Fuel, label: "FUEL", value: vehicle.fuelType || "Ask owner" },
+                { icon: Users, label: "SEATS", value: vehicle.seats ? `${vehicle.seats} seats` : "Ask owner" },
+                { icon: Gauge, label: "MILEAGE", value: kmAllowanceLabel(vehicle.kmPerDay) },
+                {
+                  icon: Gauge,
+                  label: "EXTRA KM",
+                  value: Number(vehicle.pricePerKmAfter100km) > 0 ? `${formatPrice(vehicle.pricePerKmAfter100km)}/km` : "No extra charge",
+                },
+                { icon: Calendar, label: "MINIMUM", value: `${minDays} day${minDays > 1 ? "s" : ""}` },
+              ].map(({ icon: Icon, label, value }) => (
+                <div key={label} className="spec-item">
+                  <Icon size={18} color="#ea580c" />
+                  <div>
+                    <div className="spec-label">{label}</div>
+                    <div className="spec-value">{value}</div>
+                  </div>
                 </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Settings2 size={18} color="#ea580c" />
-                <div>
-                  <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>TRANSMISSION</div>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{vehicle.transmission || "Ask host"}</div>
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Users size={18} color="#ea580c" />
-                <div>
-                  <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>YEAR</div>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{vehicle.year || "—"}</div>
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Gauge size={18} color="#ea580c" />
-                <div>
-                  <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>AFTER 100KM</div>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{Number(vehicle.pricePerKmAfter100km) > 0 ? `LKR ${Number(vehicle.pricePerKmAfter100km).toLocaleString("en-LK")}/km` : "No extra charge"}</div>
-                </div>
-              </div>
+              ))}
             </div>
 
             <div className="about-section">
               <h3>About This Vehicle</h3>
-              <p>{vehicle.description || "Well-maintained, clean, and reliable vehicle ready for self-drive or chauffeur rental across Sri Lanka."}</p>
-            </div>
-
-            <div className="features-section">
-              <h3>What's Included</h3>
-              <div className="features-grid">
-                {[
-                  "Air Conditioning",
-                  "Comprehensive Insurance",
-                  "Bluetooth Audio System",
-                  "24/7 Roadside Assistance",
-                  "Free Islandwide Support",
-                  "Verified Host Verification",
-                ].map((f) => (
-                  <div key={f} className="feature-tag">
-                    <Check size={16} className="feature-check" />
-                    <span>{f}</span>
-                  </div>
-                ))}
-              </div>
+              <p>{vehicle.description || "The owner hasn't added a description yet. Message them on WhatsApp for more details."}</p>
             </div>
 
             {/* Location Map Section */}
@@ -390,7 +414,7 @@ const VehicleDetail = () => {
             <div className="bid-card">
               <div className="price-row">
                 <span className="price">
-                  LKR {vehicle.pricePerDay?.toLocaleString()}
+                  {formatPrice(vehicle.pricePerDay || 0)}
                 </span>
                 <span className="per-day">/ day</span>
               </div>
@@ -408,21 +432,26 @@ const VehicleDetail = () => {
                   border: "1px solid #ffedd5",
                 }}
               >
-                ⚡ Free 100 km/day included • +LKR {(vehicle.pricePerKmAfter100km || 0).toLocaleString()}/km extra
+                {kmAllowanceLabel(vehicle.kmPerDay)}
+                {Number(vehicle.pricePerKmAfter100km) > 0 && <> · +{formatPrice(vehicle.pricePerKmAfter100km)}/extra km</>}
+                {minDays > 1 && <> · min. {minDays} days</>}
               </div>
               
               <div className="owner-row">
                 <div className="owner-avatar">{vehicle.company?.companyName?.[0] || vehicle.owner?.name?.[0] || "Y"}</div>
                 <div>
-                  <strong>{vehicle.company?.companyName || vehicle.owner?.name || "Verified Partner"}</strong>
-                  <p>{vehicle.company ? "Verified Fleet Partner" : "Verified Individual Host"}</p>
+                  <strong>{vehicle.company?.companyName || vehicle.owner?.name || "Owner"}</strong>
+                  <p>
+                    {vehicle.company ? "Rent-a-car company" : "Individual owner"}
+                    {hostSince && ` · on Yamu since ${hostSince}`}
+                  </p>
                 </div>
               </div>
               <hr className="divider" />
 
               {isUnavailable && !isOwnListing ? (
                 <div className="sent-msg">
-                  <h3>{vehicle.status === "rented" ? "Currently rented" : "Currently unavailable"}</h3>
+                  <h3>{vehicle.status === "rented" ? "Currently rented" : vehicle.status === "pending" ? "Waiting for approval" : "Currently unavailable"}</h3>
                   <p>
                     {vehicle.status === "rented"
                       ? "This vehicle is out on a rental right now. Browse similar vehicles instead."
@@ -436,7 +465,7 @@ const VehicleDetail = () => {
                 <div className="sent-msg">
                   <CheckCircle2 size={44} className="sent-check-icon" />
                   <h3>Booking Chat Launched!</h3>
-                  <p>WhatsApp was opened with your booking details. The host will confirm availability right away.</p>
+                  <p>WhatsApp opened with your dates. The owner will reply there to confirm availability.</p>
                   <button
                     type="button"
                     className="btn-primary"
@@ -460,8 +489,49 @@ const VehicleDetail = () => {
                       selectsRange
                       inline
                       minDate={new Date()}
+                      excludeDateIntervals={bookedIntervals}
                     />
                   </div>
+
+                  {belowMinDays && (
+                    <div className="min-days-warning">
+                      This vehicle is rented for at least {minDays} days. Please pick a longer period.
+                    </div>
+                  )}
+
+                  {tripDays > 0 && (
+                    <div className="trip-pricing-card">
+                      <div className="trip-pricing-header">
+                        <span className="trip-duration-badge">
+                          <Calendar size={13} /> {tripDays} Day{tripDays > 1 ? "s" : ""} Trip
+                        </span>
+                        <span className="trip-total-price">
+                          {formatPrice(baseCost)}
+                        </span>
+                      </div>
+                      <div className="trip-pricing-breakdown">
+                        <div className="trip-pricing-row">
+                          <span>Base rate ({tripDays} × {formatPrice(vehicle?.pricePerDay || 0)})</span>
+                          <span>{formatPrice(baseCost)}</span>
+                        </div>
+                        <div className="trip-pricing-row">
+                          <span>Included mileage</span>
+                          <span className="trip-free-tag">{freeKm === null ? "Unlimited km" : `${freeKm.toLocaleString()} km included`}</span>
+                        </div>
+                        {extraKmRate > 0 && (
+                          <div className="trip-pricing-row">
+                            <span>Excess mileage rate</span>
+                            <span>+{formatPrice(extraKmRate)}/km</span>
+                          </div>
+                        )}
+                        <div className="trip-pricing-divider" />
+                        <div className="trip-pricing-row trip-pricing-total">
+                          <strong>Total Trip Estimate</strong>
+                          <strong>{formatPrice(baseCost)}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <button
                     type="button"
@@ -503,6 +573,23 @@ const VehicleDetail = () => {
             </div>
           </aside>
         </div>
+
+        {similar.length > 0 && (
+          <section className="similar-section">
+            <div className="similar-head">
+              <div>
+                <span className="y-badge">More to explore</span>
+                <h2>You might also like</h2>
+              </div>
+              <Link to={`/vehicles?type=${vehicle.vehicleType}`} className="y-btn y-btn-soft y-btn-sm">See all</Link>
+            </div>
+            <div className="similar-grid">
+              {similar.map((v, i) => (
+                <VehicleCard key={v._id} vehicle={v} index={i} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       <style>{`
@@ -511,6 +598,32 @@ const VehicleDetail = () => {
           background: #f8fafc;
           transition: background-color 0.3s ease;
         }
+        .specs-grid {
+          display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px;
+          margin-bottom: 2rem; background: #fff; padding: 18px; border-radius: 14px; border: 1px solid #e2e8f0;
+        }
+        .spec-item { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .spec-label { font-size: 0.7rem; color: #94a3b8; font-weight: 800; letter-spacing: 0.04em; }
+        .spec-value { font-size: 0.9rem; font-weight: 700; color: #0f172a; }
+        .photo-counter {
+          position: absolute; right: 1rem; bottom: 1rem; padding: 4px 10px; border-radius: 999px;
+          background: rgba(0,0,0,0.65); color: #fff; font-size: 0.8rem; font-weight: 700;
+        }
+        .photo-nav {
+          position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%;
+          background: rgba(255,255,255,0.9); color: #0f172a; font-size: 1.5rem; line-height: 1; display: grid; place-items: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer;
+        }
+        .photo-prev { left: 1rem; }
+        .photo-next { right: 1rem; }
+        .min-days-warning {
+          margin-top: 0.75rem; padding: 0.6rem 0.8rem; border-radius: 10px;
+          background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; font-size: 0.85rem; font-weight: 600;
+        }
+        .similar-section { margin-top: 4rem; }
+        .similar-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1.5rem; }
+        .similar-head h2 { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 800; margin-top: 0.5rem; }
+        .similar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
         .breadcrumb {
           margin-bottom: 1.5rem;
         }
@@ -741,6 +854,78 @@ const VehicleDetail = () => {
           top: 0.8rem !important;
         }
 
+        /* Dynamic Trip Pricing Card */
+        .trip-pricing-card {
+          margin-top: 1rem;
+          background: #fff7ed;
+          border: 1px solid #fed7aa;
+          border-radius: 0.85rem;
+          padding: 1rem;
+          animation: fadeIn 0.25s ease;
+        }
+
+        .trip-pricing-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+          padding-bottom: 0.5rem;
+          border-bottom: 1px dashed #fdba74;
+        }
+
+        .trip-duration-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          background: #ea580c;
+          color: #ffffff;
+          padding: 0.25rem 0.65rem;
+          border-radius: 100px;
+          font-size: 0.78rem;
+          font-weight: 700;
+        }
+
+        .trip-total-price {
+          font-size: 1.15rem;
+          font-weight: 800;
+          color: #c2410c;
+        }
+
+        .trip-pricing-breakdown {
+          display: flex;
+          flex-direction: column;
+          gap: 0.4rem;
+        }
+
+        .trip-pricing-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 0.82rem;
+          color: #475569;
+        }
+
+        .trip-free-tag {
+          color: #15803d;
+          font-weight: 700;
+          background: #dcfce7;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 0.75rem;
+        }
+
+        .trip-pricing-divider {
+          height: 1px;
+          background: #fed7aa;
+          margin: 0.35rem 0;
+        }
+
+        .trip-pricing-total {
+          font-size: 0.92rem;
+          color: #0f172a;
+          padding-top: 0.2rem;
+        }
+
         .sent-msg {
           text-align: center;
           padding: 1.5rem 0;
@@ -812,7 +997,8 @@ const VehicleDetail = () => {
         }
 
         @media (max-width: 900px) {
-          .detail-grid { grid-template-columns: 1fr; }
+          .detail-grid { grid-template-columns: minmax(0, 1fr); }
+          .detail-grid > * { min-width: 0; }
           .bid-panel { position: relative; top: auto; }
           .main-image { height: 280px; }
           .features-grid { grid-template-columns: 1fr; }

@@ -68,4 +68,36 @@ router.get('/vehicle/:vehicleId', auth, async (req, res) => {
     }
 });
 
+// @route   PUT api/bids/:id
+// @desc    Update bid status (accepted, rejected, pending) by vehicle owner
+router.put('/:id', auth, async (req, res) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(404).json({ msg: 'Bid not found' });
+        }
+        const { status } = req.body;
+        if (!['pending', 'accepted', 'rejected'].includes(status)) {
+            return res.status(400).json({ msg: 'Invalid status' });
+        }
+        const bid = await Bid.findById(req.params.id).populate('vehicle', 'owner');
+        if (!bid) return res.status(404).json({ msg: 'Bid not found' });
+
+        if (bid.vehicle && bid.vehicle.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(403).json({ msg: 'Not authorized to manage this bid' });
+        }
+
+        bid.status = status;
+        await bid.save();
+
+        const populatedBid = await Bid.findById(bid._id)
+            .populate('vehicle', 'brand model year pricePerDay images vehicleType')
+            .populate('renter', 'name email phone');
+
+        res.json(populatedBid);
+    } catch (err) {
+        console.error('Error updating bid status:', err);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+});
+
 module.exports = router;

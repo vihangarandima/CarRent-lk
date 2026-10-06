@@ -12,6 +12,11 @@ const VehicleSchema = new mongoose.Schema({
     required: true,
   },
   pricePerKmAfter100km: { type: Number, default: 0 },
+  // How the vehicle can be rented: on its own, only with the owner's driver, or either way
+  rentMode: { type: String, enum: ["self-drive", "with-driver", "both"], default: "self-drive" },
+  seats: { type: Number, min: 1, max: 60 },
+  kmPerDay: { type: Number, min: 0, default: 100 }, // free km included per day (0 = unlimited)
+  minRentalDays: { type: Number, min: 1, max: 60, default: 1 },
   fuelType: { type: String },
   transmission: { type: String },
   description: { type: String },

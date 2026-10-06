@@ -39,6 +39,26 @@ async function autoExpireRentals(ownerId) {
   }
 }
 
+// @route   GET api/rentals/vehicle/:id
+// @desc    Get active booked date ranges for a vehicle (public)
+router.get("/vehicle/:id", async (req, res) => {
+  try {
+    if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Invalid vehicle ID" });
+    const now = new Date();
+    // Read-only: overdue rentals are expired by the background job in server.js, which also
+    // puts the vehicle back to "active". Only upcoming/current bookings are returned here.
+    const activeRentals = await Rental.find({
+      vehicle: req.params.id,
+      status: "active",
+      returnDate: { $gte: now },
+    }).select("pickupDate returnDate");
+    res.json(activeRentals);
+  } catch (err) {
+    console.error("Error fetching vehicle booked dates:", err);
+    res.status(500).json({ msg: "Server Error" });
+  }
+});
+
 // @route   GET api/rentals/my
 // @desc    Get all rentals for vehicles owned by the logged-in user/company
 router.get("/my", auth, async (req, res) => {
