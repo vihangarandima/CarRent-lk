@@ -409,51 +409,42 @@ export const SiteConfigProvider = ({ children }) => {
     try {
       const res = await axios.get(`${API_URL}/api/site-config`);
       if (res.data) {
-        const stored = getInitialSiteConfig();
-        const backendActive = res.data.global?.festivalTheme?.active;
-        const storedActive = stored.global?.festivalTheme?.active;
-        const resolvedActive =
-          backendActive && backendActive !== "none"
-            ? backendActive
-            : storedActive && storedActive !== "none"
-            ? storedActive
-            : backendActive || "none";
+        const serverData = res.data;
+        const serverTheme = serverData.global?.festivalTheme || {};
+        const activeTheme = serverTheme.active !== undefined ? serverTheme.active : "none";
 
         const merged = {
           ...DEFAULT_CONFIG,
-          ...res.data,
+          ...serverData,
           global: {
             ...DEFAULT_CONFIG.global,
-            ...res.data.global,
+            ...(serverData.global || {}),
             festivalTheme: {
               ...DEFAULT_CONFIG.global.festivalTheme,
-              ...(stored.global?.festivalTheme || {}),
-              ...(res.data.global?.festivalTheme || {}),
-              active: resolvedActive,
+              ...serverTheme,
+              active: activeTheme,
               christmas: {
                 ...DEFAULT_CONFIG.global.festivalTheme.christmas,
-                ...(stored.global?.festivalTheme?.christmas || {}),
-                ...(res.data.global?.festivalTheme?.christmas || {}),
+                ...(serverTheme.christmas || {}),
               },
               vesak: {
                 ...DEFAULT_CONFIG.global.festivalTheme.vesak,
-                ...(stored.global?.festivalTheme?.vesak || {}),
-                ...(res.data.global?.festivalTheme?.vesak || {}),
+                ...(serverTheme.vesak || {}),
               },
             },
           },
-          hero: { ...DEFAULT_CONFIG.hero, ...res.data.hero },
-          home: { ...DEFAULT_CONFIG.home, ...res.data.home },
+          hero: { ...DEFAULT_CONFIG.hero, ...(serverData.hero || {}) },
+          home: { ...DEFAULT_CONFIG.home, ...(serverData.home || {}) },
           vehicleListing: {
             ...DEFAULT_CONFIG.vehicleListing,
-            ...res.data.vehicleListing,
+            ...(serverData.vehicleListing || {}),
           },
           companies: {
             ...DEFAULT_CONFIG.companies,
-            ...res.data.companies,
+            ...(serverData.companies || {}),
           },
-          whyUs: { ...DEFAULT_CONFIG.whyUs, ...res.data.whyUs },
-          footer: { ...DEFAULT_CONFIG.footer, ...res.data.footer },
+          whyUs: { ...DEFAULT_CONFIG.whyUs, ...(serverData.whyUs || {}) },
+          footer: { ...DEFAULT_CONFIG.footer, ...(serverData.footer || {}) },
         };
         setConfig(merged);
         try {
@@ -462,6 +453,7 @@ export const SiteConfigProvider = ({ children }) => {
         applyThemeColors(merged);
       }
     } catch (err) {
+      console.warn("Could not fetch remote site config, using stored/default:", err.message);
       const currentStored = getInitialSiteConfig();
       setConfig(currentStored);
       applyThemeColors(currentStored);
@@ -472,16 +464,22 @@ export const SiteConfigProvider = ({ children }) => {
 
   useEffect(() => {
     fetchConfig();
+    const handleSync = () => fetchConfig();
+    window.addEventListener("user-updated", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      window.removeEventListener("user-updated", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
   }, []);
 
   const updateConfig = async (newConfigData, snapshotName, snapshotDesc) => {
-    // 1. Immediately apply and save locally so user changes never revert
     const currentActiveFestival =
       newConfigData?.global?.festivalTheme?.active !== undefined
         ? newConfigData.global.festivalTheme.active
         : config.global?.festivalTheme?.active || "none";
 
-    const localMerged = {
+    const payload = {
       ...config,
       ...newConfigData,
       global: {
@@ -503,61 +501,73 @@ export const SiteConfigProvider = ({ children }) => {
       },
     };
 
-    setConfig(localMerged);
-    applyThemeColors(localMerged);
+    // Keep draft locally in state & storage immediately
+    setConfig(payload);
+    applyThemeColors(payload);
     try {
-      localStorage.setItem("yamu_site_config", JSON.stringify(localMerged));
+      localStorage.setItem("yamu_site_config", JSON.stringify(payload));
     } catch (e) {
       console.warn("Local storage write error:", e);
     }
 
-    // 2. Sync with backend API if available
-    try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        const res = await axios.put(
-          `${API_URL}/api/site-config`,
-          {
-            ...localMerged,
-            _snapshotName: snapshotName,
-            _snapshotDesc: snapshotDesc,
-          },
-          { headers: { "x-auth-token": token } }
-        );
-        if (res.data?.config) {
-          const backendMerged = {
-            ...localMerged,
-            ...res.data.config,
-            global: {
-              ...localMerged.global,
-              ...(res.data.config.global || {}),
-              festivalTheme: {
-                ...localMerged.global.festivalTheme,
-                ...(res.data.config.global?.festivalTheme || {}),
-                active: currentActiveFestival,
-                christmas: {
-                  ...localMerged.global.festivalTheme.christmas,
-                  ...(res.data.config.global?.festivalTheme?.christmas || {}),
-                },
-                vesak: {
-                  ...localMerged.global.festivalTheme.vesak,
-                  ...(res.data.config.global?.festivalTheme?.vesak || {}),
-                },
-              },
-            },
-          };
-          setConfig(backendMerged);
-          try {
-            localStorage.setItem("yamu_site_config", JSON.stringify(backendMerged));
-          } catch (e) {}
-          return { success: true, ...res.data, config: backendMerged };
-        }
-      }
-    } catch (err) {
-      console.warn("Backend API sync notice (saved locally to browser):", err.message);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      const err = new Error("Authentication token not found. Please log in as an Admin to publish live changes.");
+      err.code = "NO_TOKEN";
+      throw err;
     }
 
-    return { success: true, config: localMerged };
+    // Sync with backend API
+    try {
+      const res = await axios.put(
+        `${API_URL}/api/site-config`,
+        {
+          ...payload,
+          _snapshotName: snapshotName,
+          _snapshotDesc: snapshotDesc,
+        },
+        {
+          headers: {
+            "x-auth-token": token,
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const serverConfig = res.data?.config || payload;
+      const finalMerged = {
+        ...DEFAULT_CONFIG,
+        ...serverConfig,
+        global: {
+          ...DEFAULT_CONFIG.global,
+          ...(serverConfig.global || {}),
+          festivalTheme: {
+            ...DEFAULT_CONFIG.global.festivalTheme,
+            ...(serverConfig.global?.festivalTheme || {}),
+            active: serverConfig.global?.festivalTheme?.active || currentActiveFestival,
+            christmas: {
+              ...DEFAULT_CONFIG.global.festivalTheme.christmas,
+              ...(serverConfig.global?.festivalTheme?.christmas || {}),
+            },
+            vesak: {
+              ...DEFAULT_CONFIG.global.festivalTheme.vesak,
+              ...(serverConfig.global?.festivalTheme?.vesak || {}),
+            },
+          },
+        },
+      };
+
+      setConfig(finalMerged);
+      applyThemeColors(finalMerged);
+      try {
+        localStorage.setItem("yamu_site_config", JSON.stringify(finalMerged));
+      } catch (e) {}
+
+      return { success: true, ...res.data, config: finalMerged };
+    } catch (err) {
+      console.error("Backend site config save failed:", err);
+      throw err;
+    }
   };
 
   const restoreSnapshot = async (snapshotId) => {

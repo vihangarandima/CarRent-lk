@@ -277,11 +277,15 @@ const AdminDashboard = () => {
       }
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
-      toast.success("Changes published live successfully!");
+      toast.success("Changes published live to server successfully!");
     } catch (err) {
-      setSaveError(
-        err.response?.data?.msg || "Failed to save configuration."
-      );
+      const errorMsg =
+        err.response?.data?.msg ||
+        (err.code === "ERR_NETWORK"
+          ? "Backend server is offline or unreachable. Please verify your backend API is running."
+          : err.message || "Failed to save configuration to server.");
+      setSaveError(errorMsg);
+      toast.error(errorMsg, "Publish Failed");
     } finally {
       setSaving(false);
     }

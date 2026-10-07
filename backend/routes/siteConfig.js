@@ -64,26 +64,32 @@ router.put("/", auth, adminOnly, async (req, res) => {
       config = new SiteConfig({});
     }
 
-    // Create an automatic snapshot before applying updates
-    const currentConfigObj = config.toObject();
-    delete currentConfigObj._id;
-    delete currentConfigObj.__v;
+    // Create an automatic snapshot before applying updates (non-blocking)
+    try {
+      const currentConfigObj = config.toObject ? config.toObject() : { ...config };
+      delete currentConfigObj._id;
+      delete currentConfigObj.__v;
 
-    const snapshotName =
-      req.body._snapshotName ||
-      `Auto Snapshot (${new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" })})`;
+      const snapshotName =
+        req.body._snapshotName ||
+        `Auto Snapshot (${new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" })})`;
 
-    const snapshot = new SiteSnapshot({
-      name: snapshotName,
-      description: req.body._snapshotDesc || "Admin configuration update",
-      config: currentConfigObj,
-      createdBy: req.user.id,
-    });
-    await snapshot.save();
+      const snapshot = new SiteSnapshot({
+        name: snapshotName,
+        description: req.body._snapshotDesc || "Admin configuration update",
+        config: currentConfigObj,
+        createdBy: req.user?.id || null,
+      });
+      await snapshot.save();
+    } catch (snapErr) {
+      console.warn("Snapshot auto-save warning (non-fatal):", snapErr.message);
+    }
 
     // Apply updates
     if (updateData.global) {
-      const prevGlobal = config.global ? (config.global.toObject ? config.global.toObject() : config.global) : {};
+      const prevGlobal = config.global && typeof config.global.toObject === "function"
+        ? config.global.toObject()
+        : (config.global || {});
       const newActive =
         updateData.global.festivalTheme?.active !== undefined
           ? updateData.global.festivalTheme.active
@@ -111,44 +117,44 @@ router.put("/", auth, adminOnly, async (req, res) => {
       config.markModified("global.festivalTheme.active");
     }
     if (updateData.hero) {
-      config.hero = { ...config.hero.toObject(), ...updateData.hero };
+      config.hero = { ...(config.hero?.toObject ? config.hero.toObject() : config.hero), ...updateData.hero };
       config.markModified("hero");
     }
     if (updateData.home) {
-      config.home = { ...config.home.toObject(), ...updateData.home };
+      config.home = { ...(config.home?.toObject ? config.home.toObject() : config.home), ...updateData.home };
       config.markModified("home");
     }
     if (updateData.vehicleListing) {
       config.vehicleListing = {
-        ...config.vehicleListing.toObject(),
+        ...(config.vehicleListing?.toObject ? config.vehicleListing.toObject() : config.vehicleListing),
         ...updateData.vehicleListing,
       };
       config.markModified("vehicleListing");
     }
     if (updateData.companies) {
       config.companies = {
-        ...config.companies.toObject(),
+        ...(config.companies?.toObject ? config.companies.toObject() : config.companies),
         ...updateData.companies,
       };
       config.markModified("companies");
     }
     if (updateData.whyUs) {
-      config.whyUs = { ...config.whyUs.toObject(), ...updateData.whyUs };
+      config.whyUs = { ...(config.whyUs?.toObject ? config.whyUs.toObject() : config.whyUs), ...updateData.whyUs };
       config.markModified("whyUs");
     }
     if (updateData.footer) {
-      config.footer = { ...config.footer.toObject(), ...updateData.footer };
+      config.footer = { ...(config.footer?.toObject ? config.footer.toObject() : config.footer), ...updateData.footer };
       config.markModified("footer");
     }
 
-    config.updatedBy = req.user.id;
+    config.updatedBy = req.user?.id || null;
     config.updatedAt = Date.now();
 
     await config.save();
     res.json({ msg: "Configuration updated successfully", config });
   } catch (err) {
     console.error("Error updating site config:", err);
-    res.status(500).json({ msg: "Server error updating site configuration" });
+    res.status(500).json({ msg: "Server error updating site configuration: " + err.message });
   }
 });
 
