@@ -28,6 +28,8 @@ import { useSiteConfig } from "../context/SiteConfigContext";
 import thivinaImg from "../assets/images/thivina.png";
 import punsaraImg from "../assets/images/punsara.png";
 import nirmalImg from "../assets/images/nirmal.png";
+import wagonrBlueImg from "../assets/images/wagonr_blue.png";
+import yamuHeroPreviewImg from "../assets/images/yamu_hero_preview.png";
 
 const categories = [
   {
@@ -311,7 +313,7 @@ const LandingPage = () => {
                   <div className="hiw-laptop-mockup">
                     <div className="hiw-laptop-screen">
                       <div className="hiw-laptop-notch"></div>
-                      <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&q=80&w=600" alt="App preview laptop" />
+                      <img src={yamuHeroPreviewImg} alt="Yamu App preview laptop" />
                     </div>
                     <div className="hiw-laptop-base">
                       <div className="hiw-laptop-trackpad"></div>
@@ -320,7 +322,7 @@ const LandingPage = () => {
 
                   <div className="hiw-phone-mockup">
                     <div className="hiw-phone-notch"></div>
-                    <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=400" alt="App preview phone" />
+                    <img src={yamuHeroPreviewImg} alt="Yamu App preview phone" />
                   </div>
                 </div>
 

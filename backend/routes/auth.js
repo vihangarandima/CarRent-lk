@@ -128,6 +128,7 @@ const createTransporter = () => {
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
+      family: 4, // Force IPv4 — avoids ENETUNREACH on IPv6-only DNS results
       tls: {
         rejectUnauthorized: false,
       },
@@ -145,6 +146,7 @@ const createTransporter = () => {
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
+    family: 4, // Force IPv4
     tls: {
       rejectUnauthorized: false,
     },

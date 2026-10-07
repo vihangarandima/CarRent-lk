@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
-  MessageCircle,
-  BadgePercent,
+  Car,
   MapPinned,
   ShieldCheck,
   ChevronDown,
@@ -14,14 +13,14 @@ import PageHero from "../components/PageHero";
 // What the platform actually does today — keep these claims accurate
 const features = [
   {
-    icon: MessageCircle,
-    title: "Talk to the owner directly",
-    desc: "Message the vehicle owner or rental company on WhatsApp, agree on dates and pick up. No call centres.",
+    icon: ShieldCheck,
+    title: "Trustworthy & Dependable",
+    desc: "Yamu Car Rentals is a platform you can count on. We verify every listing and partner so you always have a safe, reliable experience.",
   },
   {
-    icon: BadgePercent,
-    title: "No middleman fees",
-    desc: "You pay the owner's listed daily price. Yamu does not add booking fees on top.",
+    icon: Car,
+    title: "Get the Exact Car You Want",
+    desc: "Browse our trusted partners and find the exact vehicle that fits your needs — model, colour, budget. No compromises.",
   },
   {
     icon: MapPinned,
