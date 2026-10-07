@@ -277,15 +277,25 @@ const AdminDashboard = () => {
       }
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
-      toast.success("Changes published live to server successfully!");
+
+      if (res?.serverSynced) {
+        toast.success("Changes published live to server successfully!");
+      } else if (res?.syncError) {
+        toast.info(
+          `Theme activated on your site! (Note: ${res.syncError})`,
+          "Active Locally"
+        );
+      } else {
+        toast.success("Changes saved and active on your site!");
+      }
     } catch (err) {
       const errorMsg =
         err.response?.data?.msg ||
         (err.code === "ERR_NETWORK"
           ? "Backend server is offline or unreachable. Please verify your backend API is running."
-          : err.message || "Failed to save configuration to server.");
+          : err.message || "Failed to save configuration.");
       setSaveError(errorMsg);
-      toast.error(errorMsg, "Publish Failed");
+      toast.error(errorMsg, "Publish Notice");
     } finally {
       setSaving(false);
     }
