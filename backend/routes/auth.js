@@ -5,8 +5,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Company = require("../models/Company");
-const nodemailer = require("nodemailer");
 const OTP = require("../models/OTP");
+const { sendEmail } = require("../utils/mailer");
 const { auth, escapeRegex } = require("../middleware/auth");
 const verifyFirebaseToken = require("../utils/verifyFirebaseToken");
 
@@ -105,54 +105,6 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Helper to create mail transporter dynamically
-const createTransporter = () => {
-  const emailUser = process.env.EMAIL_USER?.trim();
-  const rawPass = process.env.EMAIL_PASS?.trim();
-  const emailPass = rawPass ? rawPass.replace(/\s+/g, "") : "";
-
-  if (!emailUser || !emailPass) {
-    console.warn("⚠️ Warning: EMAIL_USER or EMAIL_PASS is missing from environment variables.");
-  }
-
-  // If using Gmail, using service: 'gmail' is much more reliable across cloud providers (Render, Railway, AWS)
-  const isGmail = (process.env.EMAIL_HOST || "").includes("gmail") || (emailUser && emailUser.includes("@gmail.com"));
-
-  if (isGmail) {
-    return nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: emailUser,
-        pass: emailPass,
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-      family: 4, // Force IPv4 — avoids ENETUNREACH on IPv6-only DNS results
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
-  }
-
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.EMAIL_PORT, 10) || 587,
-    secure: parseInt(process.env.EMAIL_PORT, 10) === 465,
-    auth: {
-      user: emailUser,
-      pass: emailPass,
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    family: 4, // Force IPv4
-    tls: {
-      rejectUnauthorized: false,
-    },
-  });
-};
-
 const otpEmailHtml = (otp, heading, intro) => `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffff;">
           <div style="text-align: center; margin-bottom: 24px;">
@@ -172,9 +124,13 @@ const otpEmailHtml = (otp, heading, intro) => `
 
 // Generates a fresh code for this email, stores it and emails it
 const issueOtp = async (email, subject, heading, intro) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  const hasBrevo = Boolean(process.env.BREVO_API_KEY?.trim());
+  const hasResend = Boolean(process.env.RESEND_API_KEY?.trim());
+  const hasSmtp = Boolean(process.env.EMAIL_USER?.trim() && process.env.EMAIL_PASS?.trim());
+
+  if (!hasBrevo && !hasResend && !hasSmtp) {
     const err = new Error(
-      "Email service is not configured on this server. Please add EMAIL_USER and EMAIL_PASS to environment variables."
+      "Email service is not configured on this server. Please add BREVO_API_KEY or EMAIL_USER and EMAIL_PASS to environment variables."
     );
     err.code = "NO_SMTP";
     throw err;
@@ -197,12 +153,18 @@ const issueOtp = async (email, subject, heading, intro) => {
     { upsert: true, new: true },
   );
 
-  await createTransporter().sendMail({
-    from: `"Yamu Car Rentals" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject,
-    html: otpEmailHtml(otp, heading, intro),
-  });
+  try {
+    await sendEmail({
+      to: email,
+      subject,
+      html: otpEmailHtml(otp, heading, intro),
+    });
+  } catch (err) {
+    // Nothing was sent, so drop the code: otherwise the 30-second cooldown would block
+    // the user's retry with "a code was just sent" when no email ever arrived.
+    await OTP.deleteOne({ email }).catch(() => {});
+    throw err;
+  }
 };
 
 // Returns null when the code is right, otherwise an error message
@@ -221,12 +183,17 @@ const checkOtp = async (email, otp) => {
   return null;
 };
 
+// Message shown to the customer. Technical details stay in the server log.
 const otpErrorMessage = (err) => {
-  if (err.code === "NO_SMTP" || err.code === "OTP_COOLDOWN") return err.message;
+  if (err.code === "OTP_COOLDOWN") return err.message;
+  if (err.code === "NO_SMTP") {
+    return "Email service is not configured on this server. Please add BREVO_API_KEY or EMAIL_USER/EMAIL_PASS in your hosting environment.";
+  }
   const isAuthErr = err && (err.code === "EAUTH" || err.responseCode === 535);
-  return isAuthErr
-    ? "SMTP authentication failed. Please check EMAIL_USER and EMAIL_PASS (Gmail App Password) in your hosting dashboard."
-    : `Failed to send verification email: ${err.message || "Unknown error"}`;
+  if (isAuthErr) {
+    return "SMTP authentication failed. Please check EMAIL_USER and EMAIL_PASS (Gmail App Password) in your hosting dashboard.";
+  }
+  return `Failed to send verification email: ${err.message || "Connection error. Please try again."}`;
 };
 
 // Send Verification OTP
@@ -251,7 +218,7 @@ router.post("/send-otp", async (req, res) => {
     );
     res.json({ msg: "Verification OTP sent to your email." });
   } catch (err) {
-    console.error("OTP Send Error:", err.message);
+    console.error("OTP Send Error:", err.code, err.message);
     res.status(err.code === "OTP_COOLDOWN" ? 429 : 500).json({ msg: otpErrorMessage(err) });
   }
 });
@@ -275,7 +242,7 @@ router.post("/forgot-password", async (req, res) => {
     );
     res.json({ msg: "A password reset code has been sent to your email." });
   } catch (err) {
-    console.error("Forgot password error:", err.message);
+    console.error("Forgot password error:", err.code, err.message);
     res.status(err.code === "OTP_COOLDOWN" ? 429 : 500).json({ msg: otpErrorMessage(err) });
   }
 });
