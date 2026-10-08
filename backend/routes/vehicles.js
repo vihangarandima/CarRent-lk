@@ -6,6 +6,7 @@ const Company = require("../models/Company");
 const User = require("../models/User");
 const Review = require("../models/Review");
 const { auth, escapeRegex } = require("../middleware/auth");
+const { autoExpireRentals } = require("../utils/rentalExpiry");
 
 const VEHICLE_TYPES = ["bicycle", "threewheeler", "mini-car", "car", "premium-car", "mini-van", "van", "others"];
 
@@ -36,6 +37,7 @@ const cleanImages = (images) =>
 // @desc    Get all vehicles with filters (only active public listings by default)
 router.get("/", async (req, res) => {
   try {
+    await autoExpireRentals(); // Refresh overdue rentals into active inventory
     const { brand, model, location, minPrice, maxPrice, companyId, vehicleType, mode } = req.query;
     // Only approved, live listings are public — the query string can't widen this
     let query = { status: "active" };
@@ -72,6 +74,7 @@ router.get("/", async (req, res) => {
 // @desc    Get all vehicles listed by the logged-in user (owner or company)
 router.get("/my", auth, async (req, res) => {
   try {
+    await autoExpireRentals(req.user.id); // Refresh host vehicles
     const vehicles = await Vehicle.find({ owner: req.user.id })
       .populate("company", "companyName logo phone address isVerified")
       .sort({ createdAt: -1 });
@@ -283,6 +286,7 @@ router.post("/bulk", auth, async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Vehicle not found" });
+    await autoExpireRentals(); // Refresh vehicle status if rental period passed
     // Owner phone is public on purpose: customers contact hosts directly on WhatsApp
     const vehicle = await Vehicle.findById(req.params.id)
       .populate("owner", "name phone createdAt")

@@ -5,45 +5,16 @@ const Vehicle = require("../models/Vehicle");
 const Company = require("../models/Company");
 const mongoose = require("mongoose");
 const { auth } = require("../middleware/auth");
+const { autoExpireRentals } = require("../utils/rentalExpiry");
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
-
-// ── Auto-expire helper ──
-// Checks all active rentals for this owner where returnDate has passed,
-// marks them completed, and sets the vehicle back to active.
-async function autoExpireRentals(ownerId) {
-  try {
-    const now = new Date();
-    const expiredRentals = await Rental.find({
-      owner: ownerId,
-      status: "active",
-      returnDate: { $lt: now },
-    });
-
-    for (const rental of expiredRentals) {
-      rental.status = "completed";
-      await rental.save();
-
-      // Set vehicle back to active so it shows in public listings again
-      const vehicle = await Vehicle.findById(rental.vehicle);
-      if (vehicle && vehicle.status === "rented") {
-        vehicle.status = "active";
-        await vehicle.save();
-      }
-    }
-
-    return expiredRentals.length;
-  } catch (err) {
-    console.error("Auto-expire rentals error:", err);
-    return 0;
-  }
-}
 
 // @route   GET api/rentals/vehicle/:id
 // @desc    Get active booked date ranges for a vehicle (public)
 router.get("/vehicle/:id", async (req, res) => {
   try {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Invalid vehicle ID" });
+    await autoExpireRentals(); // Check global overdue rentals
     const now = new Date();
     // Read-only: overdue rentals are expired by the background job in server.js, which also
     // puts the vehicle back to "active". Only upcoming/current bookings are returned here.
