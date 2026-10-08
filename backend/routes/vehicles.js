@@ -409,8 +409,14 @@ router.post("/:id/reviews", auth, async (req, res) => {
     const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
 
-    if (vehicle.owner.toString() === req.user.id) {
+    if (vehicle.owner && vehicle.owner.toString() === req.user.id) {
       return res.status(400).json({ msg: "You cannot review your own vehicle" });
+    }
+    if (vehicle.company) {
+      const userCompany = await Company.findOne({ user: req.user.id }).select("_id");
+      if (userCompany && vehicle.company.toString() === userCompany._id.toString()) {
+        return res.status(400).json({ msg: "You cannot review a vehicle listed by your company" });
+      }
     }
 
     // Ensure the user hasn't already reviewed this vehicle
