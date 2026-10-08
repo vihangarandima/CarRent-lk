@@ -309,7 +309,7 @@ const handleVehicleUpdate = async (req, res) => {
 
     const user = await User.findById(req.user.id).select("role");
     const isAdmin = user?.role === "admin";
-    let isAuthorized = isAdmin || vehicle.owner.toString() === req.user.id;
+    let isAuthorized = isAdmin || vehicle.owner?.toString() === req.user.id;
     if (!isAuthorized && vehicle.company) {
       const company = await Company.findOne({ user: req.user.id }).select("_id");
       isAuthorized = Boolean(company && vehicle.company.toString() === company._id.toString());
@@ -386,8 +386,17 @@ router.delete("/:id", auth, async (req, res) => {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Vehicle not found" });
     const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
-    if (vehicle.owner.toString() !== req.user.id)
+
+    const user = await User.findById(req.user.id).select("role");
+    const isAdmin = user?.role === "admin";
+    let isAuthorized = isAdmin || vehicle.owner?.toString() === req.user.id;
+    if (!isAuthorized && vehicle.company) {
+      const company = await Company.findOne({ user: req.user.id }).select("_id");
+      isAuthorized = Boolean(company && vehicle.company.toString() === company._id.toString());
+    }
+    if (!isAuthorized)
       return res.status(403).json({ msg: "Not authorized" });
+
     await vehicle.deleteOne();
     res.json({ msg: "Vehicle removed" });
   } catch (err) {

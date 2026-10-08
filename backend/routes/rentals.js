@@ -125,7 +125,12 @@ router.post("/", auth, async (req, res) => {
     if (!isValidId(vehicleId)) return res.status(404).json({ msg: "Vehicle not found" });
     const vehicle = await Vehicle.findById(vehicleId);
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
-    if (vehicle.owner.toString() !== req.user.id) {
+    let isOwner = vehicle.owner?.toString() === req.user.id;
+    if (!isOwner && vehicle.company) {
+      const company = await Company.findOne({ user: req.user.id }).select("_id");
+      isOwner = Boolean(company && vehicle.company.toString() === company._id.toString());
+    }
+    if (!isOwner && req.user.role !== "admin") {
       return res.status(403).json({ msg: "Not authorized - vehicle doesn't belong to you" });
     }
     if (vehicle.status === "rented") {
@@ -204,7 +209,7 @@ router.put("/:id", auth, async (req, res) => {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Rental not found" });
     const rental = await Rental.findById(req.params.id);
     if (!rental) return res.status(404).json({ msg: "Rental not found" });
-    if (rental.owner.toString() !== req.user.id) {
+    if (rental.owner?.toString() !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ msg: "Not authorized" });
     }
 
@@ -249,7 +254,7 @@ router.delete("/:id", auth, async (req, res) => {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Rental not found" });
     const rental = await Rental.findById(req.params.id);
     if (!rental) return res.status(404).json({ msg: "Rental not found" });
-    if (rental.owner.toString() !== req.user.id) {
+    if (rental.owner?.toString() !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ msg: "Not authorized" });
     }
 
