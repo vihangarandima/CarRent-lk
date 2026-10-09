@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const Bid = require('../models/Bid');
 const Vehicle = require('../models/Vehicle');
+const Company = require('../models/Company');
 const { auth } = require('../middleware/auth');
 
 // @route   GET api/bids/my
@@ -31,8 +32,19 @@ router.post('/', auth, async (req, res) => {
         if (!mongoose.Types.ObjectId.isValid(vehicleId) || !(price > 0)) {
             return res.status(400).json({ msg: 'A valid vehicle and offer price are required' });
         }
-        const vehicle = await Vehicle.findById(vehicleId).select('owner');
+        const vehicle = await Vehicle.findById(vehicleId).select('owner company');
         if (!vehicle) return res.status(404).json({ msg: 'Vehicle not found' });
+
+        // Prevent self-bidding: Owner cannot bid on their own vehicle
+        if (vehicle.owner && vehicle.owner.toString() === req.user.id) {
+            return res.status(400).json({ msg: 'You cannot place a bid on your own vehicle' });
+        }
+        if (vehicle.company) {
+            const userCompany = await Company.findOne({ user: req.user.id }).select('_id');
+            if (userCompany && vehicle.company.toString() === userCompany._id.toString()) {
+                return res.status(400).json({ msg: 'You cannot place a bid on a vehicle listed by your company' });
+            }
+        }
 
         const newBid = new Bid({
             vehicle: vehicleId,
@@ -57,7 +69,7 @@ router.get('/vehicle/:vehicleId', auth, async (req, res) => {
         }
         const vehicle = await Vehicle.findById(req.params.vehicleId).select('owner');
         if (!vehicle) return res.status(404).json({ msg: 'Vehicle not found' });
-        if (vehicle.owner.toString() !== req.user.id) {
+        if (vehicle.owner && vehicle.owner.toString() !== req.user.id && req.user.role !== 'admin') {
             return res.status(403).json({ msg: 'Not authorized' });
         }
         const bids = await Bid.find({ vehicle: req.params.vehicleId }).populate('renter', 'name email');
@@ -82,7 +94,7 @@ router.put('/:id', auth, async (req, res) => {
         const bid = await Bid.findById(req.params.id).populate('vehicle', 'owner');
         if (!bid) return res.status(404).json({ msg: 'Bid not found' });
 
-        if (bid.vehicle && bid.vehicle.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+        if (bid.vehicle && bid.vehicle.owner && bid.vehicle.owner.toString() !== req.user.id && req.user.role !== 'admin') {
             return res.status(403).json({ msg: 'Not authorized to manage this bid' });
         }
 

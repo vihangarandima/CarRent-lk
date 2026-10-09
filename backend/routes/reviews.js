@@ -3,6 +3,7 @@ const router = express.Router();
 const Review = require("../models/Review");
 const Vehicle = require("../models/Vehicle");
 const User = require("../models/User");
+const Company = require("../models/Company");
 const jwt = require("jsonwebtoken");
 const { escapeRegex } = require("../middleware/auth");
 
@@ -232,6 +233,19 @@ router.post("/", auth, async (req, res) => {
       vehicle = await Vehicle.findById(vehicleId);
       if (!vehicle) {
         return res.status(404).json({ msg: "Specified vehicle not found" });
+      }
+
+      // Prevent self-reviews: Owner cannot review their own vehicle
+      if (vehicle.owner && vehicle.owner.toString() === req.user.id) {
+        return res.status(400).json({ msg: "You cannot review your own vehicle." });
+      }
+
+      // Also prevent self-reviews if vehicle belongs to user's company
+      if (vehicle.company) {
+        const userCompany = await Company.findOne({ user: req.user.id }).select("_id");
+        if (userCompany && vehicle.company.toString() === userCompany._id.toString()) {
+          return res.status(400).json({ msg: "You cannot review a vehicle listed by your company." });
+        }
       }
 
       // Check if user already reviewed this vehicle

@@ -6,6 +6,7 @@ const Company = require("../models/Company");
 const User = require("../models/User");
 const Review = require("../models/Review");
 const { auth, escapeRegex } = require("../middleware/auth");
+const { autoExpireRentals } = require("../utils/rentalExpiry");
 
 const VEHICLE_TYPES = ["bicycle", "threewheeler", "mini-car", "car", "premium-car", "mini-van", "van", "others"];
 
@@ -36,6 +37,7 @@ const cleanImages = (images) =>
 // @desc    Get all vehicles with filters (only active public listings by default)
 router.get("/", async (req, res) => {
   try {
+    await autoExpireRentals(); // Refresh overdue rentals into active inventory
     const { brand, model, location, minPrice, maxPrice, companyId, vehicleType, mode } = req.query;
     // Only approved, live listings are public — the query string can't widen this
     let query = { status: "active" };
@@ -72,6 +74,7 @@ router.get("/", async (req, res) => {
 // @desc    Get all vehicles listed by the logged-in user (owner or company)
 router.get("/my", auth, async (req, res) => {
   try {
+    await autoExpireRentals(req.user.id); // Refresh host vehicles
     const vehicles = await Vehicle.find({ owner: req.user.id })
       .populate("company", "companyName logo phone address isVerified")
       .sort({ createdAt: -1 });
@@ -283,6 +286,7 @@ router.post("/bulk", auth, async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Vehicle not found" });
+    await autoExpireRentals(); // Refresh vehicle status if rental period passed
     // Owner phone is public on purpose: customers contact hosts directly on WhatsApp
     const vehicle = await Vehicle.findById(req.params.id)
       .populate("owner", "name phone createdAt")
@@ -305,7 +309,7 @@ const handleVehicleUpdate = async (req, res) => {
 
     const user = await User.findById(req.user.id).select("role");
     const isAdmin = user?.role === "admin";
-    let isAuthorized = isAdmin || vehicle.owner.toString() === req.user.id;
+    let isAuthorized = isAdmin || vehicle.owner?.toString() === req.user.id;
     if (!isAuthorized && vehicle.company) {
       const company = await Company.findOne({ user: req.user.id }).select("_id");
       isAuthorized = Boolean(company && vehicle.company.toString() === company._id.toString());
@@ -382,8 +386,17 @@ router.delete("/:id", auth, async (req, res) => {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Vehicle not found" });
     const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
-    if (vehicle.owner.toString() !== req.user.id)
+
+    const user = await User.findById(req.user.id).select("role");
+    const isAdmin = user?.role === "admin";
+    let isAuthorized = isAdmin || vehicle.owner?.toString() === req.user.id;
+    if (!isAuthorized && vehicle.company) {
+      const company = await Company.findOne({ user: req.user.id }).select("_id");
+      isAuthorized = Boolean(company && vehicle.company.toString() === company._id.toString());
+    }
+    if (!isAuthorized)
       return res.status(403).json({ msg: "Not authorized" });
+
     await vehicle.deleteOne();
     res.json({ msg: "Vehicle removed" });
   } catch (err) {
@@ -409,8 +422,14 @@ router.post("/:id/reviews", auth, async (req, res) => {
     const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
 
-    if (vehicle.owner.toString() === req.user.id) {
+    if (vehicle.owner && vehicle.owner.toString() === req.user.id) {
       return res.status(400).json({ msg: "You cannot review your own vehicle" });
+    }
+    if (vehicle.company) {
+      const userCompany = await Company.findOne({ user: req.user.id }).select("_id");
+      if (userCompany && vehicle.company.toString() === userCompany._id.toString()) {
+        return res.status(400).json({ msg: "You cannot review a vehicle listed by your company" });
+      }
     }
 
     // Ensure the user hasn't already reviewed this vehicle

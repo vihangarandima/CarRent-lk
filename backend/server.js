@@ -110,41 +110,19 @@ mongoose
   .then(() => {
     console.log("MongoDB Connected");
 
-    // ── Background auto-expire: check every 10 minutes ──
+        // Background auto-expire: runs on startup and every 5 minutes
     // When a rental's returnDate has passed, mark it completed and restore the vehicle to "active"
-    const Rental = require("./models/Rental");
-    const Vehicle = require("./models/Vehicle");
+    const { autoExpireRentals } = require("./utils/rentalExpiry");
 
-    async function autoExpireAllRentals() {
-      try {
-        const now = new Date();
-        const expiredRentals = await Rental.find({
-          status: "active",
-          returnDate: { $lt: now },
-        });
-
-        for (const rental of expiredRentals) {
-          rental.status = "completed";
-          await rental.save();
-
-          const vehicle = await Vehicle.findById(rental.vehicle);
-          if (vehicle && vehicle.status === "rented") {
-            vehicle.status = "active";
-            await vehicle.save();
-          }
-        }
-
-        if (expiredRentals.length > 0) {
-          console.log(`Auto-expired ${expiredRentals.length} overdue rental(s)`);
-        }
-      } catch (err) {
-        console.error("Auto-expire background error:", err);
+    const runBackgroundExpiry = async () => {
+      const count = await autoExpireRentals(null, true);
+      if (count > 0) {
+        console.log(`Auto-expired ${count} overdue rental(s)`);
       }
-    }
+    };
 
-    // Run once on startup, then every 10 minutes
-    autoExpireAllRentals();
-    setInterval(autoExpireAllRentals, 10 * 60 * 1000);
+    runBackgroundExpiry();
+    setInterval(runBackgroundExpiry, 5 * 60 * 1000);
   })
   .catch((err) => console.log("Database connection error:", err));
 
