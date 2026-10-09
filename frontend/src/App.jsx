@@ -34,6 +34,7 @@ const Companies = lazy(() => import("./pages/Companies"));
 const CompanyDetail = lazy(() => import("./pages/CompanyDetail"));
 const CompanyDashboard = lazy(() => import("./pages/CompanyDashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const DispatchDashboard = lazy(() => import("./pages/DispatchDashboard"));
 const ChooseListingType = lazy(() => import("./pages/ChooseListingType"));
 const ReviewsPortal = lazy(() => import("./pages/ReviewsPortal"));
 const QuickAddFleet = lazy(() => import("./pages/QuickAddFleet"));
@@ -84,6 +85,7 @@ function AppContent() {
     "/admin",
   ].includes(location.pathname);
 
+  const isDispatch = location.pathname.startsWith("/dispatch");
   const hideFloatingWidgets = [
     "/login",
     "/register",
@@ -227,13 +229,14 @@ function AppContent() {
           <Route path="/reviews" element={<ReviewsPortal />} />
           <Route path="/reviews-portal" element={<ReviewsPortal />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/dispatch/:id" element={<DispatchDashboard />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>
       </main>
 
-      {!hideFloatingWidgets && <WhatsAppFloat />}
-      {!hideFloatingWidgets && <FestivalAccessoriesManager />}
+      {!hideFloatingWidgets && !isDispatch && <WhatsAppFloat />}
+      {!hideFloatingWidgets && !isDispatch && <FestivalAccessoriesManager />}
       {!hideNavAndFooter && <Footer />}
     </div>
   );
