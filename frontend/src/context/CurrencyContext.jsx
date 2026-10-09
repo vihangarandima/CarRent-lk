@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 export const CURRENCIES = {
-  LKR: { code: "LKR", label: "LKR (Rs.)", symbol: "Rs. ", flag: "🇱🇰", rate: 1 },
-  USD: { code: "USD", label: "USD ($)", symbol: "$", flag: "🇺🇸", rate: 305 },
-  EUR: { code: "EUR", label: "EUR (€)", symbol: "€", flag: "🇪🇺", rate: 330 },
-  GBP: { code: "GBP", label: "GBP (£)", symbol: "£", flag: "🇬🇧", rate: 385 },
+  LKR: { code: "LKR", label: "LKR (Rs.)", symbol: "Rs. ", rate: 1 },
+  USD: { code: "USD", label: "USD ($)", symbol: "$", rate: 305 },
+  EUR: { code: "EUR", label: "EUR (€)", symbol: "€", rate: 330 },
+  GBP: { code: "GBP", label: "GBP (£)", symbol: "£", rate: 385 },
 };
 
 const CurrencyContext = createContext();

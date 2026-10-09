@@ -133,7 +133,7 @@ const Navbar = () => {
             >
               {Object.values(currencies).map((c) => (
                 <option key={c.code} value={c.code}>
-                  {c.flag} {c.code}
+                  {c.code}
                 </option>
               ))}
             </select>
@@ -302,7 +302,7 @@ const Navbar = () => {
             >
               {Object.values(currencies).map((c) => (
                 <option key={c.code} value={c.code}>
-                  {c.flag} {c.label}
+                  {c.label}
                 </option>
               ))}
             </select>
