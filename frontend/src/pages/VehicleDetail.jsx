@@ -163,7 +163,7 @@ const VehicleDetail = () => {
           startDate,
           endDate,
           customerName: viewer?.name || "Customer",
-          customerPhone: viewer?.phone || "",
+          customerPhone: viewer?.phone || "Via WhatsApp",
           rentMode: vehicle?.rentMode || "self-drive",
           clientBaseUrl: window.location.origin,
         },
