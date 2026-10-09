@@ -29,7 +29,7 @@ function getDistanceKm(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * Middleware: Verify Dispatch Token OR Admin Auth
+ * Middleware: Strictly Require Admin Authentication for Concierge Dispatch
  */
 const verifyDispatchAccess = async (req, res, next) => {
   try {
@@ -39,38 +39,39 @@ const verifyDispatchAccess = async (req, res, next) => {
     const booking = await Booking.findById(id);
     if (!booking) return res.status(404).json({ msg: "Booking record not found" });
 
-    const tokenFromQuery = req.query.token || req.body.token || req.headers["x-dispatch-token"];
-
-    // Check if token matches
-    if (tokenFromQuery && booking.dispatchToken === tokenFromQuery) {
-      req.booking = booking;
-      req.isDispatchTokenAuth = true;
-      return next();
-    }
-
-    // Otherwise check admin auth token
+    // Enforce Admin Authentication
     const jwtToken =
       req.header("x-auth-token") || req.header("Authorization")?.replace("Bearer ", "");
-    if (jwtToken) {
-      try {
-        const jwt = require("jsonwebtoken");
-        const decoded = jwt.verify(jwtToken, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.id).select("role");
-        if (user && user.role === "admin") {
-          req.booking = booking;
-          req.user = decoded;
-          req.isAdminAuth = true;
-          return next();
-        }
-      } catch (e) {
-        // invalid jwt
-      }
+
+    if (!jwtToken) {
+      return res.status(401).json({
+        msg: "Admin login required. Please sign in with your administrator account to access this dispatch portal.",
+        authRequired: true,
+      });
     }
 
-    return res.status(403).json({
-      msg: "Access denied. Valid dispatch token or admin login required.",
-      isForbidden: true,
-    });
+    try {
+      const jwt = require("jsonwebtoken");
+      const decoded = jwt.verify(jwtToken, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id).select("role name email");
+
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({
+          msg: "Access denied. Only authorized Yamu administrators can access the concierge dispatch portal.",
+          adminRequired: true,
+        });
+      }
+
+      req.booking = booking;
+      req.user = user;
+      req.isAdminAuth = true;
+      return next();
+    } catch (tokenErr) {
+      return res.status(401).json({
+        msg: "Session expired or invalid. Please log in with your administrator account.",
+        authRequired: true,
+      });
+    }
   } catch (err) {
     console.error("Error in verifyDispatchAccess:", err);
     res.status(500).json({ msg: "Server authorization error" });

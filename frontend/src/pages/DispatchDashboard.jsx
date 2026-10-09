@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import {
   Calendar,
@@ -28,6 +28,7 @@ import { API_URL } from "../config";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import { useCurrency } from "../context/CurrencyContext";
 import { useToast } from "../context/ToastContext";
+import { getStoredUser, clearSession } from "../utils/session";
 
 const toWhatsAppNumber = (phone) => {
   if (!phone) return "";
@@ -44,6 +45,12 @@ export default function DispatchDashboard() {
 
   const { formatPrice } = useCurrency();
   const toast = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const currentUser = getStoredUser();
+  const jwt = localStorage.getItem("token");
+  const isAdmin = currentUser && currentUser.role === "admin";
 
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -263,6 +270,78 @@ export default function DispatchDashboard() {
     }
   };
 
+  // Security Guard: Restrict access to logged-in Admins only
+  if (!jwt || !isAdmin) {
+    const redirectUrl = encodeURIComponent(location.pathname + location.search);
+    return (
+      <div className="dispatch-error-wrap">
+        <div className="dispatch-error-card" style={{ maxWidth: 440 }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              background: "rgba(239, 68, 68, 0.1)",
+              color: "#ef4444",
+              display: "grid",
+              placeItems: "center",
+              margin: "0 auto 1.25rem",
+            }}
+          >
+            <ShieldCheck size={32} />
+          </div>
+          <h2 style={{ fontSize: "1.3rem", fontWeight: 800, color: "#0f172a", marginBottom: "0.5rem" }}>
+            Admin Access Required
+          </h2>
+          <p style={{ color: "#64748b", fontSize: "0.88rem", lineHeight: 1.5, marginBottom: "1.5rem" }}>
+            {currentUser
+              ? `You are currently logged in as "${currentUser.name}" (${currentUser.role}). This concierge dispatch portal contains host contact details and reservation controls, accessible exclusively to Yamu Administrators.`
+              : "This concierge dispatch portal contains vehicle owner contact details and reservation controls. Please log in with an administrator account to continue."}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => {
+                if (currentUser && !isAdmin) {
+                  clearSession();
+                }
+                navigate(`/login?redirect=${redirectUrl}`);
+              }}
+              style={{
+                width: "100%",
+                padding: "11px",
+                borderRadius: "8px",
+                fontWeight: 700,
+                fontSize: "0.92rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <ShieldCheck size={18} />
+              <span>{currentUser ? "Switch to Admin Account" : "Sign In as Admin"}</span>
+            </button>
+            <Link
+              to="/"
+              style={{
+                color: "#64748b",
+                fontSize: "0.85rem",
+                textDecoration: "none",
+                fontWeight: 600,
+                padding: "6px",
+                textAlign: "center",
+              }}
+            >
+              Return to Yamu Home
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="dispatch-loading-wrap">
@@ -321,10 +400,9 @@ export default function DispatchDashboard() {
       {/* Top Concierge Header */}
       <header className="dispatch-top-bar">
         <div className="dispatch-brand">
-          <Link to="/" className="dispatch-logo">
-            YAMU<span className="logo-accent">.LK</span>
-          </Link>
-          <span className="dispatch-badge">Concierge Dispatcher</span>
+          <span className="dispatch-badge">
+            <ShieldCheck size={14} style={{ marginRight: 4 }} /> Concierge Dispatch
+          </span>
         </div>
 
         <div className="dispatch-meta-right">
@@ -1634,6 +1712,50 @@ export default function DispatchDashboard() {
           border: 1px solid #fee2e2;
           text-align: center;
           max-width: 440px;
+        }
+        @media (max-width: 640px) {
+          .dispatch-top-bar {
+            padding: 0.65rem 0.85rem;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          .dispatch-brand {
+            width: auto;
+          }
+          .dispatch-meta-right {
+            width: 100%;
+            justify-content: space-between;
+            gap: 6px;
+          }
+          .dispatch-ref-pill {
+            font-size: 0.78rem;
+            padding: 4px 8px;
+          }
+          .dispatch-status-pill {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+          }
+          .dispatch-main-content {
+            padding: 0.85rem 0.75rem;
+          }
+          .dispatch-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .command-bar-inner {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+          }
+          .command-buttons-row {
+            flex-direction: column;
+            width: 100%;
+            gap: 8px;
+          }
+          .btn-confirm-booking, .btn-unavailable-booking, .btn-cancel-booking {
+            width: 100%;
+            justify-content: center;
+          }
         }
       `}</style>
     </div>

@@ -74,6 +74,7 @@ function LegacyDashboardRedirect() {
 
 function AppContent() {
   const location = useLocation();
+  const isDispatch = location.pathname.startsWith("/dispatch");
   const hideNavAndFooter = [
     "/login",
     "/register",
@@ -83,9 +84,7 @@ function AppContent() {
     "/company-dashboard",
     DASHBOARD_PATH,
     "/admin",
-  ].includes(location.pathname);
-
-  const isDispatch = location.pathname.startsWith("/dispatch");
+  ].includes(location.pathname) || isDispatch;
   const hideFloatingWidgets = [
     "/login",
     "/register",
@@ -93,7 +92,7 @@ function AppContent() {
     "/admin",
     "/company-dashboard",
     DASHBOARD_PATH,
-  ].includes(location.pathname);
+  ].includes(location.pathname) || isDispatch;
 
   useLayoutEffect(() => {
     const targetId = location.hash.replace("#", "");
