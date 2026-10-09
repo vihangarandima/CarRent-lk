@@ -24,7 +24,7 @@ const BookingSchema = new mongoose.Schema(
     host: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
     },
     company: {
       type: mongoose.Schema.Types.ObjectId,
@@ -38,12 +38,12 @@ const BookingSchema = new mongoose.Schema(
     },
     customerName: {
       type: String,
-      required: true,
+      default: "Customer",
       trim: true,
     },
     customerPhone: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
     },
     customerEmail: {

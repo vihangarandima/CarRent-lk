@@ -175,15 +175,16 @@ router.post("/", optionalAuth, async (req, res) => {
     const dateRangeStr = `${start.toLocaleDateString("en-GB")} to ${end.toLocaleDateString("en-GB")}`;
     const rentModeStr = rentMode === "with-driver" ? "With Driver" : "Self-Drive";
 
+    const customerDisplay = resolvedCustomerPhone ? `${resolvedCustomerName} (${resolvedCustomerPhone})` : resolvedCustomerName;
     const whatsappMessage = 
-      `🚗 *New Booking Request - Yamu Car Rentals*\n` +
-      `• *Ref:* ${bookingNumber}\n` +
-      `• *Vehicle:* ${vehicle.brand} ${vehicle.model} (${vehicle.year})\n` +
-      `• *Dates:* ${dateRangeStr} (${totalDays} day${totalDays > 1 ? "s" : ""})\n` +
-      `• *Mode:* ${rentModeStr}\n` +
-      `• *Customer:* ${resolvedCustomerName} (${resolvedCustomerPhone || "WhatsApp Direct"})\n` +
-      `• *Est. Total:* Rs. ${totalPrice.toLocaleString()}\n\n` +
-      `🔑 *Admin Concierge Dispatch Portal:*\n` +
+      `\u{1F697} *New Booking Request - Yamu Car Rentals*\n` +
+      `\u2022 *Ref:* ${bookingNumber}\n` +
+      `\u2022 *Vehicle:* ${vehicle.brand} ${vehicle.model} (${vehicle.year})\n` +
+      `\u2022 *Dates:* ${dateRangeStr} (${totalDays} day${totalDays > 1 ? "s" : ""})\n` +
+      `\u2022 *Mode:* ${rentModeStr}\n` +
+      `\u2022 *Customer:* ${customerDisplay}\n` +
+      `\u2022 *Est. Total:* Rs. ${totalPrice.toLocaleString()}\n\n` +
+      `\u{1F511} *Admin Concierge Dispatch Portal:*\n` +
       `${dispatchUrl}`;
 
     res.status(201).json({

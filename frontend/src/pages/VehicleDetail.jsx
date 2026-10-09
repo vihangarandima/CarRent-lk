@@ -57,6 +57,7 @@ const VehicleDetail = () => {
   
 
   const [sent, setSent] = useState(false);
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [vehicle, setVehicle] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [bookedIntervals, setBookedIntervals] = useState([]);
@@ -117,6 +118,8 @@ const VehicleDetail = () => {
 
   const handleContact = async (e) => {
     e.preventDefault();
+    if (bookingSubmitting) return;
+
     if (!startDate || !endDate) {
       toast.warning("Please select your required booking dates on the calendar first.", "Dates Required");
       return;
@@ -141,6 +144,7 @@ const VehicleDetail = () => {
       return;
     }
 
+    setBookingSubmitting(true);
     const rentModeText = { "self-drive": "Self-drive", "with-driver": "With driver", both: "Self-drive or with driver" }[vehicle?.rentMode || "self-drive"];
     const dateStr = `${startDate.toLocaleDateString("en-GB")} to ${endDate.toLocaleDateString("en-GB")}`;
     let finalWaUrl = `https://wa.me/${targetWaNumber}?text=${encodeURIComponent(
@@ -170,7 +174,9 @@ const VehicleDetail = () => {
         finalWaUrl = `https://wa.me/${targetWaNumber}?text=${encodeURIComponent(bookingRes.data.whatsappMessage)}`;
       }
     } catch (bookingErr) {
-      console.warn("Could not record booking ahead of WhatsApp:", bookingErr.message);
+      console.warn("Could not record booking ahead of WhatsApp:", bookingErr?.response?.data || bookingErr.message);
+    } finally {
+      setBookingSubmitting(false);
     }
 
     // 2. Also log inquiry in bids for backward compatibility
@@ -189,8 +195,15 @@ const VehicleDetail = () => {
     }
 
     setSent(true);
-    // Open WhatsApp in new tab
-    window.open(finalWaUrl, "_blank", "noopener,noreferrer");
+    // Open WhatsApp in new tab, or fallback to window.location.href if popups blocked
+    try {
+      const waWin = window.open(finalWaUrl, "_blank", "noopener,noreferrer");
+      if (!waWin || waWin.closed || typeof waWin.closed === "undefined") {
+        window.location.href = finalWaUrl;
+      }
+    } catch {
+      window.location.href = finalWaUrl;
+    }
   };
 
   if (loading) {
@@ -571,17 +584,20 @@ const VehicleDetail = () => {
                     type="button"
                     className="btn-primary"
                     onClick={handleContact}
+                    disabled={bookingSubmitting}
                     style={{
                       width: "100%",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "8px",
-                      marginTop: "1rem"
+                      marginTop: "1rem",
+                      opacity: bookingSubmitting ? 0.7 : 1,
+                      cursor: bookingSubmitting ? "wait" : "pointer"
                     }}
                   >
                     <MessageSquare size={18} />
-                    <span>Contact via WhatsApp</span>
+                    <span>{bookingSubmitting ? "Connecting..." : "Contact via WhatsApp"}</span>
                   </button>
 
                   {directPhone && (
