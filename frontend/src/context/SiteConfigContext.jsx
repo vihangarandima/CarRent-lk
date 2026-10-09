@@ -416,13 +416,11 @@ export const SiteConfigProvider = ({ children }) => {
         const storedActive = storedTheme.active;
         const serverActive = serverTheme.active;
 
-        // If server has a festival active, use server. If server is "none" or unset, but local storage has an active theme, preserve it.
+        // Server is authoritative. If server specifies active (including "none" / standard), respect it.
         const resolvedActive =
-          serverActive && serverActive !== "none"
+          serverActive !== undefined && serverActive !== null
             ? serverActive
-            : storedActive && storedActive !== "none"
-            ? storedActive
-            : serverActive || "none";
+            : storedActive || "none";
 
         const merged = {
           ...DEFAULT_CONFIG,
@@ -557,7 +555,10 @@ export const SiteConfigProvider = ({ children }) => {
             festivalTheme: {
               ...DEFAULT_CONFIG.global.festivalTheme,
               ...(serverConfig.global?.festivalTheme || {}),
-              active: serverConfig.global?.festivalTheme?.active || currentActiveFestival,
+              active:
+                serverConfig.global?.festivalTheme?.active !== undefined
+                  ? serverConfig.global.festivalTheme.active
+                  : currentActiveFestival,
               christmas: {
                 ...DEFAULT_CONFIG.global.festivalTheme.christmas,
                 ...(serverConfig.global?.festivalTheme?.christmas || {}),
