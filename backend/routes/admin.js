@@ -173,12 +173,21 @@ router.get("/stats", auth, adminOnly, async (req, res) => {
 // @desc    List all vehicles with full details and status filter
 router.get("/vehicles", auth, adminOnly, async (req, res) => {
   try {
-    const { status, vehicleType, isFeatured, search } = req.query;
+    const { status, vehicleType, isFeatured, search, company } = req.query;
     let query = {};
     if (status && status !== "all") query.status = status;
     if (vehicleType && vehicleType !== "all") query.vehicleType = vehicleType;
     if (isFeatured !== undefined && isFeatured !== "all") {
       query.isFeatured = isFeatured === "true";
+    }
+    if (company && company !== "all") {
+      if (company === "companies_only") {
+        query.company = { $ne: null };
+      } else if (company === "individual_only") {
+        query.company = null;
+      } else {
+        query.company = company;
+      }
     }
     if (search) {
       query.$or = [
@@ -480,6 +489,21 @@ router.get("/companies", auth, adminOnly, async (req, res) => {
   } catch (err) {
     console.error("Error fetching companies:", err);
     res.status(500).json({ msg: "Server error fetching companies" });
+  }
+});
+
+// @route   GET /api/admin/companies/:id/vehicles
+// @desc    List all vehicles owned by a specific rental company (all statuses)
+router.get("/companies/:id/vehicles", auth, adminOnly, async (req, res) => {
+  try {
+    const vehicles = await Vehicle.find({ company: req.params.id })
+      .populate("owner", "name email role phone")
+      .populate("company", "companyName logo isVerified phone address")
+      .sort({ createdAt: -1 });
+    res.json(vehicles);
+  } catch (err) {
+    console.error("Error fetching company vehicles:", err);
+    res.status(500).json({ msg: "Server error fetching company vehicles" });
   }
 });
 

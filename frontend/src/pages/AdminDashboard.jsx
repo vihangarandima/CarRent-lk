@@ -123,10 +123,18 @@ const AdminDashboard = () => {
   const [vehicleSearch, setVehicleSearch] = useState("");
   const [fleetStatusFilter, setFleetStatusFilter] = useState("all");
   const [fleetTypeFilter, setFleetTypeFilter] = useState("all");
+  const [fleetCompanyFilter, setFleetCompanyFilter] = useState("all");
   const [companySearch, setCompanySearch] = useState("");
   const [companyVerifyFilter, setCompanyVerifyFilter] = useState("all");
   const [approvalFilter, setApprovalFilter] = useState("pending"); // pending | rejected | all
   const [rentalStatusFilter, setRentalStatusFilter] = useState("all");
+
+  // Company Vehicles Inspection Modal State
+  const [viewingCompany, setViewingCompany] = useState(null);
+  const [companyVehicles, setCompanyVehicles] = useState([]);
+  const [loadingCompanyVehicles, setLoadingCompanyVehicles] = useState(false);
+  const [companyVehiclesSearch, setCompanyVehiclesSearch] = useState("");
+  const [companyVehiclesStatusFilter, setCompanyVehiclesStatusFilter] = useState("all");
 
   // Feedback banner
   const [actionFeedback, setActionFeedback] = useState("");
@@ -198,6 +206,16 @@ const AdminDashboard = () => {
           headers: { "x-auth-token": token },
         });
         setVehiclesList(res.data);
+        if (companiesList.length === 0) {
+          try {
+            const compRes = await axios.get(`${API_URL}/api/admin/companies`, {
+              headers: { "x-auth-token": token },
+            });
+            setCompaniesList(compRes.data);
+          } catch (e) {
+            console.warn("Could not preload companies list:", e);
+          }
+        }
       } else if (tab === "rentals") {
         const res = await axios.get(`${API_URL}/api/admin/rentals`, {
           headers: { "x-auth-token": token },
@@ -631,6 +649,73 @@ const AdminDashboard = () => {
   };
 
   // ==========================================
+  // SUPER ADMIN VIEW & MANAGE COMPANY VEHICLES
+  // ==========================================
+
+  const handleOpenCompanyVehicles = async (company) => {
+    setViewingCompany(company);
+    setCompanyVehiclesSearch("");
+    setCompanyVehiclesStatusFilter("all");
+    setLoadingCompanyVehicles(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/admin/companies/${company._id}/vehicles`, {
+        headers: { "x-auth-token": token },
+      });
+      setCompanyVehicles(res.data);
+    } catch (err) {
+      console.warn("Could not fetch company vehicles via endpoint, falling back to fleet list:", err);
+      const fallback = vehiclesList.filter(
+        (v) => (v.company?._id || v.company) === company._id
+      );
+      setCompanyVehicles(fallback);
+    } finally {
+      setLoadingCompanyVehicles(false);
+    }
+  };
+
+  const handleCompanyVehicleStatusChange = async (vehicleId, newStatus) => {
+    try {
+      await handleChangeVehicleStatus(vehicleId, newStatus);
+      setCompanyVehicles((prev) =>
+        prev.map((v) => (v._id === vehicleId ? { ...v, status: newStatus } : v))
+      );
+    } catch (err) {
+      // toast is handled inside handleChangeVehicleStatus
+    }
+  };
+
+  const handleCompanyVehicleDelete = async (vehicleId, vehicleName) => {
+    const ok = await confirm({
+      title: `Delete ${vehicleName || "Vehicle"}?`,
+      message: "Are you sure you want to permanently delete this vehicle from this rental company?",
+      confirmText: "Delete Listing",
+      isDestructive: true,
+    });
+    if (!ok) return;
+    try {
+      await axios.delete(`${API_URL}/api/admin/vehicles/${vehicleId}`, {
+        headers: { "x-auth-token": token },
+      });
+      toast.success("Vehicle deleted successfully");
+      setCompanyVehicles((prev) => prev.filter((v) => v._id !== vehicleId));
+      fetchStats();
+      fetchTabData("fleet");
+      fetchTabData("companies");
+    } catch (err) {
+      toast.error("Error deleting vehicle: " + err.message);
+    }
+  };
+
+  const handleJumpToFleetTabWithCompany = (companyId) => {
+    setViewingCompany(null);
+    setFleetCompanyFilter(companyId);
+    setActiveTab("fleet");
+    if (vehiclesList.length === 0) {
+      fetchTabData("fleet");
+    }
+  };
+
+  // ==========================================
   // SUPER ADMIN RENTALS SUPERVISOR
   // ==========================================
 
@@ -723,6 +808,11 @@ const AdminDashboard = () => {
     return vehiclesList.filter((v) => {
       const matchesStatus = fleetStatusFilter === "all" || v.status === fleetStatusFilter;
       const matchesType = fleetTypeFilter === "all" || v.vehicleType === fleetTypeFilter;
+      const matchesCompany =
+        fleetCompanyFilter === "all" ||
+        (fleetCompanyFilter === "companies_only" && Boolean(v.company)) ||
+        (fleetCompanyFilter === "individual_only" && !v.company) ||
+        (v.company?._id === fleetCompanyFilter || v.company === fleetCompanyFilter);
       const matchesSearch =
         !vehicleSearch ||
         v.brand?.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
@@ -730,9 +820,23 @@ const AdminDashboard = () => {
         v.location?.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
         v.company?.companyName?.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
         v.owner?.name?.toLowerCase().includes(vehicleSearch.toLowerCase());
-      return matchesStatus && matchesType && matchesSearch;
+      return matchesStatus && matchesType && matchesCompany && matchesSearch;
     });
-  }, [vehiclesList, fleetStatusFilter, fleetTypeFilter, vehicleSearch]);
+  }, [vehiclesList, fleetStatusFilter, fleetTypeFilter, vehicleSearch, fleetCompanyFilter]);
+
+  const filteredCompanyVehicles = useMemo(() => {
+    return companyVehicles.filter((v) => {
+      const matchesStatus =
+        companyVehiclesStatusFilter === "all" || v.status === companyVehiclesStatusFilter;
+      const matchesSearch =
+        !companyVehiclesSearch ||
+        v.brand?.toLowerCase().includes(companyVehiclesSearch.toLowerCase()) ||
+        v.model?.toLowerCase().includes(companyVehiclesSearch.toLowerCase()) ||
+        v.location?.toLowerCase().includes(companyVehiclesSearch.toLowerCase()) ||
+        (v.vehicleType && v.vehicleType.toLowerCase().includes(companyVehiclesSearch.toLowerCase()));
+      return matchesStatus && matchesSearch;
+    });
+  }, [companyVehicles, companyVehiclesStatusFilter, companyVehiclesSearch]);
 
   const pendingApprovalsVehicles = useMemo(() => {
     return vehiclesList.filter((v) => {
@@ -3268,6 +3372,25 @@ const AdminDashboard = () => {
                     ))}
                   </select>
 
+                  <select
+                    value={fleetCompanyFilter}
+                    onChange={(e) => setFleetCompanyFilter(e.target.value)}
+                    className="select-role-filter select-company-filter"
+                  >
+                    <option value="all">All Providers / Companies</option>
+                    <option value="companies_only">🏢 All Rental Companies Only</option>
+                    <option value="individual_only">👤 Private Hosts Only</option>
+                    {companiesList.length > 0 && (
+                      <optgroup label="Registered Rental Companies">
+                        {companiesList.map((comp) => (
+                          <option key={comp._id} value={comp._id}>
+                            🏢 {comp.companyName} ({comp.vehicleCount || 0} cars)
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+
                   <div className="search-box">
                     <Search size={16} />
                     <input
@@ -3278,6 +3401,30 @@ const AdminDashboard = () => {
                     />
                   </div>
                 </div>
+
+                {fleetCompanyFilter !== "all" && (
+                  <div className="active-filter-pill-bar">
+                    <span className="text-xs text-muted">Active Company Filter:</span>
+                    <span className="active-filter-badge">
+                      🏢{" "}
+                      <strong>
+                        {fleetCompanyFilter === "companies_only"
+                          ? "All Rental Companies Only"
+                          : fleetCompanyFilter === "individual_only"
+                          ? "Private Hosts Only"
+                          : companiesList.find((c) => c._id === fleetCompanyFilter)?.companyName || "Selected Company"}
+                      </strong>
+                      <button
+                        type="button"
+                        onClick={() => setFleetCompanyFilter("all")}
+                        className="btn-clear-filter-chip"
+                        title="Clear provider filter"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  </div>
+                )}
               </div>
 
               {loadingData ? (
@@ -3483,7 +3630,16 @@ const AdminDashboard = () => {
                             <td className="text-muted">{c.phone || "—"}</td>
                             <td className="text-muted">{c.address || "—"}</td>
                             <td>
-                              <span className="badge-count-sm">{c.vehicleCount || 0} cars</span>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenCompanyVehicles(c)}
+                                className="btn-fleet-count-pill"
+                                title={`Click to inspect all ${c.vehicleCount || 0} vehicles of ${c.companyName}`}
+                              >
+                                <Car size={13} />
+                                <span>{c.vehicleCount || 0} cars</span>
+                                <Eye size={12} className="opacity-70" />
+                              </button>
                             </td>
                             <td>
                               <span
@@ -3496,6 +3652,15 @@ const AdminDashboard = () => {
                             </td>
                             <td>
                               <div className="actions-cell">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenCompanyVehicles(c)}
+                                  className="btn-action-view-fleet"
+                                  title={`View ${c.companyName} Vehicles (${c.vehicleCount || 0})`}
+                                >
+                                  <Car size={14} />
+                                  <span>View Vehicles</span>
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => handleToggleCompanyVerify(c._id)}
@@ -4389,6 +4554,310 @@ const AdminDashboard = () => {
                     onClick={handleSaveCompanyAdmin}
                   >
                     {savingCompany ? "Saving..." : "Save Company"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 5. SUPER ADMIN VIEW COMPANY VEHICLES MODAL */}
+          {viewingCompany && (
+            <div className="admin-modal-overlay" onClick={() => setViewingCompany(null)}>
+              <div
+                className="admin-modal admin-modal-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="admin-modal-header company-fleet-modal-header">
+                  <div className="flex items-center gap-3">
+                    {viewingCompany.logo ? (
+                      <img
+                        src={viewingCompany.logo}
+                        alt={viewingCompany.companyName}
+                        className="c-modal-logo"
+                      />
+                    ) : (
+                      <div className="c-modal-logo-placeholder">
+                        <Building2 size={24} />
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="m-0 text-lg font-bold">{viewingCompany.companyName}</h3>
+                        {viewingCompany.isVerified ? (
+                          <span className="status-badge status-verified text-xs">
+                            ✓ Yamu Gold Verified
+                          </span>
+                        ) : (
+                          <span className="status-badge status-pending text-xs">
+                            ⏳ Pending Verification
+                          </span>
+                        )}
+                        <span className="badge-count-sm">
+                          {companyVehicles.length} {companyVehicles.length === 1 ? "vehicle" : "vehicles"}
+                        </span>
+                      </div>
+                      <div className="company-modal-meta text-xs text-muted mt-1 flex flex-wrap gap-3">
+                        {viewingCompany.contactEmail && (
+                          <span className="flex items-center gap-1">
+                            <Mail size={12} /> {viewingCompany.contactEmail}
+                          </span>
+                        )}
+                        {viewingCompany.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone size={12} /> {viewingCompany.phone}
+                          </span>
+                        )}
+                        {viewingCompany.address && (
+                          <span className="flex items-center gap-1">
+                            <MapPin size={12} /> {viewingCompany.address}
+                          </span>
+                        )}
+                        {viewingCompany.user?.name && (
+                          <span className="flex items-center gap-1">
+                            <Users size={12} /> Owner: {viewingCompany.user.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn-secondary text-xs flex items-center gap-1.5"
+                      onClick={() => handleJumpToFleetTabWithCompany(viewingCompany._id)}
+                      title="Open filtered in full Fleet Table"
+                    >
+                      <Layers size={14} /> View in Fleet Tab
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-close-modal"
+                      onClick={() => setViewingCompany(null)}
+                      title="Close modal"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="admin-modal-body company-fleet-modal-body">
+                  {/* Status Breakdown Pills */}
+                  <div className="company-fleet-stats-bar">
+                    <div className="cf-stat-pill">
+                      <span className="cf-stat-val">{companyVehicles.length}</span>
+                      <span className="cf-stat-lbl">Total</span>
+                    </div>
+                    <div className="cf-stat-pill text-emerald">
+                      <span className="cf-stat-val">
+                        {companyVehicles.filter((v) => v.status === "active").length}
+                      </span>
+                      <span className="cf-stat-lbl">Active & Live</span>
+                    </div>
+                    <div className="cf-stat-pill text-amber">
+                      <span className="cf-stat-val">
+                        {companyVehicles.filter((v) => v.status === "pending").length}
+                      </span>
+                      <span className="cf-stat-lbl">Pending</span>
+                    </div>
+                    <div className="cf-stat-pill text-purple">
+                      <span className="cf-stat-val">
+                        {companyVehicles.filter((v) => v.status === "rented").length}
+                      </span>
+                      <span className="cf-stat-lbl">Rented</span>
+                    </div>
+                    <div className="cf-stat-pill text-rose">
+                      <span className="cf-stat-val">
+                        {companyVehicles.filter((v) => v.status === "rejected").length}
+                      </span>
+                      <span className="cf-stat-lbl">Rejected</span>
+                    </div>
+                    <div className="cf-stat-pill text-muted">
+                      <span className="cf-stat-val">
+                        {companyVehicles.filter((v) => v.status === "hidden").length}
+                      </span>
+                      <span className="cf-stat-lbl">Hidden</span>
+                    </div>
+                  </div>
+
+                  {/* Filter and Search Bar */}
+                  <div className="company-fleet-filter-bar">
+                    <div className="search-box cf-search">
+                      <Search size={15} />
+                      <input
+                        type="text"
+                        placeholder="Search model, brand, location..."
+                        value={companyVehiclesSearch}
+                        onChange={(e) => setCompanyVehiclesSearch(e.target.value)}
+                      />
+                    </div>
+                    <div className="cf-filter-pills">
+                      {[
+                        { id: "all", label: "All" },
+                        { id: "active", label: "Active" },
+                        { id: "pending", label: "Pending" },
+                        { id: "rented", label: "Rented" },
+                        { id: "hidden", label: "Hidden" },
+                        { id: "rejected", label: "Rejected" },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={`cf-filter-pill-btn ${
+                            companyVehiclesStatusFilter === item.id ? "active" : ""
+                          }`}
+                          onClick={() => setCompanyVehiclesStatusFilter(item.id)}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Vehicles List */}
+                  {loadingCompanyVehicles ? (
+                    <div className="loading-state py-8">
+                      <RefreshCw size={24} className="animate-spin mb-2" />
+                      Loading fleet for {viewingCompany.companyName}...
+                    </div>
+                  ) : filteredCompanyVehicles.length === 0 ? (
+                    <div className="empty-state-card py-8">
+                      <Car size={36} className="text-muted mb-2 opacity-50" />
+                      <h4 className="m-0 font-semibold">No vehicles found</h4>
+                      <p className="text-muted text-xs mt-1">
+                        {companyVehicles.length === 0
+                          ? "This rental company has not listed any vehicles yet."
+                          : "No vehicles match the search or filter criteria."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="company-vehicles-grid">
+                      {filteredCompanyVehicles.map((v) => (
+                        <div key={v._id} className="company-vehicle-card">
+                          <div className="cv-card-media">
+                            <img
+                              src={formatVehicleImageUrl(v.images, v.vehicleType)}
+                              alt={`${v.brand} ${v.model}`}
+                              className="cv-card-img"
+                              onError={(e) =>
+                                handleImageError(
+                                  e,
+                                  formatVehicleImageUrl(null, v.vehicleType)
+                                )
+                              }
+                            />
+                            <span className={`cv-status-badge status-${v.status || "active"}`}>
+                              {v.status || "active"}
+                            </span>
+                            {v.isFeatured && (
+                              <span className="cv-featured-badge">★ Featured</span>
+                            )}
+                          </div>
+
+                          <div className="cv-card-content">
+                            <div className="cv-card-title-row">
+                              <h4 className="cv-title">
+                                {v.brand} {v.model} <span className="cv-year">({v.year})</span>
+                              </h4>
+                              <span className="type-badge-sm">{v.vehicleType}</span>
+                            </div>
+
+                            <div className="cv-price-row">
+                              <span className="cv-rate">
+                                Rs. {v.pricePerDay?.toLocaleString()}
+                              </span>
+                              <span className="cv-per-day">/ day</span>
+                              <span className="cv-free-km">
+                                • {v.kmPerDay || 100} km free
+                              </span>
+                            </div>
+
+                            <div className="cv-specs-row text-xs text-muted">
+                              <span>{v.transmission}</span>
+                              <span>•</span>
+                              <span>{v.fuelType}</span>
+                              <span>•</span>
+                              <span>{v.seats} seats</span>
+                            </div>
+
+                            <div className="cv-location-row text-xs text-muted">
+                              <MapPin size={12} /> {v.location}
+                            </div>
+
+                            {v.rejectionReason && v.status === "rejected" && (
+                              <div className="cv-rejection-box text-xs">
+                                <strong>Rejection note:</strong> {v.rejectionReason}
+                              </div>
+                            )}
+
+                            <div className="cv-card-actions">
+                              <div className="cv-status-select-wrapper">
+                                <label className="text-xs text-muted">Status:</label>
+                                <select
+                                  value={v.status || "active"}
+                                  onChange={(e) =>
+                                    handleCompanyVehicleStatusChange(v._id, e.target.value)
+                                  }
+                                  className={`status-changer-select status-${v.status || "active"}`}
+                                >
+                                  <option value="active">Active (Live)</option>
+                                  <option value="pending">Pending Approval</option>
+                                  <option value="rented">Currently Rented</option>
+                                  <option value="hidden">Hidden / Inactive</option>
+                                  <option value="rejected">Rejected</option>
+                                </select>
+                              </div>
+
+                              <div className="cv-action-btns">
+                                <Link
+                                  to={`/vehicle/${v._id}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="btn-action-view"
+                                  title="View Public Listing"
+                                >
+                                  <Eye size={14} />
+                                </Link>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditVehicleModal(v)}
+                                  className="btn-action-edit"
+                                  title="Edit Listing Specs"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleCompanyVehicleDelete(v._id, `${v.brand} ${v.model}`)
+                                  }
+                                  className="btn-action-del"
+                                  title="Delete Vehicle"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="admin-modal-footer">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setViewingCompany(null)}
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => handleJumpToFleetTabWithCompany(viewingCompany._id)}
+                  >
+                    <Layers size={14} /> Open in Fleet Supervisor
                   </button>
                 </div>
               </div>
@@ -6544,6 +7013,406 @@ const AdminDashboard = () => {
         :is(.dark, [data-theme="dark"]) .festival-empty-notice {
           border-color: #334155;
           color: #94a3b8;
+        }
+
+        /* ========================================================= */
+        /* SUPER ADMIN COMPANY VEHICLES INSPECTOR & FLEET EXTENSIONS */
+        /* ========================================================= */
+        .admin-modal.admin-modal-xl {
+          max-width: 980px;
+          width: 95vw;
+          max-height: 90vh;
+        }
+
+        .btn-fleet-count-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(249, 115, 22, 0.12);
+          color: #f97316;
+          border: 1px solid rgba(249, 115, 22, 0.3);
+          padding: 4px 10px;
+          border-radius: 9999px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-fleet-count-pill:hover {
+          background: rgba(249, 115, 22, 0.25);
+          border-color: #f97316;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+        }
+
+        .btn-action-view-fleet {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(59, 130, 246, 0.12);
+          color: #60a5fa;
+          border: 1px solid rgba(59, 130, 246, 0.25);
+          padding: 5px 10px;
+          border-radius: 6px;
+          font-size: 0.78rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+
+        .btn-action-view-fleet:hover {
+          background: rgba(59, 130, 246, 0.22);
+          border-color: #60a5fa;
+          color: #93c5fd;
+          transform: translateY(-1px);
+        }
+
+        .active-filter-pill-bar {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 10px;
+          padding: 8px 12px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 8px;
+        }
+
+        .active-filter-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(249, 115, 22, 0.15);
+          color: #fdba74;
+          border: 1px solid rgba(249, 115, 22, 0.3);
+          padding: 3px 8px;
+          border-radius: 6px;
+          font-size: 0.8rem;
+        }
+
+        .btn-clear-filter-chip {
+          background: transparent;
+          border: none;
+          color: #fdba74;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          padding: 2px;
+          border-radius: 4px;
+          transition: opacity 0.2s;
+        }
+
+        .btn-clear-filter-chip:hover {
+          opacity: 0.8;
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .company-fleet-modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 18px 24px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          background: #0d1322;
+        }
+
+        .c-modal-logo {
+          width: 48px;
+          height: 48px;
+          border-radius: 10px;
+          object-fit: cover;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .c-modal-logo-placeholder {
+          width: 48px;
+          height: 48px;
+          border-radius: 10px;
+          background: rgba(249, 115, 22, 0.1);
+          color: #f97316;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(249, 115, 22, 0.2);
+        }
+
+        .company-fleet-modal-body {
+          padding: 20px 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          overflow-y: auto;
+          max-height: calc(85vh - 140px);
+        }
+
+        .company-fleet-stats-bar {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .cf-stat-pill {
+          display: flex;
+          flex-direction: column;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 8px;
+          padding: 6px 14px;
+          min-width: 90px;
+        }
+
+        .cf-stat-val {
+          font-size: 1.15rem;
+          font-weight: 800;
+          color: #ffffff;
+        }
+
+        .cf-stat-pill.text-emerald .cf-stat-val { color: #10b981; }
+        .cf-stat-pill.text-amber .cf-stat-val { color: #f59e0b; }
+        .cf-stat-pill.text-purple .cf-stat-val { color: #a855f7; }
+        .cf-stat-pill.text-rose .cf-stat-val { color: #f43f5e; }
+        .cf-stat-pill.text-muted .cf-stat-val { color: #94a3b8; }
+
+        .cf-stat-lbl {
+          font-size: 0.7rem;
+          color: #94a3b8;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .company-fleet-filter-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 12px;
+          background: #090e18;
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 10px;
+          padding: 10px 14px;
+        }
+
+        .cf-search {
+          max-width: 280px;
+        }
+
+        .cf-filter-pills {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        .cf-filter-pill-btn {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          color: #94a3b8;
+          padding: 5px 10px;
+          border-radius: 6px;
+          font-size: 0.74rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .cf-filter-pill-btn:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+        }
+
+        .cf-filter-pill-btn.active {
+          background: rgba(249, 115, 22, 0.18);
+          border-color: #f97316;
+          color: #fdba74;
+        }
+
+        .company-vehicles-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+          gap: 16px;
+        }
+
+        .company-vehicle-card {
+          background: #0d1322;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .company-vehicle-card:hover {
+          border-color: rgba(249, 115, 22, 0.4);
+          transform: translateY(-2px);
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .cv-card-media {
+          position: relative;
+          height: 145px;
+          background: #060911;
+          overflow: hidden;
+        }
+
+        .cv-card-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.3s;
+        }
+
+        .company-vehicle-card:hover .cv-card-img {
+          transform: scale(1.03);
+        }
+
+        .cv-status-badge {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          padding: 3px 8px;
+          border-radius: 6px;
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: capitalize;
+          backdrop-filter: blur(8px);
+        }
+
+        .cv-status-badge.status-active {
+          background: rgba(16, 185, 129, 0.85);
+          color: #ffffff;
+        }
+        .cv-status-badge.status-pending {
+          background: rgba(245, 158, 11, 0.85);
+          color: #ffffff;
+        }
+        .cv-status-badge.status-rented {
+          background: rgba(168, 85, 247, 0.85);
+          color: #ffffff;
+        }
+        .cv-status-badge.status-hidden {
+          background: rgba(100, 116, 139, 0.85);
+          color: #ffffff;
+        }
+        .cv-status-badge.status-rejected {
+          background: rgba(239, 68, 68, 0.85);
+          color: #ffffff;
+        }
+
+        .cv-featured-badge {
+          position: absolute;
+          top: 8px;
+          left: 8px;
+          background: rgba(234, 179, 8, 0.9);
+          color: #000000;
+          padding: 2px 7px;
+          border-radius: 4px;
+          font-size: 0.68rem;
+          font-weight: 800;
+        }
+
+        .cv-card-content {
+          padding: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          flex: 1;
+        }
+
+        .cv-card-title-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .cv-title {
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: #ffffff;
+          margin: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .cv-year {
+          font-weight: 400;
+          color: #94a3b8;
+          font-size: 0.85rem;
+        }
+
+        .cv-price-row {
+          display: flex;
+          align-items: baseline;
+          gap: 4px;
+        }
+
+        .cv-rate {
+          font-size: 1.05rem;
+          font-weight: 800;
+          color: var(--primary, #f97316);
+        }
+
+        .cv-per-day {
+          font-size: 0.72rem;
+          color: #94a3b8;
+        }
+
+        .cv-free-km {
+          font-size: 0.72rem;
+          color: #64748b;
+          margin-left: auto;
+        }
+
+        .cv-specs-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: #94a3b8;
+          font-size: 0.76rem;
+        }
+
+        .cv-location-row {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          color: #94a3b8;
+          font-size: 0.76rem;
+        }
+
+        .cv-rejection-box {
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.25);
+          color: #fca5a5;
+          padding: 6px 8px;
+          border-radius: 6px;
+          font-size: 0.72rem;
+        }
+
+        .cv-card-actions {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          margin-top: auto;
+          padding-top: 10px;
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .cv-status-select-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          flex: 1;
+        }
+
+        .cv-action-btns {
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
       `}</style>
     </div>
