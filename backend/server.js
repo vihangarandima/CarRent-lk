@@ -69,6 +69,7 @@ app.use("/api/site-config", require("./routes/siteConfig"));
 app.use("/api/reviews", require("./routes/reviews"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/rentals", require("./routes/rentals"));
+app.use("/api/bookings", require("./routes/bookings"));
 
 // Serve the uploads folder statically so frontend can access images
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

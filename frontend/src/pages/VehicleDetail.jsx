@@ -115,7 +115,7 @@ const VehicleDetail = () => {
     : "New";
   const numReviews = reviews.length;
 
-  const handleContact = (e) => {
+  const handleContact = async (e) => {
     e.preventDefault();
     if (!startDate || !endDate) {
       toast.warning("Please select your required booking dates on the calendar first.", "Dates Required");
@@ -127,19 +127,53 @@ const VehicleDetail = () => {
       return;
     }
 
-    if (!waNumber) {
+    // Company WhatsApp Concierge line (or host fallback)
+    const companySupportPhone =
+      config?.global?.whatsAppSupport?.phoneNumber ||
+      "+94702434288";
+    const targetWaNumber = toWhatsAppNumber(companySupportPhone) || waNumber;
+
+    if (!targetWaNumber) {
       toast.error(
-        "This host has not added a contact number yet. Please use the WhatsApp support button and we will connect you.",
+        "WhatsApp booking is currently unavailable. Please contact support.",
         "Contact Unavailable"
       );
       return;
     }
-    const dateStr = `${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
-    const msg = `Hello! I would like to rent the ${vehicle.brand} ${vehicle.model} (${vehicle.year}) listed on Yamu Car Rentals (${rentModeLabel.toLowerCase()}) for ${dateStr}. Is it available?\n${window.location.href}`;
-    const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
 
-    // Try posting bid/inquiry if logged in
+    const rentModeText = { "self-drive": "Self-drive", "with-driver": "With driver", both: "Self-drive or with driver" }[vehicle?.rentMode || "self-drive"];
+    const dateStr = `${startDate.toLocaleDateString("en-GB")} to ${endDate.toLocaleDateString("en-GB")}`;
+    let finalWaUrl = `https://wa.me/${targetWaNumber}?text=${encodeURIComponent(
+      `Hello! I would like to rent the ${vehicle.brand} ${vehicle.model} (${vehicle.year}) listed on Yamu Car Rentals (${rentModeText.toLowerCase()}) for ${dateStr}.\n${window.location.href}`
+    )}`;
+
+    const viewer = getStoredUser();
     const token = localStorage.getItem("token");
+
+    // 1. Create official Booking record in backend with secure dispatch token
+    try {
+      const bookingRes = await axios.post(
+        `${API_URL}/api/bookings`,
+        {
+          vehicleId: vehicle._id,
+          startDate,
+          endDate,
+          customerName: viewer?.name || "Customer",
+          customerPhone: viewer?.phone || "",
+          rentMode: vehicle?.rentMode || "self-drive",
+          clientBaseUrl: window.location.origin,
+        },
+        token ? { headers: { "x-auth-token": token } } : {}
+      );
+
+      if (bookingRes.data?.whatsappMessage) {
+        finalWaUrl = `https://wa.me/${targetWaNumber}?text=${encodeURIComponent(bookingRes.data.whatsappMessage)}`;
+      }
+    } catch (bookingErr) {
+      console.warn("Could not record booking ahead of WhatsApp:", bookingErr.message);
+    }
+
+    // 2. Also log inquiry in bids for backward compatibility
     if (token) {
       axios
         .post(
@@ -156,7 +190,7 @@ const VehicleDetail = () => {
 
     setSent(true);
     // Open WhatsApp in new tab
-    window.open(waUrl, "_blank", "noopener,noreferrer");
+    window.open(finalWaUrl, "_blank", "noopener,noreferrer");
   };
 
   if (loading) {
