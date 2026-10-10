@@ -27,6 +27,10 @@ const ReviewSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  location: {
+    type: String,
+    default: "",
+  },
   subRatings: {
     cleanliness: { type: Number, min: 1, max: 5, default: 5 },
     communication: { type: Number, min: 1, max: 5, default: 5 },

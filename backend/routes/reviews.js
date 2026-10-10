@@ -80,7 +80,7 @@ router.get("/", async (req, res) => {
 
     // Fetch matching reviews
     let query = Review.find(filter)
-      .populate("user", "name email profileImage role")
+      .populate("user", "name email profileImage role location")
       .populate({
         path: "vehicle",
         select: "brand model year vehicleType images pricePerDay location company",
@@ -277,6 +277,7 @@ router.post("/", auth, async (req, res) => {
         vehicleCondition: subRatings?.vehicleCondition ? Number(subRatings.vehicleCondition) : numRating,
       },
       tripType: tripType || "Road Trip & Leisure",
+      location: req.body.location ? req.body.location.trim() : "",
       recommended: recommended !== false,
       images: validImages,
       isVerifiedTrip: true,
@@ -285,7 +286,7 @@ router.post("/", auth, async (req, res) => {
     const savedReview = await newReview.save();
 
     const populated = await Review.findById(savedReview._id)
-      .populate("user", "name email profileImage role")
+      .populate("user", "name email profileImage role location")
       .populate({
         path: "vehicle",
         select: "brand model year vehicleType images pricePerDay location company",

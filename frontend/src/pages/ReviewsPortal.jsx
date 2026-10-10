@@ -46,6 +46,26 @@ const VEHICLE_CATEGORIES = [
   { id: "premium-car", label: "SUVs & Luxury" },
 ];
 
+const resolveReviewerAvatar = (rev) => {
+  const profileImg = rev?.user?.profileImage;
+  const name = rev?.user?.name?.toLowerCase() || "";
+  if (profileImg && typeof profileImg === "string") {
+    if (profileImg.includes("thivina") || name.includes("thivina")) return "/assets/images/thivina.png";
+    if (profileImg.includes("punsara") || name.includes("punsara")) return "/assets/images/punsara.png";
+    if (profileImg.includes("nirmal") || name.includes("nirmal")) return "/assets/images/nirmal.png";
+    return profileImg;
+  }
+  if (name.includes("thivina")) return "/assets/images/thivina.png";
+  if (name.includes("punsara")) return "/assets/images/punsara.png";
+  if (name.includes("nirmal")) return "/assets/images/nirmal.png";
+  return null;
+};
+
+const isFoundationalThree = (name = "") => {
+  const n = String(name || "").toLowerCase();
+  return n.includes("thivina") || n.includes("punsara") || n.includes("nirmal");
+};
+
 const ReviewsPortal = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -479,7 +499,21 @@ const ReviewsPortal = () => {
                 <div className="card-top-row">
                   <div className="user-profile-meta">
                     <div className="user-avatar-circle">
-                      {rev.user?.name ? rev.user.name[0].toUpperCase() : "U"}
+                      {resolveReviewerAvatar(rev) ? (
+                        <img
+                          src={resolveReviewerAvatar(rev)}
+                          alt={rev.user?.name || "User"}
+                          className="user-avatar-img"
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                            if (e.target.parentElement) {
+                              e.target.parentElement.innerText = rev.user?.name ? rev.user.name[0].toUpperCase() : "U";
+                            }
+                          }}
+                        />
+                      ) : (
+                        rev.user?.name ? rev.user.name[0].toUpperCase() : "U"
+                      )}
                     </div>
                     <div className="user-text-info">
                       <div className="user-name-badge">
@@ -494,6 +528,14 @@ const ReviewsPortal = () => {
                       <div className="trip-type-tag">
                         <Calendar size={12} />
                         <span>{new Date(rev.createdAt).toLocaleDateString()}</span>
+                        {!isFoundationalThree(rev.user?.name) && Boolean(rev.location || rev.user?.location) && (
+                          <>
+                            <span className="dot">•</span>
+                            <span className="review-loc-pill">
+                              <MapPin size={11} /> {rev.location || rev.user?.location}
+                            </span>
+                          </>
+                        )}
                         <span className="dot">•</span>
                         <span>{rev.tripType || "Road Trip"}</span>
                       </div>
@@ -505,13 +547,13 @@ const ReviewsPortal = () => {
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          size={15}
+                          size={14}
                           fill={i < rev.rating ? "#f59e0b" : "#e2e8f0"}
                           color={i < rev.rating ? "#f59e0b" : "#cbd5e1"}
                         />
                       ))}
                     </div>
-                    <span className="rating-digit">{rev.rating}.0</span>
+                    <span className="rating-digit">{Number(rev.rating).toFixed(1)}</span>
                   </div>
                 </div>
 
@@ -1082,13 +1124,19 @@ const ReviewsPortal = () => {
         }
 
         .star-label {
-          display: flex;
+          display: inline-flex;
           align-items: center;
           gap: 4px;
           width: 32px;
           font-size: 0.9rem;
           font-weight: 700;
           color: #334155;
+          line-height: 1;
+        }
+
+        .star-label svg {
+          display: block;
+          flex-shrink: 0;
         }
 
         .bar-track {
@@ -1291,12 +1339,15 @@ const ReviewsPortal = () => {
           background: #ffffff;
           border: 1px solid #e2e8f0;
           border-radius: 18px;
-          padding: 1.6rem;
+          padding: 1.5rem;
           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
           display: flex;
           flex-direction: column;
           gap: 1.1rem;
           transition: transform 0.25s, box-shadow 0.25s;
+          overflow: hidden;
+          box-sizing: border-box;
+          max-width: 100%;
         }
 
         .review-card-premium:hover {
@@ -1309,13 +1360,19 @@ const ReviewsPortal = () => {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          gap: 12px;
+          gap: 10px;
+          flex-wrap: wrap;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .user-profile-meta {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
+          min-width: 0;
+          flex: 1 1 180px;
+          max-width: 100%;
         }
 
         .user-avatar-circle {
@@ -1330,10 +1387,39 @@ const ReviewsPortal = () => {
           font-weight: 800;
           font-size: 1.1rem;
           box-shadow: 0 4px 10px rgba(249, 115, 22, 0.2);
+          overflow: hidden;
+          flex-shrink: 0;
+        }
+
+        .user-avatar-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .user-text-info {
+          min-width: 0;
+          flex: 1;
+        }
+
+        .review-loc-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          color: #f97316;
+          font-weight: 600;
+        }
+
+        .user-name-badge {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
         }
 
         .user-name-badge h4 {
-          font-size: 0.98rem;
+          font-size: 0.95rem;
           font-weight: 800;
           color: #0f172a;
           margin: 0;
@@ -1354,9 +1440,10 @@ const ReviewsPortal = () => {
           align-items: center;
           gap: 5px;
           color: #64748b;
-          font-size: 0.78rem;
+          font-size: 0.76rem;
           font-weight: 500;
           margin-top: 2px;
+          flex-wrap: wrap;
         }
 
         .trip-type-tag .dot {
@@ -1364,21 +1451,35 @@ const ReviewsPortal = () => {
         }
 
         .stars-cluster {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          gap: 2px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: #fffbeb;
+          border: 1px solid #fef3c7;
+          padding: 4px 9px;
+          border-radius: 999px;
+          flex-shrink: 0;
+          margin-left: auto;
+          box-sizing: border-box;
         }
 
         .stars-row {
-          display: flex;
-          gap: 2px;
+          display: inline-flex;
+          align-items: center;
+          gap: 2.5px;
+          line-height: 1;
+        }
+
+        .stars-row svg {
+          display: block;
+          flex-shrink: 0;
         }
 
         .rating-digit {
-          font-size: 0.85rem;
+          font-size: 0.82rem;
           font-weight: 800;
-          color: #f59e0b;
+          color: #d97706;
+          line-height: 1;
         }
 
         .review-vehicle-pill {
@@ -1640,17 +1741,25 @@ const ReviewsPortal = () => {
         }
 
         .interactive-stars {
-          display: flex;
+          display: inline-flex;
           align-items: center;
           gap: 6px;
         }
 
         .star-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           background: none;
           border: none;
           cursor: pointer;
           padding: 2px;
+          line-height: 1;
           transition: transform 0.15s;
+        }
+
+        .star-button svg {
+          display: block;
         }
 
         .star-button:hover {
@@ -1684,9 +1793,15 @@ const ReviewsPortal = () => {
         }
 
         .mini-star-picker {
-          display: flex;
-          gap: 2px;
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
           cursor: pointer;
+          line-height: 1;
+        }
+
+        .mini-star-picker svg {
+          display: block;
         }
 
         .star-click:hover {

@@ -178,8 +178,14 @@ const ReviewSection = ({ vehicleId, reviews, onReviewAdded }) => {
           font-size: 0.95rem;
         }
         .review-rating {
-          display: flex;
-          gap: 2px;
+          display: inline-flex;
+          align-items: center;
+          gap: 2.5px;
+          line-height: 1;
+        }
+        .review-rating svg {
+          display: block;
+          flex-shrink: 0;
         }
         .review-comment {
           color: #4b5563;
@@ -215,15 +221,23 @@ const ReviewSection = ({ vehicleId, reviews, onReviewAdded }) => {
           font-size: 0.9rem;
         }
         .star-selector {
-          display: flex;
+          display: inline-flex;
+          align-items: center;
           gap: 0.5rem;
         }
         .star-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           background: none;
           border: none;
           cursor: pointer;
           padding: 0;
+          line-height: 1;
           transition: transform 0.2s;
+        }
+        .star-btn svg {
+          display: block;
         }
         .star-btn:hover {
           transform: scale(1.1);

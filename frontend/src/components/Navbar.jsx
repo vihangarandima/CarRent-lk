@@ -107,19 +107,19 @@ const Navbar = () => {
 
         {hostingNav ? (
           <div className="nav-links hidden-mobile">
-            <Link to={DASHBOARD_PATH}>Dashboard</Link>
-            <Link to={listTarget}>Add Vehicle</Link>
+            <Link to={DASHBOARD_PATH} className={location.pathname.startsWith(DASHBOARD_PATH) ? "active" : ""}>Dashboard</Link>
+            <Link to={listTarget} className={location.pathname === listTarget ? "active" : ""}>Add Vehicle</Link>
             <button type="button" className="nav-link-btn" onClick={browseAsCustomer}>
               View site as customer
             </button>
           </div>
         ) : (
           <div className="nav-links hidden-mobile">
-            <Link to="/vehicles">Find Cars</Link>
-            <Link to="/companies">Rent-A-Car Fleets</Link>
-            <Link to="/reviews">Reviews</Link>
+            <Link to="/vehicles" className={location.pathname.startsWith("/vehicles") ? "active" : ""}>Find Cars</Link>
+            <Link to="/companies" className={location.pathname === "/companies" || location.pathname.startsWith("/companies/") ? "active" : ""}>Fleets</Link>
+            <Link to="/reviews" className={location.pathname === "/reviews" || location.pathname === "/reviews-portal" ? "active" : ""}>Reviews</Link>
             <Link to="/#how-it-works">How it works</Link>
-            <Link to="/why-us">Why us</Link>
+            <Link to="/why-us" className={location.pathname === "/why-us" ? "active" : ""}>Why us</Link>
           </div>
         )}
 
@@ -238,19 +238,19 @@ const Navbar = () => {
               ← Back to My Dashboard
             </button>
           )}
-          <Link to="/vehicles" className="mobile-nav-item" onClick={closeMenu}>
+          <Link to="/vehicles" className={`mobile-nav-item ${location.pathname.startsWith("/vehicles") ? "active" : ""}`} onClick={closeMenu}>
             Find Cars
           </Link>
-          <Link to="/companies" className="mobile-nav-item" onClick={closeMenu}>
-            Rent-A-Car Fleets
+          <Link to="/companies" className={`mobile-nav-item ${location.pathname === "/companies" || location.pathname.startsWith("/companies/") ? "active" : ""}`} onClick={closeMenu}>
+            Fleets
           </Link>
-          <Link to="/reviews" className="mobile-nav-item" onClick={closeMenu}>
+          <Link to="/reviews" className={`mobile-nav-item ${location.pathname === "/reviews" || location.pathname === "/reviews-portal" ? "active" : ""}`} onClick={closeMenu}>
             Reviews & Ratings
           </Link>
           <Link to="/#how-it-works" className="mobile-nav-item" onClick={closeMenu}>
             How it works
           </Link>
-          <Link to="/why-us" className="mobile-nav-item" onClick={closeMenu}>
+          <Link to="/why-us" className={`mobile-nav-item ${location.pathname === "/why-us" ? "active" : ""}`} onClick={closeMenu}>
             Why us
           </Link>
           {user?.role !== "admin" && !lister && (
@@ -364,7 +364,8 @@ const Navbar = () => {
 
         .nav-links {
           display: flex;
-          gap: 2.5rem;
+          gap: 2.2rem;
+          align-items: center;
         }
 
         .nav-links a {
@@ -373,10 +374,31 @@ const Navbar = () => {
           font-weight: 500;
           font-size: 0.95rem;
           transition: color 0.2s;
+          white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          position: relative;
+          padding: 4px 0 6px;
         }
 
         .nav-links a:hover {
           color: #FF8A00;
+        }
+
+        .nav-links a.active {
+          color: #ea580c !important;
+          font-weight: 700 !important;
+        }
+
+        .nav-links a.active::after {
+          content: '';
+          position: absolute;
+          bottom: 0px;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: #ea580c;
+          border-radius: 999px;
         }
 
         .nav-link-btn {
@@ -514,6 +536,17 @@ const Navbar = () => {
           color: rgba(255, 255, 255, 0.95);
           font-weight: 600;
         }
+        .hero-nav.on-dark .nav-links a.active {
+          color: #ffffff !important;
+          font-weight: 700 !important;
+          background: rgba(255, 255, 255, 0.22);
+          padding: 6px 14px;
+          border-radius: 999px;
+          backdrop-filter: blur(8px);
+        }
+        .hero-nav.on-dark .nav-links a.active::after {
+          display: none;
+        }
         .hero-nav.on-dark .nav-link-btn {
           color: rgba(255, 255, 255, 0.95);
           font-weight: 600;
@@ -521,6 +554,12 @@ const Navbar = () => {
         .hero-nav.on-dark .nav-links a:hover {
           color: #ffffff;
           opacity: 1;
+        }
+        .mobile-nav-item.active {
+          color: #ea580c !important;
+          font-weight: 700 !important;
+          background: #fff7ed;
+          border-left: 3px solid #ea580c;
         }
         .hero-nav.on-dark .nav-signin {
           color: #ffffff;

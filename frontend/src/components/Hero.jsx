@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, ChevronDown, MapPin } from "lucide-react";
+import { Search, ChevronDown, MapPin, Car, PlusCircle } from "lucide-react";
 import fleetCutoutImg from "../assets/images/yamu_fleet_cutout.png";
 import { useSiteConfig } from "../context/SiteConfigContext";
 import { FestivalHeroDecorations } from "./festivals/FestivalAccessoriesManager";
@@ -44,7 +44,6 @@ const Hero = () => {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [rentMode, setRentMode] = useState(""); // "" = any, "self-drive", "with-driver"
-  const [activeSlide, setActiveSlide] = useState(0);
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -69,33 +68,7 @@ const Hero = () => {
       <div className="hero-gradient-overlay" />
       <div className="hero-light-glow" />
 
-      {/* Side Pagination Dots */}
-      <div className="hero-carousel-dots">
-        <button
-          type="button"
-          aria-label="Slide 1"
-          className={`carousel-dot ${activeSlide === 0 ? "active" : ""}`}
-          onClick={() => setActiveSlide(0)}
-        >
-          <span className="dot-inner" />
-        </button>
-        <button
-          type="button"
-          aria-label="Slide 2"
-          className={`carousel-dot ${activeSlide === 1 ? "active" : ""}`}
-          onClick={() => setActiveSlide(1)}
-        >
-          <span className="dot-inner" />
-        </button>
-        <button
-          type="button"
-          aria-label="Slide 3"
-          className={`carousel-dot ${activeSlide === 2 ? "active" : ""}`}
-          onClick={() => setActiveSlide(2)}
-        >
-          <span className="dot-inner" />
-        </button>
-      </div>
+
 
       <div className="hero-center-stage">
         {/* Unified Heroic Stage: Tall YAMU backdrop with foreground Fleet */}
@@ -133,6 +106,37 @@ const Hero = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.25, ease: "easeOut" }}
         >
+          {/* Prominent Action Buttons above the sentence */}
+          <div className="hero-buttons-container">
+            <button
+              type="button"
+              className={`hero-action-btn rent-btn ${activeTab === "rent" ? "active" : ""}`}
+              onClick={() => setActiveTab("rent")}
+            >
+              <Car size={18} strokeWidth={2.4} className="hero-btn-icon" />
+              <span>I Want to Rent a Car</span>
+            </button>
+            <button
+              type="button"
+              className={`hero-action-btn list-btn ${activeTab === "buy" ? "active" : ""}`}
+              onClick={() => {
+                setActiveTab("buy");
+                const token = localStorage.getItem("token");
+                const user = JSON.parse(localStorage.getItem("user") || "null");
+                if (token && user?.role === "company") {
+                  navigate("/fleet/quick-add");
+                } else if (token && (user?.role === "owner" || user?.role === "admin" || user?.role === "renter")) {
+                  navigate("/list-my-car");
+                } else {
+                  navigate("/choose-listing-type");
+                }
+              }}
+            >
+              <PlusCircle size={18} strokeWidth={2.4} className="hero-btn-icon" />
+              <span>I Want to List a Car</span>
+            </button>
+          </div>
+
           <p className="hero-sub-top">
             <span className="tag-sparkle">✦</span> {hero?.taglineTop || "Make The Right Choice"} <span className="tag-sparkle">✦</span>
           </p>
@@ -142,42 +146,13 @@ const Hero = () => {
         </motion.div>
       </div>
 
-      {/* Search Card with Attached Tabs */}
+      {/* Standalone Search Card Bar */}
       <motion.div
         className="hero-search-card-container"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* Top Attached Tabs */}
-        <div className="hero-tabs-header">
-          <button
-            type="button"
-            className={`hero-tab-btn ${activeTab === "rent" ? "active" : ""}`}
-            onClick={() => setActiveTab("rent")}
-          >
-            I Want to Rent a Car
-          </button>
-          <button
-            type="button"
-            className={`hero-tab-btn ${activeTab === "buy" ? "active" : ""}`}
-            onClick={() => {
-              setActiveTab("buy");
-              const token = localStorage.getItem("token");
-              const user = JSON.parse(localStorage.getItem("user") || "null");
-              if (token && user?.role === "company") {
-                navigate("/fleet/quick-add");
-              } else if (token && (user?.role === "owner" || user?.role === "admin" || user?.role === "renter")) {
-                navigate("/list-my-car");
-              } else {
-                navigate("/choose-listing-type");
-              }
-            }}
-          >
-            I Want to List a Car
-          </button>
-        </div>
-
         {/* Pure White Search Card Bar */}
         <div className="hero-search-bar" onKeyDown={handleKeyDown}>
           {/* Self-drive / with driver — the first thing most Sri Lankan renters decide */}
@@ -335,49 +310,7 @@ const Hero = () => {
           z-index: 1;
         }
 
-        /* Side Carousel Dots */
-        .hero-carousel-dots {
-          position: absolute;
-          right: 2.5rem;
-          top: 48%;
-          transform: translateY(-50%);
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          z-index: 20;
-        }
 
-        .carousel-dot {
-          background: transparent;
-          border: none;
-          padding: 0;
-          cursor: pointer;
-          width: 16px;
-          height: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .carousel-dot .dot-inner {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.45);
-          transition: all 0.25s ease;
-          display: block;
-        }
-
-        .carousel-dot.active {
-          border: 1.5px solid rgba(255, 255, 255, 0.9);
-          border-radius: 50%;
-        }
-
-        .carousel-dot.active .dot-inner {
-          background: #ffffff;
-          width: 5px;
-          height: 5px;
-        }
 
         /* Center Stage: YAMU Watermark + Fleet + Text */
         .hero-center-stage {
@@ -458,8 +391,93 @@ const Hero = () => {
 
         /* Taglines Below Vehicles */
         .hero-taglines {
-          margin-top: 0.75rem;
+          margin-top: 0.6rem;
+          margin-bottom: 1.75rem;
           z-index: 15;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        /* Highly Recognizable Action Buttons Above the Sentence */
+        .hero-buttons-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 18px;
+          margin-bottom: 1.5rem;
+          z-index: 20;
+        }
+
+        .hero-action-btn {
+          border: none;
+          outline: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+          padding: 12px 28px;
+          font-size: 0.95rem;
+          font-weight: 700;
+          cursor: pointer;
+          border-radius: 999px;
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          font-family: inherit;
+          user-select: none;
+          text-decoration: none;
+          white-space: nowrap;
+          position: relative;
+        }
+
+        .hero-action-btn .hero-btn-icon {
+          flex-shrink: 0;
+          transition: transform 0.2s ease;
+        }
+
+        /* Active Tab: Solid White Pill with Vibrant Orange Text & Elevation */
+        .hero-action-btn.active {
+          background: #ffffff !important;
+          color: #ea580c !important;
+          font-weight: 800;
+          border: 2px solid #ffffff;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+        }
+
+        .hero-action-btn.active .hero-btn-icon {
+          color: #ea580c !important;
+        }
+
+        .hero-action-btn.active:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+          background: #fffaf5 !important;
+        }
+
+        /* Inactive Tab - Distinct Frosted Glass Pill */
+        .hero-action-btn:not(.active) {
+          background: rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          color: #ffffff !important;
+          border: 1.5px solid rgba(255, 255, 255, 0.6);
+          font-weight: 600;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        .hero-action-btn:not(.active) .hero-btn-icon {
+          color: #ffffff !important;
+        }
+
+        .hero-action-btn:not(.active):hover {
+          background: rgba(255, 255, 255, 0.32);
+          border-color: #ffffff;
+          color: #ffffff !important;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+        }
+
+        .hero-action-btn:hover .hero-btn-icon {
+          transform: scale(1.15);
         }
 
         .hero-sub-top {
@@ -494,7 +512,7 @@ const Hero = () => {
           text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
-        /* Search Card with Attached Tabs */
+        /* Search Card Container */
         .hero-search-card-container {
           position: relative;
           z-index: 25;
@@ -503,42 +521,7 @@ const Hero = () => {
           margin-top: auto;
           display: flex;
           flex-direction: column;
-          align-items: flex-start;
-        }
-
-        /* Top Attached Tabs */
-        .hero-tabs-header {
-          display: flex;
-          align-items: flex-end;
-          gap: 4px;
-          padding-left: 2px;
-        }
-
-        .hero-tab-btn {
-          border: none;
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          color: #ffffff;
-          padding: 10px 22px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          cursor: pointer;
-          border-radius: 12px 12px 0 0;
-          transition: all 0.2s ease;
-          font-family: inherit;
-        }
-
-        .hero-tab-btn.active {
-          background: #ffffff;
-          color: #ea580c;
-          font-weight: 700;
-          box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        .hero-tab-btn:not(.active):hover {
-          background: rgba(255, 255, 255, 0.3);
-          color: #ffffff;
+          align-items: center;
         }
 
         /* Pure White Search Card Bar */
@@ -562,7 +545,7 @@ const Hero = () => {
 
         .hero-search-bar {
           background: #ffffff;
-          border-radius: 0 16px 16px 16px;
+          border-radius: 20px;
           box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.08);
           padding: 14px 20px;
           width: 100%;
@@ -754,9 +737,7 @@ const Hero = () => {
             min-height: 100dvh;
           }
 
-          .hero-carousel-dots {
-            display: none;
-          }
+
 
           .heroic-fleet-stage {
             max-width: 700px;
@@ -825,9 +806,7 @@ const Hero = () => {
             gap: 0.75rem;
           }
 
-          .hero-carousel-dots {
-            display: none;
-          }
+
 
           .hero-center-stage {
             margin: auto 0 0.5rem;
@@ -859,6 +838,7 @@ const Hero = () => {
 
           .hero-taglines {
             margin-top: 0.5rem;
+            margin-bottom: 1.5rem;
             padding: 0 0.5rem;
           }
 
@@ -880,26 +860,37 @@ const Hero = () => {
             margin-top: auto;
           }
 
-          .hero-tabs-header {
+          .hero-buttons-container {
             width: 100%;
+            max-width: 440px;
             display: flex;
-            gap: 3px;
+            gap: 10px;
+            margin-bottom: 1.15rem;
+            padding: 0 0.5rem;
+            box-sizing: border-box;
           }
 
-          .hero-tab-btn {
+          .hero-action-btn {
             flex: 1;
+            justify-content: center;
             text-align: center;
-            padding: 9px 8px;
-            font-size: 0.78rem;
-            border-radius: 10px 10px 0 0;
+            padding: 10px 12px;
+            font-size: 0.82rem;
+            gap: 6px;
+            border-radius: 999px;
             white-space: nowrap;
+          }
+
+          .hero-action-btn .hero-btn-icon {
+            width: 16px;
+            height: 16px;
           }
 
           /* Search Bar on Mobile */
           .hero-search-bar {
             flex-direction: column;
             align-items: stretch;
-            border-radius: 0 0 16px 16px;
+            border-radius: 18px;
             padding: 14px;
             gap: 10px;
           }
@@ -971,9 +962,15 @@ const Hero = () => {
             font-size: 0.95rem;
           }
 
-          .hero-tab-btn {
-            font-size: 0.72rem;
-            padding: 8px 4px;
+          .hero-action-btn {
+            font-size: 0.74rem;
+            padding: 9px 6px;
+            gap: 5px;
+          }
+
+          .hero-action-btn .hero-btn-icon {
+            width: 14px;
+            height: 14px;
           }
         }
       `}</style>

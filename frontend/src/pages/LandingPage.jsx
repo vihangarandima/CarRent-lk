@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -81,21 +81,21 @@ const categories = [
 const testimonials = [
   {
     name: "Thivina pehasara",
-    location: "Colombo",
+    location: "",
     rating: 5,
     text: "Booked a Toyota Fortuner for our family trip to Ella. Smooth process, verified host, and the car was spotless. Will definitely use again!",
     avatar: thivinaImg,
   },
   {
     name: "Punsara Rajapaksa",
-    location: "Kandy",
+    location: "",
     rating: 5,
     text: "As a tourist, Yamu Car Rentals made renting so easy. Transparent pricing, no hidden fees, and 24/7 support when I had a question.",
     avatar: punsaraImg,
   },
   {
     name: "Nirmal Perera",
-    location: "Galle",
+    location: "",
     rating: 5,
     text: "I listed my car and started earning within a week. The platform handles everything — verification, bookings, payments. Highly recommend!",
     avatar: nirmalImg,
@@ -148,7 +148,7 @@ const resolveTestimonialAvatar = (t) => {
   if (t?.name?.toLowerCase().includes("thivina")) return thivinaImg;
   if (t?.name?.toLowerCase().includes("punsara")) return punsaraImg;
   if (t?.name?.toLowerCase().includes("nirmal")) return nirmalImg;
-  return thivinaImg;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(t?.name || "Customer")}&background=f97316&color=fff&bold=true`;
 };
 
 const LandingPage = () => {
@@ -156,16 +156,37 @@ const LandingPage = () => {
   const [featuredCars, setFeaturedCars] = useState([]);
   const [totalListed, setTotalListed] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [liveReviews, setLiveReviews] = useState([]);
 
   const activeCategories = config?.home?.categories || categories;
-  const isDefaultOldMock =
-    config?.home?.testimonials?.length === 3 &&
-    config.home.testimonials.some((t) => t.name === "Sarah Mitchell" || t.name === "Kasun Silva");
 
-  const activeTestimonials =
-    !isDefaultOldMock && config?.home?.testimonials?.length
-      ? config.home.testimonials
-      : testimonials;
+  // Feature the 3 verified customer reviews on the landing page (Thivina pehasara, Punsara Rajapaksa, Nirmal Perera)
+  // while linking to the full reviews portal for all other community reviews
+  const activeTestimonials = useMemo(() => {
+    return testimonials.map((b) => {
+      const match = (liveReviews || []).find((lr) => {
+        const uName = (lr.user?.name || "").toLowerCase();
+        const bFirstName = b.name.toLowerCase().split(" ")[0];
+        return (
+          uName.includes(bFirstName) ||
+          (lr.comment && lr.comment.slice(0, 25).toLowerCase() === b.text.slice(0, 25).toLowerCase())
+        );
+      });
+
+      if (match) {
+        return {
+          ...b,
+          _id: match._id,
+          rating: match.rating || 5,
+          text: match.comment || b.text,
+          avatar: match.user?.profileImage || b.avatar,
+          location: "",
+          isVerifiedTrip: true,
+        };
+      }
+      return { ...b, location: "" };
+    });
+  }, [liveReviews]);
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const listTarget =
@@ -195,7 +216,20 @@ const LandingPage = () => {
         setLoading(false);
       }
     };
+
+    const fetchLatestReviews = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/reviews?limit=6&sort=newest`);
+        if (res.data?.reviews?.length > 0) {
+          setLiveReviews(res.data.reviews);
+        }
+      } catch (err) {
+        console.warn("Could not load latest reviews from API, using default testimonials:", err);
+      }
+    };
+
     fetchCars();
+    fetchLatestReviews();
   }, []);
 
   return (
@@ -470,29 +504,43 @@ const LandingPage = () => {
           <div className="testimonials-grid">
             {activeTestimonials.map((t, i) => (
               <motion.div
-                key={i}
+                key={t._id || i}
                 className="testimonial-card"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
               >
-                <Quote size={28} className="quote-icon" />
-                <div className="stars">
-                  {Array.from({ length: t.rating }).map((_, j) => (
-                    <Star key={j} size={16} fill="#f97316" color="#f97316" />
-                  ))}
+                <div className="testimonial-card-header">
+                  <div className="stars" aria-label={`${t.rating || 5} out of 5 stars`}>
+                    {[...Array(5)].map((_, j) => (
+                      <Star
+                        key={j}
+                        size={16}
+                        fill={j < (t.rating || 5) ? "#f97316" : "#fed7aa"}
+                        color={j < (t.rating || 5) ? "#f97316" : "#fed7aa"}
+                      />
+                    ))}
+                  </div>
+                  <Quote size={20} className="quote-icon" />
                 </div>
                 <p className="testimonial-text">"{t.text}"</p>
                 <div className="testimonial-author">
                   <img src={resolveTestimonialAvatar(t)} alt={t.name} />
                   <div>
                     <strong>{t.name}</strong>
-                    <span>{t.location}</span>
+                    {t.location ? <span>{t.location}</span> : null}
                   </div>
                 </div>
               </motion.div>
             ))}
+          </div>
+
+          <div className="testimonials-footer center">
+            <Link to="/reviews" className="btn-view-all-reviews">
+              <span>Read all community reviews & stories on Yamu</span>
+              <ArrowRight size={16} />
+            </Link>
           </div>
         </div>
       </section>
@@ -1185,9 +1233,14 @@ const LandingPage = () => {
         .testimonial-card {
           background: var(--bg);
           border-radius: var(--radius-lg);
-          padding: 2rem;
+          padding: 1.85rem;
           border: 1px solid var(--border);
           transition: all 0.35s ease;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          box-sizing: border-box;
+          max-width: 100%;
         }
 
         .testimonial-card:hover {
@@ -1196,30 +1249,47 @@ const LandingPage = () => {
           border-color: rgba(249, 115, 22, 0.15);
         }
 
-        .quote-icon {
-          color: var(--primary);
-          opacity: 0.4;
-          margin-bottom: 0.75rem;
+        .testimonial-card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1.15rem;
         }
 
         .stars {
-          display: flex;
-          gap: 2px;
-          margin-bottom: 1rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          line-height: 1;
+        }
+
+        .stars svg {
+          display: block;
+          flex-shrink: 0;
+        }
+
+        .quote-icon {
+          color: var(--primary);
+          opacity: 0.35;
+          margin: 0;
+          display: block;
+          flex-shrink: 0;
         }
 
         .testimonial-text {
           font-size: 0.95rem;
-          line-height: 1.7;
+          line-height: 1.68;
           color: var(--text-muted);
           margin-bottom: 1.5rem;
           font-style: italic;
+          flex: 1;
         }
 
         .testimonial-author {
           display: flex;
           align-items: center;
           gap: 0.85rem;
+          margin-top: auto;
         }
 
         .testimonial-author img {
@@ -1228,6 +1298,7 @@ const LandingPage = () => {
           border-radius: 50%;
           object-fit: cover;
           border: 2px solid var(--primary-soft);
+          flex-shrink: 0;
         }
 
         .testimonial-author strong {
@@ -1239,6 +1310,34 @@ const LandingPage = () => {
         .testimonial-author span {
           font-size: 0.78rem;
           color: var(--text-muted);
+        }
+
+        .testimonials-footer {
+          margin-top: 2.5rem;
+          display: flex;
+          justify-content: center;
+        }
+
+        .btn-view-all-reviews {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(249, 115, 22, 0.08);
+          color: var(--primary, #f97316);
+          border: 1px solid rgba(249, 115, 22, 0.28);
+          padding: 10px 24px;
+          border-radius: 9999px;
+          font-weight: 700;
+          font-size: 0.92rem;
+          text-decoration: none;
+          transition: all 0.25s ease;
+        }
+
+        .btn-view-all-reviews:hover {
+          background: var(--primary, #f97316);
+          color: #ffffff;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(249, 115, 22, 0.25);
         }
 
         /* Deals */
@@ -1493,172 +1592,6 @@ const LandingPage = () => {
         .trust-divider {
           width: 1px;
           background: var(--border);
-        }
-
-        /* Testimonials */
-        .testimonials-section {
-          background: white;
-        }
-
-        .testimonials-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1.5rem;
-        }
-
-        .testimonial-card {
-          background: var(--bg);
-          border-radius: var(--radius-lg);
-          padding: 2rem;
-          border: 1px solid var(--border);
-          transition: all 0.35s ease;
-        }
-
-        .testimonial-card:hover {
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-card-hover);
-          border-color: rgba(249, 115, 22, 0.15);
-        }
-
-        .quote-icon {
-          color: var(--primary);
-          opacity: 0.4;
-          margin-bottom: 0.75rem;
-        }
-
-        .stars {
-          display: flex;
-          gap: 2px;
-          margin-bottom: 1rem;
-        }
-
-        .testimonial-text {
-          font-size: 0.95rem;
-          line-height: 1.7;
-          color: var(--text-muted);
-          margin-bottom: 1.5rem;
-          font-style: italic;
-        }
-
-        .testimonial-author {
-          display: flex;
-          align-items: center;
-          gap: 0.85rem;
-        }
-
-        .testimonial-author img {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid var(--primary-soft);
-        }
-
-        .testimonial-author strong {
-          display: block;
-          font-size: 0.9rem;
-          color: var(--text);
-        }
-
-        .testimonial-author span {
-          font-size: 0.78rem;
-          color: var(--text-muted);
-        }
-
-        /* Deals */
-        .deals-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
-        }
-
-        .deal-card {
-          display: flex;
-          align-items: center;
-          border-radius: var(--radius-xl);
-          overflow: hidden;
-          min-height: 220px;
-          position: relative;
-        }
-
-        .deal-weekly {
-          background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-          border: 1px solid rgba(249, 115, 22, 0.15);
-        }
-
-        .deal-weekend {
-          background: linear-gradient(135deg, #1c1917 0%, #292524 100%);
-        }
-
-        .deal-content {
-          flex: 1;
-          padding: 2rem;
-          z-index: 2;
-        }
-
-        .deal-tag {
-          display: inline-block;
-          background: var(--primary);
-          color: white;
-          font-size: 0.72rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          padding: 0.3rem 0.75rem;
-          border-radius: var(--radius-pill);
-          margin-bottom: 0.75rem;
-        }
-
-        .deal-weekend .deal-tag {
-          background: rgba(249, 115, 22, 0.2);
-          color: var(--primary-light);
-        }
-
-        .deal-content h3 {
-          font-family: var(--font-display);
-          font-size: 1.35rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .deal-weekend h3 {
-          color: white;
-        }
-
-        .deal-content p {
-          font-size: 0.88rem;
-          margin-bottom: 1.25rem;
-        }
-
-        .deal-weekend p {
-          color: #a8a29e;
-        }
-
-        .deal-btn {
-          display: inline-flex;
-          padding: 0.6rem 1.25rem;
-          background: var(--primary);
-          color: white;
-          border-radius: var(--radius-pill);
-          font-weight: 700;
-          font-size: 0.85rem;
-          transition: all 0.25s ease;
-        }
-
-        .deal-btn:hover {
-          background: var(--primary-dark);
-          transform: translateY(-2px);
-        }
-
-        .deal-card img {
-          width: 45%;
-          height: 100%;
-          object-fit: cover;
-          position: absolute;
-          right: 0;
-          top: 0;
-          bottom: 0;
-          mask-image: linear-gradient(to right, transparent, black 30%);
-          -webkit-mask-image: linear-gradient(to right, transparent, black 30%);
         }
 
         @media (max-width: 1024px) {
