@@ -111,7 +111,10 @@ const Hero = () => {
             <button
               type="button"
               className={`hero-action-btn rent-btn ${activeTab === "rent" ? "active" : ""}`}
-              onClick={() => setActiveTab("rent")}
+              onClick={() => {
+                setActiveTab("rent");
+                navigate("/vehicles");
+              }}
             >
               <Car size={18} strokeWidth={2.4} className="hero-btn-icon" />
               <span>I Want to Rent a Car</span>
