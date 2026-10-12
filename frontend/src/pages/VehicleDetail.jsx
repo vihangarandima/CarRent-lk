@@ -573,6 +573,64 @@ const VehicleDetail = () => {
                     </div>
                   )}
 
+                  {/* Rental Terms & Requirements Upfront - Directly below calendar */}
+                  <div className="rental-requirements-card">
+                    <div className="req-card-header">
+                      <div className="req-icon-pill">
+                        <Shield size={16} />
+                      </div>
+                      <div>
+                        <h4>Rental Terms & Requirements</h4>
+                        <p>Agreed directly with host at key handover</p>
+                      </div>
+                    </div>
+
+                    <div className="req-items-list">
+                      <div className="req-item">
+                        <span className="req-item-bullet">🪪</span>
+                        <div className="req-item-body">
+                          <strong>Driver Requirements</strong>
+                          <p>Valid Sri Lankan Driving License (or International Driving Permit for tourists) + National ID (NIC) / Passport.</p>
+                        </div>
+                      </div>
+
+                      <div className="req-item">
+                        <span className="req-item-bullet">🛡️</span>
+                        <div className="req-item-body">
+                          <strong>Refundable Security Deposit</strong>
+                          <p>Settled directly with host at vehicle pickup (e.g. Rs. 25,000 – 50,000, or Passport/utility bill) & refunded upon safe return.</p>
+                        </div>
+                      </div>
+
+                      <div className="req-item">
+                        <span className="req-item-bullet">⛽</span>
+                        <div className="req-item-body">
+                          <strong>Fuel Policy: Same-to-Same</strong>
+                          <p>Return the vehicle with the exact same fuel level as recorded at pickup.</p>
+                        </div>
+                      </div>
+
+                      <div className="req-item">
+                        <span className="req-item-bullet">🛣️</span>
+                        <div className="req-item-body">
+                          <strong>Mileage Allowance</strong>
+                          <p>
+                            {kmAllowanceLabel(vehicle?.kmPerDay)}
+                            {extraKmRate > 0 ? ` (Excess: +${formatPrice(extraKmRate)}/km)` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="req-legal-disclaimer">
+                      <Info size={13} className="text-primary flex-shrink-0" style={{ marginTop: 2 }} />
+                      <p>
+                        <strong>Platform Notice:</strong> Yamu connects you with the vehicle owner/fleet. Deposit handling, physical license verification, and fuel handovers are conducted directly host-to-renter. Review our <Link to="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</Link> & <Link to="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</Link>.
+                      </p>
+                    </div>
+                  </div>
+
+
                   {tripDays > 0 && (
                     <div className="trip-pricing-card">
                       <div className="trip-pricing-header">
@@ -648,6 +706,8 @@ const VehicleDetail = () => {
                 </div>
               )}
             </div>
+
+            
           </aside>
         </div>
 
@@ -670,6 +730,105 @@ const VehicleDetail = () => {
       </div>
 
       <style>{`
+        .rental-requirements-card {
+          margin-top: 1.25rem;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 1.25rem;
+          box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+        }
+
+        .req-card-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+          padding-bottom: 0.75rem;
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .req-icon-pill {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: rgba(249, 115, 22, 0.12);
+          color: #ea580c;
+          display: grid;
+          place-items: center;
+          flex-shrink: 0;
+        }
+
+        .req-card-header h4 {
+          font-size: 0.95rem;
+          font-weight: 750;
+          color: #0f172a;
+          margin: 0;
+        }
+
+        .req-card-header p {
+          font-size: 0.75rem;
+          color: #64748b;
+          margin: 0;
+        }
+
+        .req-items-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.85rem;
+        }
+
+        .req-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.65rem;
+        }
+
+        .req-item-bullet {
+          font-size: 1.1rem;
+          line-height: 1.2;
+          flex-shrink: 0;
+        }
+
+        .req-item-body strong {
+          display: block;
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: #1e293b;
+          margin-bottom: 2px;
+        }
+
+        .req-item-body p {
+          font-size: 0.76rem;
+          color: #64748b;
+          line-height: 1.4;
+          margin: 0;
+        }
+
+        .req-legal-disclaimer {
+          margin-top: 1rem;
+          padding: 0.75rem;
+          background: #f8fafc;
+          border: 1px dashed #cbd5e1;
+          border-radius: 10px;
+          display: flex;
+          gap: 0.5rem;
+          align-items: flex-start;
+        }
+
+        .req-legal-disclaimer p {
+          font-size: 0.72rem;
+          color: #64748b;
+          line-height: 1.45;
+          margin: 0;
+        }
+
+        .req-legal-disclaimer a {
+          color: #f97316;
+          font-weight: 600;
+          text-decoration: underline;
+        }
+
         .detail-wrap {
           padding: 120px 0 6rem;          
           background: #f8fafc;

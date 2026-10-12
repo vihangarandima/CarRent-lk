@@ -139,6 +139,8 @@ const Footer = () => {
             <Link to="/reviews">Reviews & Stories</Link>
             <Link to="/#how-it-works">How It Works</Link>
             <Link to="/companies">Partners</Link>
+            <Link to="/terms">Terms of Service</Link>
+            <Link to="/privacy">Privacy Policy</Link>
             <Link to="/login">Sign In</Link>
           </div>
 
@@ -163,7 +165,9 @@ const Footer = () => {
             {footer?.copyrightText || `© ${new Date().getFullYear()} Yamu Car Rentals. All rights reserved.`}
           </p>
           <div className="footer-legal">
-
+            <Link to="/terms">Terms of Service</Link>
+            <span style={{ color: "#44403c" }}>•</span>
+            <Link to="/privacy">Privacy Policy</Link>
           </div>
         </div>
       </div>

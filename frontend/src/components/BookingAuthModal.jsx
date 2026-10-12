@@ -199,6 +199,21 @@ export default function BookingAuthModal({
                 Create Account
               </Link>
             </div>
+
+            <div style={{
+              marginTop: '1.25rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid #f1f5f9',
+              fontSize: '0.76rem',
+              color: '#94a3b8',
+              textAlign: 'center',
+              lineHeight: 1.45
+            }}>
+              By continuing, you agree to Yamu's{' '}
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#f97316', fontWeight: 600, textDecoration: 'underline' }}>Terms of Service</Link>
+              {' '}and{' '}
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#f97316', fontWeight: 600, textDecoration: 'underline' }}>Privacy Policy</Link>.
+            </div>
           </div>
         )}
 
@@ -259,6 +274,20 @@ export default function BookingAuthModal({
                 Back to Google Sign In
               </button>
             </form>
+
+            <div style={{
+              marginTop: '1.25rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid #f1f5f9',
+              fontSize: '0.76rem',
+              color: '#94a3b8',
+              textAlign: 'center',
+              lineHeight: 1.45
+            }}>
+              By requesting this booking, you agree to Yamu's{' '}
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#25D366', fontWeight: 600, textDecoration: 'underline' }}>Terms of Service</Link>
+              {' '}& rental marketplace policies.
+            </div>
           </div>
         )}
 

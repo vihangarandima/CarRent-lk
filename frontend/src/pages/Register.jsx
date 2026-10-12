@@ -447,6 +447,12 @@ const Register = () => {
       <p className="auth-footer-text">
         Already have an account? <Link to="/login">Sign in</Link>
       </p>
+      <p style={{ textAlign: "center", fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.75rem", lineHeight: 1.45 }}>
+        By creating an account, you agree to Yamu's{" "}
+        <Link to="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", fontWeight: 600, textDecoration: "underline" }}>Terms of Service</Link>
+        {" "}and{" "}
+        <Link to="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", fontWeight: 600, textDecoration: "underline" }}>Privacy Policy</Link>.
+      </p>
       <style>{registerCSS}</style>
     </AuthLayout>
   );

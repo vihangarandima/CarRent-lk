@@ -39,6 +39,8 @@ const ChooseListingType = lazy(() => import("./pages/ChooseListingType"));
 const ReviewsPortal = lazy(() => import("./pages/ReviewsPortal"));
 const QuickAddFleet = lazy(() => import("./pages/QuickAddFleet"));
 const EarningsCalculator = lazy(() => import("./pages/EarningsCalculator"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 
 const PageLoader = () => (
   <div style={{ minHeight: "60vh", display: "grid", placeItems: "center" }}>
@@ -227,6 +229,10 @@ function AppContent() {
           <Route path="/select-role" element={<ChooseListingType />} />
           <Route path="/reviews" element={<ReviewsPortal />} />
           <Route path="/reviews-portal" element={<ReviewsPortal />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/dispatch/:id" element={<DispatchDashboard />} />
           <Route path="*" element={<Navigate to="/" replace />} />
