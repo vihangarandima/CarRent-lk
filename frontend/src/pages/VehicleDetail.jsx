@@ -125,11 +125,6 @@ const VehicleDetail = () => {
     if (e) e.preventDefault();
     if (bookingSubmitting) return;
 
-    if (!startDate || !endDate) {
-      toast.warning("Please select your required booking dates on the calendar first.", "Dates Required");
-      return;
-    }
-
     if (belowMinDays) {
       toast.warning(`This vehicle is rented for at least ${minDays} days. Please choose a longer period.`, "Minimum Rental");
       return;
@@ -138,7 +133,7 @@ const VehicleDetail = () => {
     const viewer = getStoredUser();
     const token = localStorage.getItem("token");
 
-    // 1. Enforce account creation: If not logged in, prompt user to sign in or create account
+    // 1. If not logged in, prompt user to sign in or proceed as guest
     if (!token || !viewer) {
       setAuthModalMode("login");
       setAuthModalOpen(true);
@@ -175,10 +170,12 @@ const VehicleDetail = () => {
     setBookingSubmitting(true);
     const viewer = getStoredUser();
     const token = localStorage.getItem("token");
-    const phoneToUse = customerPhone || viewer?.phone || "";
+    const phoneToUse = customerPhone || viewer?.phone || "Pending (WhatsApp Direct)";
 
     const rentModeText = { "self-drive": "Self-drive", "with-driver": "With driver", both: "Self-drive or with driver" }[vehicle?.rentMode || "self-drive"];
-    const dateStr = `${startDate.toLocaleDateString("en-GB")} to ${endDate.toLocaleDateString("en-GB")}`;
+    const dateStr = startDate && endDate
+      ? `${startDate.toLocaleDateString("en-GB")} to ${endDate.toLocaleDateString("en-GB")}`
+      : "Flexible / To be confirmed";
     let finalWaUrl = `https://wa.me/${targetWaNumber}?text=${encodeURIComponent(
       `Hello! I would like to rent the ${vehicle.brand} ${vehicle.model} (${vehicle.year}) listed on Yamu Car Rentals (${rentModeText.toLowerCase()}) for ${dateStr}.\n${window.location.href}`
     )}`;
@@ -189,8 +186,8 @@ const VehicleDetail = () => {
         `${API_URL}/api/bookings`,
         {
           vehicleId: vehicle._id,
-          startDate,
-          endDate,
+          startDate: startDate || null,
+          endDate: endDate || null,
           customerName: viewer?.name || "Customer",
           customerPhone: phoneToUse,
           rentMode: vehicle?.rentMode || "self-drive",

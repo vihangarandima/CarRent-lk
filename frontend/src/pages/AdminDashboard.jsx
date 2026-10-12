@@ -259,10 +259,26 @@ const AdminDashboard = () => {
   }, [token]);
 
   useEffect(() => {
-    if (["users", "companies", "fleet", "approvals", "rentals", "reviews", "rollback"].includes(activeTab)) {
+    if (["bookings", "users", "companies", "fleet", "approvals", "rentals", "reviews", "rollback"].includes(activeTab)) {
       fetchTabData(activeTab);
     }
   }, [activeTab]);
+
+  // Real-time auto refresh for live Bookings CRM tab
+  useEffect(() => {
+    if (activeTab !== "bookings" || !token) return;
+    const interval = setInterval(() => {
+      axios
+        .get(`${API_URL}/api/bookings/admin/all`, {
+          headers: { "x-auth-token": token },
+        })
+        .then((res) => {
+          if (Array.isArray(res.data)) setBookingsList(res.data);
+        })
+        .catch(() => {});
+    }, 12000);
+    return () => clearInterval(interval);
+  }, [activeTab, token]);
 
   // Handlers for CMS
   const handleDraftChange = (path, value) => {

@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Car,
   Mail,
+  MessageSquare,
 } from "lucide-react";
 import GoogleButton from "./GoogleButton";
 
@@ -187,6 +188,34 @@ export default function BookingAuthModal({
               >
                 <Mail size={16} />
                 <span>Sign in with Email</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn-guest-whatsapp-action"
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  padding: "10px 16px",
+                  borderRadius: 10,
+                  border: "1.5px solid #22c55e",
+                  background: "#f0fdf4",
+                  color: "#15803d",
+                  fontSize: "0.88rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  marginTop: 6,
+                }}
+                onClick={() => {
+                  onSuccess({ name: "WhatsApp Guest", phone: "Direct WhatsApp Inquiry" });
+                  onClose();
+                }}
+              >
+                <MessageSquare size={16} />
+                <span>Continue to WhatsApp Directly</span>
               </button>
             </div>
 

@@ -94,8 +94,8 @@ router.post("/", optionalAuth, async (req, res) => {
       clientBaseUrl,
     } = req.body;
 
-    if (!vehicleId || !startDate || !endDate) {
-      return res.status(400).json({ msg: "Vehicle and booking dates are required." });
+    if (!vehicleId) {
+      return res.status(400).json({ msg: "Vehicle is required." });
     }
     if (!isValidId(vehicleId)) return res.status(404).json({ msg: "Vehicle not found." });
 
@@ -105,22 +105,31 @@ router.post("/", optionalAuth, async (req, res) => {
 
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found." });
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      return res.status(400).json({ msg: "Invalid booking dates provided." });
-    }
-    if (end < start) {
-      return res.status(400).json({ msg: "Return date must be on or after pickup date." });
-    }
+    const hasDates = Boolean(startDate && endDate);
+    let start, end, totalDays;
 
-    const diffMs = Math.abs(new Date(end).setHours(0, 0, 0, 0) - new Date(start).setHours(0, 0, 0, 0));
-    const totalDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
-
-    if (vehicle.minRentalDays && totalDays < vehicle.minRentalDays) {
-      return res.status(400).json({
-        msg: `This vehicle requires a minimum rental period of ${vehicle.minRentalDays} day(s).`,
-      });
+    if (hasDates) {
+      start = new Date(startDate);
+      end = new Date(endDate);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        return res.status(400).json({ msg: "Invalid booking dates provided." });
+      }
+      if (end < start) {
+        return res.status(400).json({ msg: "Return date must be on or after pickup date." });
+      }
+      const diffMs = Math.abs(new Date(end).setHours(0, 0, 0, 0) - new Date(start).setHours(0, 0, 0, 0));
+      totalDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+      if (vehicle.minRentalDays && totalDays < vehicle.minRentalDays) {
+        return res.status(400).json({
+          msg: `This vehicle requires a minimum rental period of ${vehicle.minRentalDays} day(s).`,
+        });
+      }
+    } else {
+      // Default to tomorrow for minRentalDays if customer inquired without selecting specific calendar dates
+      start = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const minDays = vehicle.minRentalDays || 1;
+      end = new Date(start.getTime() + minDays * 24 * 60 * 60 * 1000);
+      totalDays = minDays;
     }
 
     // Determine customer info
@@ -173,7 +182,9 @@ router.post("/", optionalAuth, async (req, res) => {
     const dispatchUrl = `${cleanBaseUrl}/dispatch/${savedBooking._id}?token=${dispatchToken}`;
 
     // Construct pre-formatted WhatsApp message
-    const dateRangeStr = `${start.toLocaleDateString("en-GB")} to ${end.toLocaleDateString("en-GB")}`;
+    const dateRangeStr = hasDates
+      ? `${start.toLocaleDateString("en-GB")} to ${end.toLocaleDateString("en-GB")}`
+      : "Flexible / To be confirmed with host";
     const rentModeStr = rentMode === "with-driver" ? "With Driver" : "Self-Drive";
 
     const customerDisplay = resolvedCustomerPhone ? `${resolvedCustomerName} (${resolvedCustomerPhone})` : resolvedCustomerName;
