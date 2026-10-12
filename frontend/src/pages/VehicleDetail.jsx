@@ -28,6 +28,7 @@ import { useCurrency } from "../context/CurrencyContext";
 import { getStoredUser } from "../utils/session";
 import ReviewSection from "../components/ReviewSection";
 import VehicleCard, { kmAllowanceLabel } from "../components/VehicleCard";
+import BookingAuthModal from "../components/BookingAuthModal";
 
 const detailMapContainerStyle = {
   width: "100%",
@@ -58,6 +59,8 @@ const VehicleDetail = () => {
 
   const [sent, setSent] = useState(false);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState("login");
   const [vehicle, setVehicle] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [bookedIntervals, setBookedIntervals] = useState([]);
@@ -116,8 +119,8 @@ const VehicleDetail = () => {
     : "New";
   const numReviews = reviews.length;
 
-  const handleContact = async (e) => {
-    e.preventDefault();
+  const handleContact = (e) => {
+    if (e) e.preventDefault();
     if (bookingSubmitting) return;
 
     if (!startDate || !endDate) {
@@ -130,6 +133,29 @@ const VehicleDetail = () => {
       return;
     }
 
+    const viewer = getStoredUser();
+    const token = localStorage.getItem("token");
+
+    // 1. Enforce account creation: If not logged in, prompt user to sign in or create account
+    if (!token || !viewer) {
+      setAuthModalMode("login");
+      setAuthModalOpen(true);
+      return;
+    }
+
+    // 2. Check for missing phone number (e.g. users signed in via Google)
+    const phoneDigits = String(viewer.phone || "").replace(/\D/g, "");
+    if (phoneDigits.length < 9) {
+      setAuthModalMode("phone");
+      setAuthModalOpen(true);
+      return;
+    }
+
+    // 3. User is logged in and has verified phone: proceed with booking
+    executeBooking(viewer.phone);
+  };
+
+  const executeBooking = async (customerPhone) => {
     // Company WhatsApp Concierge line (or host fallback)
     const companySupportPhone =
       config?.global?.whatsAppSupport?.phoneNumber ||
@@ -145,14 +171,15 @@ const VehicleDetail = () => {
     }
 
     setBookingSubmitting(true);
+    const viewer = getStoredUser();
+    const token = localStorage.getItem("token");
+    const phoneToUse = customerPhone || viewer?.phone || "";
+
     const rentModeText = { "self-drive": "Self-drive", "with-driver": "With driver", both: "Self-drive or with driver" }[vehicle?.rentMode || "self-drive"];
     const dateStr = `${startDate.toLocaleDateString("en-GB")} to ${endDate.toLocaleDateString("en-GB")}`;
     let finalWaUrl = `https://wa.me/${targetWaNumber}?text=${encodeURIComponent(
       `Hello! I would like to rent the ${vehicle.brand} ${vehicle.model} (${vehicle.year}) listed on Yamu Car Rentals (${rentModeText.toLowerCase()}) for ${dateStr}.\n${window.location.href}`
     )}`;
-
-    const viewer = getStoredUser();
-    const token = localStorage.getItem("token");
 
     // 1. Create official Booking record in backend with secure dispatch token
     try {
@@ -163,7 +190,7 @@ const VehicleDetail = () => {
           startDate,
           endDate,
           customerName: viewer?.name || "Customer",
-          customerPhone: viewer?.phone || "Via WhatsApp",
+          customerPhone: phoneToUse,
           rentMode: vehicle?.rentMode || "self-drive",
           clientBaseUrl: window.location.origin,
         },
@@ -1055,6 +1082,17 @@ const VehicleDetail = () => {
           .detail-map-wrapper { height: 220px; }
         }
       `}</style>
+      {/* Progressive Booking Auth & Phone Modal */}
+      <BookingAuthModal
+        isOpen={authModalOpen}
+        initialMode={authModalMode}
+        vehicle={vehicle}
+        dateStr={startDate && endDate ? `${startDate.toLocaleDateString("en-GB")} to ${endDate.toLocaleDateString("en-GB")}` : ""}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={(updatedUser) => {
+          executeBooking(updatedUser?.phone);
+        }}
+      />
     </div>
   );
 };
