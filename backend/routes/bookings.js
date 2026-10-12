@@ -610,4 +610,105 @@ router.get("/admin/all", auth, async (req, res) => {
   }
 });
 
+
+// @route   GET /api/bookings/host
+// @desc    Host fetches incoming booking inquiries for their vehicles in Host Dashboard
+router.get("/host", auth, async (req, res) => {
+  try {
+    const hostCompany = await Company.findOne({ user: req.user.id }).select("_id");
+    
+    // Find all vehicles owned by this host or host's company
+    const vehicleQuery = {
+      $or: [{ owner: req.user.id }],
+    };
+    if (hostCompany) {
+      vehicleQuery.$or.push({ company: hostCompany._id });
+    }
+    const hostVehicles = await Vehicle.find(vehicleQuery).select("_id");
+    const vehicleIds = hostVehicles.map((v) => v._id);
+
+    const bookingQuery = {
+      $or: [
+        { host: req.user.id },
+        ...(hostCompany ? [{ company: hostCompany._id }] : []),
+        ...(vehicleIds.length > 0 ? [{ vehicle: { $in: vehicleIds } }, { assignedVehicle: { $in: vehicleIds } }] : []),
+      ],
+    };
+
+    const bookings = await Booking.find(bookingQuery)
+      .populate("vehicle", "brand model year vehicleType pricePerDay images location rentMode minRentalDays owner")
+      .populate("assignedVehicle", "brand model year vehicleType pricePerDay images location rentMode minRentalDays owner")
+      .populate("customer", "name phone email")
+      .sort({ createdAt: -1 });
+
+    res.json(bookings);
+  } catch (err) {
+    console.error("Error fetching host bookings:", err);
+    res.status(500).json({ msg: "Server error fetching incoming booking inquiries" });
+  }
+});
+
+// @route   PATCH /api/bookings/:id/host-response
+// @desc    Host one-tap response to booking inquiry ("available" or "unavailable")
+router.patch("/:id/host-response", auth, async (req, res) => {
+  try {
+    if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Invalid booking ID" });
+
+    const { response, note } = req.body;
+    if (!["available", "unavailable"].includes(response)) {
+      return res.status(400).json({ msg: "Response must be 'available' or 'unavailable'" });
+    }
+
+    const booking = await Booking.findById(req.params.id)
+      .populate("vehicle")
+      .populate("assignedVehicle");
+
+    if (!booking) return res.status(404).json({ msg: "Booking record not found" });
+
+    // Authorization check
+    const hostCompany = await Company.findOne({ user: req.user.id }).select("_id");
+    const isDirectHost = booking.host && booking.host.toString() === req.user.id;
+    const isCompanyMatch = hostCompany && booking.company && booking.company.toString() === hostCompany._id.toString();
+    const isVehicleOwner = booking.vehicle && booking.vehicle.owner && booking.vehicle.owner.toString() === req.user.id;
+    const isAdmin = req.user.role === "admin";
+
+    if (!isDirectHost && !isCompanyMatch && !isVehicleOwner && !isAdmin) {
+      return res.status(403).json({ msg: "Not authorized to respond to this booking request" });
+    }
+
+    booking.hostAvailabilityStatus = response;
+    booking.hostContacted = true;
+    booking.hostContactedAt = new Date();
+
+    const noteText = response === "available"
+      ? (note ? `Host confirmed car available: ${note}` : "Host confirmed vehicle is available")
+      : (note ? `Host marked car busy / unavailable: ${note}` : "Host marked vehicle as busy / unavailable");
+
+    booking.statusHistory.push({
+      status: booking.status,
+      changedAt: new Date(),
+      changedBy: "Host",
+      note: noteText,
+    });
+
+    // If host marks busy and booking is still in initial pending state, trigger alternative search workflow
+    if (response === "unavailable" && booking.status === "pending") {
+      booking.status = "finding_alternative";
+    }
+
+    await booking.save();
+
+    const populated = await Booking.findById(booking._id)
+      .populate("vehicle", "brand model year vehicleType pricePerDay images location rentMode minRentalDays owner")
+      .populate("assignedVehicle", "brand model year vehicleType pricePerDay images location rentMode minRentalDays owner")
+      .populate("customer", "name phone email");
+
+    res.json(populated);
+  } catch (err) {
+    console.error("Error saving host response:", err);
+    res.status(500).json({ msg: "Server error saving your response" });
+  }
+});
+
 module.exports = router;
+

@@ -75,13 +75,13 @@ router.get("/stats", auth, async (req, res) => {
     const activeRentals = rentals.filter((r) => r.status === "active").length;
     const completedRentals = rentals.filter((r) => r.status === "completed").length;
     const totalRevenue = rentals
-      .filter((r) => r.status !== "cancelled")
+      .filter((r) => r.status !== "cancelled" && !r.isBlocked)
       .reduce((sum, r) => sum + (Number(r.totalAmount) || 0), 0);
     const activeRevenue = rentals
-      .filter((r) => r.status === "active")
+      .filter((r) => r.status === "active" && !r.isBlocked)
       .reduce((sum, r) => sum + (Number(r.totalAmount) || 0), 0);
     const completedRevenue = rentals
-      .filter((r) => r.status === "completed")
+      .filter((r) => r.status === "completed" && !r.isBlocked)
       .reduce((sum, r) => sum + (Number(r.totalAmount) || 0), 0);
 
     res.json({
@@ -114,6 +114,9 @@ router.post("/", auth, async (req, res) => {
       dailyRate,
       extraKmCharge,
       notes,
+      isBlocked,
+      blockReason,
+      rentalType,
     } = req.body;
 
     // Validate only essential fields — dates and rate
@@ -148,11 +151,12 @@ router.post("/", auth, async (req, res) => {
     }
     const diffMs = returnD - pickup;
     const totalDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-    const rate = Number(dailyRate) || vehicle.pricePerDay || 0;
-    if (!(rate > 0)) {
+    const isBlockingMode = Boolean(isBlocked || rentalType === "maintenance" || rentalType === "personal" || rentalType === "other");
+    const rate = isBlockingMode ? (Number(dailyRate) || 0) : (Number(dailyRate) || vehicle.pricePerDay || 0);
+    if (!isBlockingMode && !(rate > 0)) {
       return res.status(400).json({ msg: "Please enter a valid daily rate." });
     }
-    const totalAmount = totalDays * rate + (Number(extraKmCharge) || 0);
+    const totalAmount = isBlockingMode ? 0 : (totalDays * rate + (Number(extraKmCharge) || 0));
 
     // Find company if exists
     let companyId = null;
@@ -167,7 +171,7 @@ router.post("/", auth, async (req, res) => {
       vehicle: vehicleId,
       company: companyId,
       owner: req.user.id,
-      customerName: customerName || "",
+      customerName: isBlockingMode ? (customerName || (blockReason ? `Blocked: ${blockReason}` : "Maintenance / Servicing")) : (customerName || ""),
       customerPhone: customerPhone || "",
       customerEmail: customerEmail || "",
       customerNIC: customerNIC || "",
@@ -176,9 +180,12 @@ router.post("/", auth, async (req, res) => {
       dailyRate: rate,
       totalDays,
       totalAmount,
-      extraKmCharge: Number(extraKmCharge) || 0,
-      notes: notes || "",
+      extraKmCharge: isBlockingMode ? 0 : (Number(extraKmCharge) || 0),
+      notes: notes || (isBlockingMode ? (blockReason || "Dates blocked by host") : ""),
       status: "active",
+      isBlocked: isBlockingMode,
+      blockReason: blockReason || (isBlockingMode ? "Maintenance" : ""),
+      rentalType: rentalType || (isBlockingMode ? "maintenance" : "rental"),
     });
 
     const rental = await newRental.save();

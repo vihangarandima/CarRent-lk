@@ -32,6 +32,15 @@ const RentalSchema = new mongoose.Schema({
   totalAmount: { type: Number, required: true },
   extraKmCharge: { type: Number, default: 0 },
 
+  // Blocked / Maintenance mode (when host blacks out dates for personal use or servicing)
+  isBlocked: { type: Boolean, default: false },
+  blockReason: { type: String, default: "" },
+  rentalType: {
+    type: String,
+    enum: ["rental", "maintenance", "personal", "other"],
+    default: "rental",
+  },
+
   // Status: active = currently rented, completed = returned, cancelled
   status: {
     type: String,

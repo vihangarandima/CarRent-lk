@@ -56,6 +56,15 @@ import {
 } from "recharts";
 import { formatLKR } from "../data/mock";
 
+// Normalise phone number to WhatsApp international format
+const toWhatsAppNumber = (phone) => {
+  const digits = String(phone || "").replace(/[^0-9]/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("0")) return "94" + digits.slice(1);
+  if (digits.length === 9) return "94" + digits;
+  return digits;
+};
+
 const navItems = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Fleet", icon: CarFront },
@@ -178,6 +187,7 @@ export default function CompanyDashboard() {
         setBids(bidsRes.data || []);
         setRentals(rentalsRes.data || []);
         setRentalStats(rentalStatsRes.data || null);
+        setHostBookings(hostBookingsRes.data || []);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
         toast.error(err.response?.data?.msg || "Could not load your dashboard. Please refresh the page.");
@@ -1038,101 +1048,330 @@ export default function CompanyDashboard() {
               </section>
             )}
 
-            {/* ── BOOKINGS / RENTALS TAB ── */}
+            {/* ── BOOKINGS & AVAILABILITY TAB ── */}
             {activeTab === "Bookings" && (
               <section className="cd-card" style={{ marginTop: 24 }}>
-                <div className="cd-card-head">
+                <div className="cd-card-head" style={{ flexWrap: "wrap", gap: 12 }}>
                   <div>
-                    <h2 className="cd-card-title">Rental Records</h2>
-                    <p className="cd-card-desc">{rentals.length} total rental records · {activeRentalsCount} currently active</p>
+                    <h2 className="cd-card-title">Bookings & Availability</h2>
+                    <p className="cd-card-desc">
+                      {hostBookings.length} incoming inquiries ({pendingBookingsCount} awaiting confirmation) · {rentals.length} active & past records
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="cd-btn-secondary"
+                      onClick={handleOpenQuickBlockModal}
+                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", padding: "7px 13px", borderRadius: 8 }}
+                      title="Black out dates for personal use or vehicle servicing"
+                    >
+                      <Wrench size={14} /> Block Dates / Maintenance
+                    </button>
+                    <button
+                      type="button"
+                      className="cd-btn-primary"
+                      onClick={handleOpenQuickRentalModal}
+                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", padding: "7px 13px", borderRadius: 8 }}
+                    >
+                      <Plus size={14} /> Record Rental
+                    </button>
                   </div>
                 </div>
-                <div className="cd-card-body" style={{ padding: 0 }}>
-                  {rentals.length === 0 ? (
-                    <div className="cd-empty-state">
-                      <KeyRound size={24} style={{ color: "#f97316" }} />
-                      <h3>No rentals yet</h3>
-                      <p>When you mark a vehicle as rented, it will appear here.</p>
-                    </div>
-                  ) : (
-                    <div className="cd-table-wrap">
-                      <table className="cd-table">
-                        <thead>
-                          <tr>
-                            <th>Vehicle</th>
-                            <th>Customer</th>
-                            <th>Period</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th style={{ textAlign: "right" }}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rentals.map((r) => {
-                            const veh = r.vehicle;
-                            const statusColors = { active: "#ef4444", completed: "#10b981", cancelled: "#94a3b8" };
-                            const statusLabels = { active: "Rented", completed: "Returned", cancelled: "Cancelled" };
-                            return (
-                              <tr key={r._id}>
-                                <td>
-                                  <div className="cd-cell-vehicle">
-                                    <div>
-                                      <span className="cd-vehicle-name">{veh?.brand || "—"} {veh?.model || ""}</span>
-                                      <span className="cd-vehicle-year">{veh?.year || ""}</span>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td>
-                                  <div>
-                                    <span style={{ fontWeight: 600, display: "block", color: "#09090b" }}>{r.customerName}</span>
-                                    <span style={{ fontSize: "0.75rem", color: "#71717a" }}>{r.customerPhone || r.customerNIC || ""}</span>
-                                  </div>
-                                </td>
-                                <td className="cd-cell-muted">
-                                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                    <span style={{ fontSize: "0.78rem" }}>{new Date(r.pickupDate).toLocaleDateString()}</span>
-                                    <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>→ {new Date(r.returnDate).toLocaleDateString()}</span>
-                                    <span style={{ fontSize: "0.7rem", color: "#64748b" }}>{r.totalDays} day{r.totalDays > 1 ? "s" : ""}</span>
-                                  </div>
-                                </td>
-                                <td className="cd-cell-price">{formatLKR(r.totalAmount)}</td>
-                                <td>
-                                  <span className="cd-rental-status-badge" style={{ background: `${statusColors[r.status]}15`, color: statusColors[r.status] }}>
-                                    {statusLabels[r.status] || r.status}
-                                  </span>
-                                </td>
-                                <td>
-                                  <div className="cd-cell-actions">
-                                    {r.status === "active" && (
-                                      <>
-                                        <button
-                                          type="button"
-                                          className="cd-action-icon-btn cd-view-btn"
-                                          onClick={() => handleCompleteRental(r._id)}
-                                          title="Mark as Returned"
-                                        >
-                                          <CheckCircle size={14} />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          className="cd-action-icon-btn cd-delete-btn"
-                                          onClick={() => handleCancelRental(r._id)}
-                                          title="Cancel Rental"
-                                        >
-                                          <X size={14} />
-                                        </button>
-                                      </>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+
+                {/* Sub-Tabs: Incoming Inquiries vs Active Rentals */}
+                <div className="cd-bookings-subnav">
+                  <button
+                    type="button"
+                    className={`cd-bookings-subtab ${bookingsSubTab === "incoming" ? "active" : ""}`}
+                    onClick={() => setBookingsSubTab("incoming")}
+                  >
+                    <span>Incoming Inquiries</span>
+                    <span className="cd-subtab-badge-pill">{hostBookings.length}</span>
+                    {pendingBookingsCount > 0 && (
+                      <span className="cd-subtab-alert-pill">
+                        {pendingBookingsCount} new
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={`cd-bookings-subtab ${bookingsSubTab === "records" ? "active" : ""}`}
+                    onClick={() => setBookingsSubTab("records")}
+                  >
+                    <span>Rental Records & Blocked Dates</span>
+                    <span className="cd-subtab-badge-pill">{rentals.length}</span>
+                  </button>
                 </div>
+
+                {/* SUB-VIEW 1: INCOMING BOOKING INQUIRIES */}
+                {bookingsSubTab === "incoming" && (
+                  <div className="cd-card-body" style={{ padding: "16px 20px 24px" }}>
+                    {hostBookings.length === 0 ? (
+                      <div className="cd-empty-state">
+                        <CalendarCheck size={28} style={{ color: "#f97316" }} />
+                        <h3>No incoming inquiries yet</h3>
+                        <p>When customers reserve one of your vehicles on Yamu, booking inquiries will appear here instantly for you to confirm availability with single tap.</p>
+                      </div>
+                    ) : (
+                      <div className="cd-inquiry-cards-list">
+                        {hostBookings.map((b) => {
+                          const veh = b.vehicle || b.assignedVehicle;
+                          const isPending = b.hostAvailabilityStatus === "pending_check" || !b.hostAvailabilityStatus;
+                          const isAvailable = b.hostAvailabilityStatus === "available";
+                          const isBusy = b.hostAvailabilityStatus === "unavailable";
+                          const isResponding = respondingBookingId === b._id;
+
+                          return (
+                            <div key={b._id} className={`cd-inquiry-card ${isPending ? "is-pending" : ""}`}>
+                              <div className="cd-inquiry-top">
+                                <div className="cd-inquiry-ref-box">
+                                  <span className="cd-inquiry-ref">{b.bookingNumber || "BK-REQUEST"}</span>
+                                  <span className="cd-inquiry-time">
+                                    {new Date(b.createdAt).toLocaleDateString()} · {new Date(b.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <div className="cd-inquiry-badges">
+                                  {isPending && (
+                                    <span className="cd-pill-pending-check">
+                                      ⏳ Needs Availability Check
+                                    </span>
+                                  )}
+                                  {isAvailable && (
+                                    <span className="cd-pill-available">
+                                      ✓ Confirmed Available
+                                    </span>
+                                  )}
+                                  {isBusy && (
+                                    <span className="cd-pill-busy">
+                                      ✕ Car Busy / Unavailable
+                                    </span>
+                                  )}
+                                  {b.status === "confirmed" && (
+                                    <span className="cd-pill-confirmed">
+                                      🎉 Booking Confirmed
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="cd-inquiry-grid">
+                                {/* Vehicle info */}
+                                <div className="cd-inquiry-veh">
+                                  <img
+                                    src={formatVehicleImageUrl(veh?.images?.[0])}
+                                    alt={veh?.brand}
+                                    className="cd-inquiry-veh-thumb"
+                                    onError={handleImageError}
+                                  />
+                                  <div className="cd-inquiry-veh-details">
+                                    <h4>{veh?.brand || "Vehicle"} {veh?.model || ""} ({veh?.year || ""})</h4>
+                                    <p><MapPin size={12} /> {veh?.location || "Sri Lanka"}</p>
+                                    <span className="cd-inquiry-tag">{b.rentMode === "with-driver" ? "With Driver" : "Self-Drive"}</span>
+                                  </div>
+                                </div>
+
+                                {/* Dates */}
+                                <div className="cd-inquiry-col">
+                                  <span className="cd-inquiry-col-label">Requested Period</span>
+                                  <div className="cd-inquiry-dates-display">
+                                    <strong>{new Date(b.startDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</strong>
+                                    <span className="cd-inquiry-arrow">→</span>
+                                    <strong>{new Date(b.endDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</strong>
+                                  </div>
+                                  <span className="cd-inquiry-days-tag">{b.totalDays} Day{b.totalDays > 1 ? "s" : ""}</span>
+                                </div>
+
+                                {/* Total Price / Payout */}
+                                <div className="cd-inquiry-col">
+                                  <span className="cd-inquiry-col-label">Trip Total</span>
+                                  <div className="cd-inquiry-amount">{formatLKR(b.totalPrice)}</div>
+                                  <span className="cd-inquiry-rate-hint">{formatLKR(b.dailyRate)} / day</span>
+                                </div>
+
+                                {/* Customer Info */}
+                                <div className="cd-inquiry-col">
+                                  <span className="cd-inquiry-col-label">Customer</span>
+                                  <div className="cd-inquiry-cust-name">{b.customerName || "Customer"}</div>
+                                  {b.customerPhone ? (
+                                    <a
+                                      href={`https://wa.me/${toWhatsAppNumber(b.customerPhone)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="cd-inquiry-wa-link"
+                                    >
+                                      <Phone size={12} /> {b.customerPhone}
+                                    </a>
+                                  ) : (
+                                    <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>Via Yamu Concierge</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Single-tap Response Buttons */}
+                              <div className="cd-inquiry-actions-bar">
+                                <div className="cd-inquiry-action-prompt">
+                                  {isPending ? (
+                                    <span>⚡ <strong>Action Needed:</strong> Is your car available for these dates?</span>
+                                  ) : isAvailable ? (
+                                    <span style={{ color: "#16a34a" }}>✓ You confirmed availability. Yamu concierge was notified.</span>
+                                  ) : (
+                                    <span style={{ color: "#64748b" }}>✕ You marked this car busy. Yamu dispatch will offer an alternative.</span>
+                                  )}
+                                </div>
+
+                                <div className="cd-inquiry-btns">
+                                  <button
+                                    type="button"
+                                    className={`cd-btn-resp cd-btn-avail ${isAvailable ? "active-selected" : ""}`}
+                                    onClick={() => handleHostResponse(b._id, "available")}
+                                    disabled={isResponding}
+                                    title="Confirm your car is ready for this booking"
+                                  >
+                                    <CheckCircle size={15} />
+                                    <span>{isResponding ? "Saving..." : isAvailable ? "Available ✓" : "Confirm Available"}</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className={`cd-btn-resp cd-btn-busy ${isBusy ? "active-selected" : ""}`}
+                                    onClick={() => handleHostResponse(b._id, "unavailable")}
+                                    disabled={isResponding}
+                                    title="Mark car as busy / unavailable for this inquiry"
+                                  >
+                                    <X size={15} />
+                                    <span>{isResponding ? "Saving..." : isBusy ? "Car Busy ✕" : "Car Busy"}</span>
+                                  </button>
+
+                                  {b.customerPhone && (
+                                    <a
+                                      href={`https://wa.me/${toWhatsAppNumber(b.customerPhone)}?text=${encodeURIComponent(`Hello ${b.customerName || ""}, regarding your Yamu rental inquiry for ${veh?.brand || "vehicle"} ${veh?.model || ""} (${b.bookingNumber || ""}):`)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="cd-btn-wa-direct"
+                                      title="Open direct WhatsApp chat with customer"
+                                    >
+                                      <MessageSquare size={14} />
+                                      <span>WhatsApp</span>
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* SUB-VIEW 2: RENTAL RECORDS & BLOCKED DATES */}
+                {bookingsSubTab === "records" && (
+                  <div className="cd-card-body" style={{ padding: 0 }}>
+                    {rentals.length === 0 ? (
+                      <div className="cd-empty-state">
+                        <KeyRound size={24} style={{ color: "#f97316" }} />
+                        <h3>No rentals or blocked dates yet</h3>
+                        <p>When you record a rental or block dates for maintenance, it will appear here.</p>
+                      </div>
+                    ) : (
+                      <div className="cd-table-wrap">
+                        <table className="cd-table">
+                          <thead>
+                            <tr>
+                              <th>Vehicle</th>
+                              <th>Customer / Reason</th>
+                              <th>Period</th>
+                              <th>Amount</th>
+                              <th>Status</th>
+                              <th style={{ textAlign: "right" }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rentals.map((r) => {
+                              const veh = r.vehicle;
+                              const isBlocked = r.isBlocked || r.rentalType === "maintenance" || r.rentalType === "personal";
+                              const statusColors = { active: "#ef4444", completed: "#10b981", cancelled: "#94a3b8" };
+                              const statusLabels = { active: "Rented", completed: "Returned", cancelled: "Cancelled" };
+                              return (
+                                <tr key={r._id}>
+                                  <td>
+                                    <div className="cd-cell-vehicle">
+                                      <div>
+                                        <span className="cd-vehicle-name">{veh?.brand || "—"} {veh?.model || ""}</span>
+                                        <span className="cd-vehicle-year">{veh?.year || ""}</span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td>
+                                    {isBlocked ? (
+                                      <div>
+                                        <span style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 5, color: "#d97706" }}>
+                                          <Wrench size={13} /> {r.blockReason || "Maintenance / Servicing"}
+                                        </span>
+                                        <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>Host Blocked Dates</span>
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <span style={{ fontWeight: 600, display: "block", color: "#09090b" }}>{r.customerName || "Customer Rental"}</span>
+                                        <span style={{ fontSize: "0.75rem", color: "#71717a" }}>{r.customerPhone || r.customerNIC || ""}</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="cd-cell-muted">
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                      <span style={{ fontSize: "0.78rem" }}>{new Date(r.pickupDate).toLocaleDateString()}</span>
+                                      <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>→ {new Date(r.returnDate).toLocaleDateString()}</span>
+                                      <span style={{ fontSize: "0.7rem", color: "#64748b" }}>{r.totalDays} day{r.totalDays > 1 ? "s" : ""}</span>
+                                    </div>
+                                  </td>
+                                  <td className="cd-cell-price">
+                                    {isBlocked ? <span style={{ color: "#94a3b8", fontSize: "0.85rem" }}>— (Blocked)</span> : formatLKR(r.totalAmount)}
+                                  </td>
+                                  <td>
+                                    {isBlocked ? (
+                                      <span className="cd-rental-status-badge" style={{ background: "rgba(245, 158, 11, 0.15)", color: "#d97706" }}>
+                                        🔧 Maintenance
+                                      </span>
+                                    ) : (
+                                      <span className="cd-rental-status-badge" style={{ background: `${statusColors[r.status]}15`, color: statusColors[r.status] }}>
+                                        {statusLabels[r.status] || r.status}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td>
+                                    <div className="cd-cell-actions">
+                                      {r.status === "active" && (
+                                        <>
+                                          <button
+                                            type="button"
+                                            className="cd-action-icon-btn cd-view-btn"
+                                            onClick={() => handleCompleteRental(r._id)}
+                                            title={isBlocked ? "Unblock & Return to Listings" : "Mark as Returned"}
+                                          >
+                                            <CheckCircle size={14} />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="cd-action-icon-btn cd-delete-btn"
+                                            onClick={() => handleCancelRental(r._id)}
+                                            title={isBlocked ? "Remove Block" : "Cancel Rental"}
+                                          >
+                                            <X size={14} />
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
             )}
 
@@ -1580,7 +1819,7 @@ export default function CompanyDashboard() {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "#0f172a" }}>
-                    Mark as Rented
+                    {rentalModalMode === "blocked" ? "Block Dates / Maintenance" : "Record a Rental"}
                   </h3>
                   <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#64748b" }}>
                     {rentalModal.brand} {rentalModal.model} ({rentalModal.year}) · Vehicle will be hidden from listings
@@ -1597,11 +1836,81 @@ export default function CompanyDashboard() {
             </div>
 
             <form onSubmit={handleSubmitRental} className="cd-vehicle-modal-body">
+              {/* Mode Switcher Tabs */}
+              <div className="cd-modal-mode-tabs">
+                <button
+                  type="button"
+                  className={`cd-modal-mode-tab ${rentalModalMode === "rental" ? "active" : ""}`}
+                  onClick={() => {
+                    setRentalModalMode("rental");
+                    setRentalForm((prev) => ({
+                      ...prev,
+                      isBlocked: false,
+                      rentalType: "rental",
+                      dailyRate: rentalModal.pricePerDay || "",
+                      customerName: "",
+                    }));
+                  }}
+                >
+                  <KeyRound size={14} /> Customer Rental
+                </button>
+                <button
+                  type="button"
+                  className={`cd-modal-mode-tab ${rentalModalMode === "blocked" ? "active" : ""}`}
+                  onClick={() => {
+                    setRentalModalMode("blocked");
+                    setRentalForm((prev) => ({
+                      ...prev,
+                      isBlocked: true,
+                      rentalType: "maintenance",
+                      blockReason: prev.blockReason || "Routine Servicing / Maintenance",
+                      customerName: prev.blockReason || "Maintenance / Servicing",
+                      dailyRate: "0",
+                    }));
+                  }}
+                >
+                  <Wrench size={14} /> Block Dates / Maintenance
+                </button>
+              </div>
+
+              {rentalModalMode === "blocked" && (
+                <div className="cd-block-helper-banner">
+                  <Wrench size={16} className="flex-shrink-0" style={{ color: "#d97706" }} />
+                  <div>
+                    <strong>Black Out Calendar Dates</strong>
+                    <p>These dates will be marked unavailable on Yamu. Renters will not be able to book this car. No revenue or customer info recorded.</p>
+                  </div>
+                </div>
+              )}
               {/* Quick Rental Period — the only required section */}
               <div className="cd-modal-section">
                 <div className="cd-section-badge-title">
-                  <Clock size={14} /> Rental Period
+                  <Clock size={14} /> {rentalModalMode === "blocked" ? "Block Period" : "Rental Period"}
                 </div>
+                {rentalModalMode === "blocked" && (
+                <div className="cd-form-group" style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Reason for Blocking</label>
+                  <select
+                    value={rentalForm.blockReason || "Routine Servicing / Maintenance"}
+                    onChange={(e) =>
+                      setRentalForm({
+                        ...rentalForm,
+                        blockReason: e.target.value,
+                        customerName: e.target.value,
+                        rentalType: e.target.value.toLowerCase().includes("personal") ? "personal" : "maintenance",
+                      })
+                    }
+                    style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
+                  >
+                    <option value="Routine Servicing / Maintenance">Routine Servicing / Maintenance</option>
+                    <option value="Personal / Family Use">Personal / Family Use</option>
+                    <option value="Bodywork & Repairs">Bodywork & Repairs</option>
+                    <option value="Annual Inspection / License Renewal">Annual Inspection / License Renewal</option>
+                    <option value="Private Booking Outside Yamu">Private Booking Outside Yamu</option>
+                    <option value="Other Unavailable Period">Other Unavailable Period</option>
+                  </select>
+                </div>
+              )}
                 <div className="cd-form-row">
                   <div className="cd-form-group">
                     <label>Pickup Date</label>
@@ -1638,75 +1947,90 @@ export default function CompanyDashboard() {
                 </p>
               </div>
 
-              {/* Rate — pre-filled from vehicle */}
-              <div className="cd-form-row">
-                <div className="cd-form-group">
-                  <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Daily Rate (LKR)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Auto-filled from vehicle"
-                    value={rentalForm.dailyRate}
-                    onChange={(e) => setRentalForm({ ...rentalForm, dailyRate: e.target.value })}
-                    style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
-                  />
-                </div>
-                <div className="cd-form-group">
-                  <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Customer Name</label>
-                  <input
-                    type="text"
-                    placeholder="Optional"
-                    value={rentalForm.customerName}
-                    onChange={(e) => setRentalForm({ ...rentalForm, customerName: e.target.value })}
-                    style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
-                  />
-                </div>
-              </div>
-
-              {/* Collapsible extra details */}
-              <button
-                type="button"
-                onClick={() => setShowRentalDetails(!showRentalDetails)}
-                style={{ background: "none", border: "none", color: "#64748b", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}
-              >
-                <ChevronRight size={14} style={{ transform: showRentalDetails ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
-                {showRentalDetails ? "Hide" : "More"} details (optional)
-              </button>
-
-              {showRentalDetails && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, animation: "cd-fadeIn 0.2s" }}>
+{rentalModalMode !== "blocked" ? (
+                <>
+                  {/* Rate — pre-filled from vehicle */}
                   <div className="cd-form-row">
                     <div className="cd-form-group">
-                      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Phone</label>
+                      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Daily Rate (LKR)</label>
                       <input
-                        type="text"
-                        placeholder="Customer phone"
-                        value={rentalForm.customerPhone}
-                        onChange={(e) => setRentalForm({ ...rentalForm, customerPhone: e.target.value })}
+                        type="number"
+                        min="0"
+                        placeholder="Auto-filled from vehicle"
+                        value={rentalForm.dailyRate}
+                        onChange={(e) => setRentalForm({ ...rentalForm, dailyRate: e.target.value })}
                         style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
                       />
                     </div>
                     <div className="cd-form-group">
-                      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>NIC / Passport</label>
+                      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Customer Name</label>
                       <input
                         type="text"
-                        placeholder="ID number"
-                        value={rentalForm.customerNIC}
-                        onChange={(e) => setRentalForm({ ...rentalForm, customerNIC: e.target.value })}
+                        placeholder="Optional"
+                        value={rentalForm.customerName}
+                        onChange={(e) => setRentalForm({ ...rentalForm, customerName: e.target.value })}
                         style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
                       />
                     </div>
                   </div>
-                  <div className="cd-form-group">
-                    <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Notes</label>
-                    <textarea
-                      rows={2}
-                      placeholder="Any special notes..."
-                      value={rentalForm.notes}
-                      style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
-                      onChange={(e) => setRentalForm({ ...rentalForm, notes: e.target.value })}
-                    />
-                  </div>
+
+                  {/* Collapsible extra details */}
+                  <button
+                    type="button"
+                    onClick={() => setShowRentalDetails(!showRentalDetails)}
+                    style={{ background: "none", border: "none", color: "#64748b", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}
+                  >
+                    <ChevronRight size={14} style={{ transform: showRentalDetails ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+                    {showRentalDetails ? "Hide" : "More"} details (optional)
+                  </button>
+
+                  {showRentalDetails && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, animation: "cd-fadeIn 0.2s" }}>
+                      <div className="cd-form-row">
+                        <div className="cd-form-group">
+                          <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Phone</label>
+                          <input
+                            type="text"
+                            placeholder="Customer phone"
+                            value={rentalForm.customerPhone}
+                            onChange={(e) => setRentalForm({ ...rentalForm, customerPhone: e.target.value })}
+                            style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
+                          />
+                        </div>
+                        <div className="cd-form-group">
+                          <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>NIC / Passport</label>
+                          <input
+                            type="text"
+                            placeholder="ID number"
+                            value={rentalForm.customerNIC}
+                            onChange={(e) => setRentalForm({ ...rentalForm, customerNIC: e.target.value })}
+                            style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
+                          />
+                        </div>
+                      </div>
+                      <div className="cd-form-group">
+                        <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Notes</label>
+                        <textarea
+                          rows={2}
+                          placeholder="Any special notes..."
+                          value={rentalForm.notes}
+                          style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
+                          onChange={(e) => setRentalForm({ ...rentalForm, notes: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="cd-form-group" style={{ marginTop: 10 }}>
+                  <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Maintenance / Blocking Notes</label>
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. Scheduled full engine service & brake pads replacement at garage..."
+                    value={rentalForm.notes}
+                    style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: "0.88rem", color: "#0f172a", background: "#fff", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
+                    onChange={(e) => setRentalForm({ ...rentalForm, notes: e.target.value })}
+                  />
                 </div>
               )}
 
@@ -1726,7 +2050,7 @@ export default function CompanyDashboard() {
                     disabled={savingRental}
                     style={{ padding: "8px 20px" }}
                   >
-                    {savingRental ? "Recording..." : "🔑 Confirm Rental"}
+                    {savingRental ? (rentalModalMode === "blocked" ? "Blocking Dates..." : "Recording...") : (rentalModalMode === "blocked" ? "🔧 Block Selected Dates" : "🔑 Confirm Rental")}
                   </button>
                 </div>
               </div>
