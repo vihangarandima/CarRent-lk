@@ -883,6 +883,9 @@ const AdminDashboard = () => {
   }, [rentalsList, rentalStatusFilter]);
 
   const pendingCount = stats?.pendingApprovals?.vehicles ?? vehiclesList.filter((v) => v.status === "pending").length;
+  const pendingBookingsCount = (bookingsList || []).filter(
+    (b) => b.status === "pending" || b.status === "reviewing"
+  ).length;
 
   return (
     <div className="admin-portal">
