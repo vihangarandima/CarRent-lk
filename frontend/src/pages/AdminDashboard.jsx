@@ -3,6 +3,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
+  CalendarCheck,
   Palette,
   Car,
   Building2,
@@ -128,6 +129,9 @@ const AdminDashboard = () => {
   const [companyVerifyFilter, setCompanyVerifyFilter] = useState("all");
   const [approvalFilter, setApprovalFilter] = useState("pending"); // pending | rejected | all
   const [rentalStatusFilter, setRentalStatusFilter] = useState("all");
+  const [bookingsList, setBookingsList] = useState([]);
+  const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
+  const [bookingSearch, setBookingSearch] = useState("");
 
   // Company Vehicles Inspection Modal State
   const [viewingCompany, setViewingCompany] = useState(null);
@@ -179,6 +183,12 @@ const AdminDashboard = () => {
         headers: { "x-auth-token": token },
       });
       setStats(res.data);
+      try {
+        const bRes = await axios.get(`${API_URL}/api/bookings/admin/all`, {
+          headers: { "x-auth-token": token },
+        });
+        setBookingsList(bRes.data || []);
+      } catch (_) {}
     } catch (err) {
       console.warn("Could not fetch admin stats (demo mode or offline):", err);
     } finally {
@@ -191,7 +201,12 @@ const AdminDashboard = () => {
     if (!token) return;
     try {
       setLoadingData(true);
-      if (tab === "users") {
+      if (tab === "bookings") {
+        const res = await axios.get(`${API_URL}/api/bookings/admin/all`, {
+          headers: { "x-auth-token": token },
+        });
+        setBookingsList(res.data || []);
+      } else if (tab === "users") {
         const res = await axios.get(`${API_URL}/api/admin/users`, {
           headers: { "x-auth-token": token },
         });
@@ -986,6 +1001,23 @@ const AdminDashboard = () => {
               <span>Listing Approvals</span>
               {pendingCount > 0 && (
                 <span className="approval-badge-count">{pendingCount}</span>
+              )}
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`admin-nav-item ${activeTab === "bookings" ? "active" : ""}`}
+            onClick={() => {
+              setActiveTab("bookings");
+              fetchTabData("bookings");
+            }}
+          >
+            <CalendarCheck size={18} />
+            <div className="nav-item-content">
+              <span>Bookings CRM</span>
+              {pendingBookingsCount > 0 && (
+                <span className="approval-badge-count">{pendingBookingsCount}</span>
               )}
             </div>
           </button>
@@ -3700,6 +3732,350 @@ const AdminDashboard = () => {
                     </tbody>
                   </table>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* ── BOOKINGS & DISPATCH CRM TAB ── */}
+          {activeTab === "bookings" && (
+            <div className="tab-pane">
+              <div className="pane-header">
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <h2>Central Bookings & Dispatch CRM</h2>
+                    <span style={{ background: "#ffedd5", color: "#c2410c", padding: "3px 9px", borderRadius: 999, fontSize: "0.74rem", fontWeight: 750 }}>
+                      Live Operations
+                    </span>
+                  </div>
+                  <p>
+                    Real-time supervision of all platform reservations, host availability verifications, and concierge dispatches.
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <button type="button" onClick={() => fetchTabData("bookings")} className="btn-secondary-sm">
+                    <RefreshCw size={14} /> Refresh Bookings
+                  </button>
+                </div>
+              </div>
+
+              {/* CRM Metric Badges Bar */}
+              {(() => {
+                const totalInquiries = bookingsList.length;
+                const pendingCnt = bookingsList.filter((b) => b.status === "pending" || b.status === "reviewing").length;
+                const altCnt = bookingsList.filter((b) => b.status === "finding_alternative").length;
+                const confCnt = bookingsList.filter((b) => b.status === "confirmed").length;
+                const totalPipeline = bookingsList
+                  .filter((b) => b.status !== "cancelled")
+                  .reduce((sum, b) => sum + (Number(b.totalPrice) || 0), 0);
+
+                return (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
+                    <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Total Requests</span>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#0f172a", marginTop: 2 }}>{totalInquiries}</div>
+                      <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>Across platform</span>
+                    </div>
+
+                    <div style={{ background: "#fff7ed", border: "1px solid #ffedd5", borderRadius: 12, padding: "14px 16px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "#ea580c", fontWeight: 700, textTransform: "uppercase" }}>Awaiting Action</span>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#c2410c", marginTop: 2 }}>{pendingCnt}</div>
+                      <span style={{ fontSize: "0.72rem", color: "#ea580c" }}>Pending verification</span>
+                    </div>
+
+                    <div style={{ background: "#fefce8", border: "1px solid #fef08a", borderRadius: 12, padding: "14px 16px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "#a16207", fontWeight: 700, textTransform: "uppercase" }}>Alternative Needed</span>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#854d0e", marginTop: 2 }}>{altCnt}</div>
+                      <span style={{ fontSize: "0.72rem", color: "#a16207" }}>Car unavailable</span>
+                    </div>
+
+                    <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "14px 16px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "#16a34a", fontWeight: 700, textTransform: "uppercase" }}>Confirmed</span>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#15803d", marginTop: 2 }}>{confCnt}</div>
+                      <span style={{ fontSize: "0.72rem", color: "#16a34a" }}>Synced to Rentals</span>
+                    </div>
+
+                    <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Pipeline Value</span>
+                      <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
+                        LKR {totalPipeline.toLocaleString()}
+                      </div>
+                      <span style={{ fontSize: "0.72rem", color: "#16a34a" }}>Gross rental requests</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Filter & Search Bar */}
+              <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", marginBottom: 16 }}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                  {[
+                    { id: "all", label: "All Bookings" },
+                    { id: "pending", label: "Pending" },
+                    { id: "reviewing", label: "In Review" },
+                    { id: "finding_alternative", label: "Alternative Needed" },
+                    { id: "confirmed", label: "Confirmed" },
+                    { id: "cancelled", label: "Cancelled" },
+                  ].map((filter) => {
+                    const count = filter.id === "all"
+                      ? bookingsList.length
+                      : bookingsList.filter((b) => b.status === filter.id).length;
+                    return (
+                      <button
+                        key={filter.id}
+                        type="button"
+                        onClick={() => setBookingStatusFilter(filter.id)}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          fontSize: "0.8rem",
+                          fontWeight: bookingStatusFilter === filter.id ? 750 : 600,
+                          border: "1px solid",
+                          borderColor: bookingStatusFilter === filter.id ? "#f97316" : "#e2e8f0",
+                          background: bookingStatusFilter === filter.id ? "#fff7ed" : "#ffffff",
+                          color: bookingStatusFilter === filter.id ? "#ea580c" : "#475569",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <span>{filter.label}</span>
+                        <span style={{ background: bookingStatusFilter === filter.id ? "#ffedd5" : "#f1f5f9", padding: "1px 6px", borderRadius: 999, fontSize: "0.7rem" }}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ position: "relative", minWidth: 240 }}>
+                  <input
+                    type="text"
+                    placeholder="Search ref, customer, phone, car..."
+                    value={bookingSearch}
+                    onChange={(e) => setBookingSearch(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "7px 12px 7px 32px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.82rem",
+                      background: "#ffffff",
+                    }}
+                  />
+                  <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                </div>
+              </div>
+
+              {/* Live Table */}
+              {loadingData ? (
+                <div className="loading-state">Loading bookings data...</div>
+              ) : (
+                (() => {
+                  const filtered = bookingsList.filter((b) => {
+                    if (bookingStatusFilter !== "all" && b.status !== bookingStatusFilter) return false;
+                    if (bookingSearch.trim()) {
+                      const q = bookingSearch.toLowerCase();
+                      const veh = b.assignedVehicle || b.vehicle;
+                      const ref = (b.bookingNumber || "").toLowerCase();
+                      const cust = (b.customerName || "").toLowerCase();
+                      const phone = (b.customerPhone || "").toLowerCase();
+                      const car = `${veh?.brand || ""} ${veh?.model || ""}`.toLowerCase();
+                      if (!ref.includes(q) && !cust.includes(q) && !phone.includes(q) && !car.includes(q)) {
+                        return false;
+                      }
+                    }
+                    return true;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="empty-state" style={{ padding: 48, textAlign: "center" }}>
+                        <CalendarCheck size={32} style={{ color: "#f97316", margin: "0 auto 12px" }} />
+                        <h3>No booking inquiries found</h3>
+                        <p style={{ color: "#64748b", fontSize: "0.88rem" }}>
+                          {bookingSearch ? "No results match your search term." : "No bookings recorded under this status filter."}
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  const statusBadges = {
+                    pending: { label: "Pending", bg: "#fff7ed", color: "#ea580c" },
+                    reviewing: { label: "In Review", bg: "#eff6ff", color: "#2563eb" },
+                    finding_alternative: { label: "Alternative Needed", bg: "#fefce8", color: "#a16207" },
+                    confirmed: { label: "Confirmed", bg: "#f0fdf4", color: "#16a34a" },
+                    cancelled: { label: "Cancelled", bg: "#f8fafc", color: "#64748b" },
+                  };
+
+                  return (
+                    <div className="table-card">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Ref & Time</th>
+                            <th>Vehicle</th>
+                            <th>Customer</th>
+                            <th>Host / Availability</th>
+                            <th>Rental Dates</th>
+                            <th>Total Value</th>
+                            <th>Status</th>
+                            <th style={{ textAlign: "right" }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filtered.map((b) => {
+                            const veh = b.assignedVehicle || b.vehicle;
+                            const badge = statusBadges[b.status] || { label: b.status, bg: "#f1f5f9", color: "#475569" };
+                            const hostName = b.company?.companyName || b.host?.name || "Host";
+                            const hostStatus = b.hostAvailabilityStatus;
+
+                            return (
+                              <tr key={b._id}>
+                                <td>
+                                  <div>
+                                    <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: "0.85rem", color: "#0f172a" }}>
+                                      {b.bookingNumber}
+                                    </span>
+                                    <span style={{ display: "block", fontSize: "0.72rem", color: "#94a3b8" }}>
+                                      {new Date(b.createdAt).toLocaleDateString()} · {new Date(b.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                </td>
+
+                                <td>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <img
+                                      src={formatVehicleImageUrl(veh?.images?.[0])}
+                                      alt={veh?.brand}
+                                      style={{ width: 44, height: 32, objectFit: "cover", borderRadius: 6, border: "1px solid #e2e8f0" }}
+                                      onError={handleImageError}
+                                    />
+                                    <div>
+                                      <span style={{ fontWeight: 700, fontSize: "0.84rem", display: "block", color: "#0f172a" }}>
+                                        {veh?.brand || "Vehicle"} {veh?.model || ""}
+                                      </span>
+                                      <span style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                                        {veh?.year || ""} · {veh?.location || "Sri Lanka"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td>
+                                  <div>
+                                    <span style={{ fontWeight: 700, fontSize: "0.84rem", display: "block", color: "#0f172a" }}>
+                                      {b.customerName || "Customer"}
+                                    </span>
+                                    {b.customerPhone ? (
+                                      <a
+                                        href={`https://wa.me/${(b.customerPhone || "").replace(/\D/g, "")}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ fontSize: "0.74rem", color: "#16a34a", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 }}
+                                      >
+                                        <Phone size={10} /> {b.customerPhone}
+                                      </a>
+                                    ) : (
+                                      <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>No phone</span>
+                                    )}
+                                  </div>
+                                </td>
+
+                                <td>
+                                  <div>
+                                    <span style={{ fontSize: "0.82rem", fontWeight: 650, color: "#334155", display: "block" }}>
+                                      {hostName}
+                                    </span>
+                                    {hostStatus === "available" ? (
+                                      <span style={{ fontSize: "0.7rem", color: "#16a34a", fontWeight: 750, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                        ✓ Confirmed Available
+                                      </span>
+                                    ) : hostStatus === "unavailable" ? (
+                                      <span style={{ fontSize: "0.7rem", color: "#dc2626", fontWeight: 750, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                        ✕ Car Busy
+                                      </span>
+                                    ) : (
+                                      <span style={{ fontSize: "0.7rem", color: "#ea580c", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                        ⏳ Pending Check
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+
+                                <td>
+                                  <div>
+                                    <span style={{ fontSize: "0.8rem", color: "#0f172a", fontWeight: 600, display: "block" }}>
+                                      {new Date(b.startDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} → {new Date(b.endDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                                    </span>
+                                    <span style={{ fontSize: "0.72rem", color: "#ea580c", fontWeight: 700 }}>
+                                      {b.totalDays} Day{b.totalDays > 1 ? "s" : ""} · {b.rentMode || "self-drive"}
+                                    </span>
+                                  </div>
+                                </td>
+
+                                <td>
+                                  <div>
+                                    <span style={{ fontWeight: 800, fontSize: "0.88rem", color: "#0f172a", display: "block" }}>
+                                      LKR {(b.totalPrice || 0).toLocaleString()}
+                                    </span>
+                                    <span style={{ fontSize: "0.7rem", color: "#64748b" }}>
+                                      {(b.dailyRate || 0).toLocaleString()} / day
+                                    </span>
+                                  </div>
+                                </td>
+
+                                <td>
+                                  <span
+                                    style={{
+                                      display: "inline-block",
+                                      padding: "3px 9px",
+                                      borderRadius: 999,
+                                      fontSize: "0.74rem",
+                                      fontWeight: 750,
+                                      background: badge.bg,
+                                      color: badge.color,
+                                    }}
+                                  >
+                                    {badge.label}
+                                  </span>
+                                </td>
+
+                                <td style={{ textAlign: "right" }}>
+                                  <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                                    <Link
+                                      to={`/dispatch/${b._id}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 5,
+                                        padding: "6px 11px",
+                                        borderRadius: 7,
+                                        background: "#f97316",
+                                        color: "#ffffff",
+                                        fontSize: "0.78rem",
+                                        fontWeight: 750,
+                                        textDecoration: "none",
+                                        boxShadow: "0 1px 3px rgba(249, 115, 22, 0.3)",
+                                      }}
+                                      title="Open dedicated concierge dispatch desk"
+                                    >
+                                      <span>Open Dispatch</span>
+                                      <ExternalLink size={12} />
+                                    </Link>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()
               )}
             </div>
           )}

@@ -23,6 +23,7 @@ import {
   Navigation,
   ArrowRight,
   Check,
+  Copy,
 } from "lucide-react";
 import { API_URL } from "../config";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
@@ -56,6 +57,7 @@ export default function DispatchDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [savingAction, setSavingAction] = useState(false);
+  const [copiedTemplateIndex, setCopiedTemplateIndex] = useState(null);
 
   // Notes state
   const [adminNotes, setAdminNotes] = useState("");
@@ -684,6 +686,220 @@ export default function DispatchDashboard() {
                 </button>
               )}
             </div>
+          </div>
+        </section>
+
+
+        {/* 1-CLICK WHATSAPP QUICK TEMPLATES SECTION */}
+        <section className="dispatch-card mt-6" style={{ marginTop: 24 }}>
+          <div className="dispatch-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(37, 211, 102, 0.12)", color: "#16a34a", display: "grid", placeItems: "center" }}>
+                <MessageSquare size={17} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 750, color: "#0f172a" }}>
+                  1-Click WhatsApp Quick Templates
+                </h3>
+                <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "#64748b" }}>
+                  Pre-filled messages ready to send instantly or copy for every dispatch scenario
+                </p>
+              </div>
+            </div>
+            <span style={{ fontSize: "0.75rem", background: "#f1f5f9", padding: "4px 10px", borderRadius: 999, fontWeight: 600, color: "#475569" }}>
+              ⚡ 6 Pre-Configured Scenarios
+            </span>
+          </div>
+
+          <div className="dispatch-card-body" style={{ padding: 16 }}>
+            {(() => {
+              const hostName = booking.company?.companyName || booking.host?.name || "Host";
+              const custName = booking.customerName || "Customer";
+              const vehName = `${currentVehicle?.brand || "Vehicle"} ${currentVehicle?.model || ""}`;
+              const vehFull = `${vehName} (${currentVehicle?.year || ""})`;
+              const datesStr = `${pickupDateFormatted} → ${returnDateFormatted}`;
+              const totalDaysStr = `${booking.totalDays} Day${booking.totalDays > 1 ? "s" : ""}`;
+              const totalValStr = formatPrice(booking.totalPrice);
+
+              const templates = [
+                {
+                  id: "host_check_avail",
+                  title: "1. Check Availability with Host",
+                  recipient: "Host",
+                  phone: hostWaNumber,
+                  category: "inquiry",
+                  color: "#8b5cf6",
+                  bg: "rgba(139, 92, 246, 0.08)",
+                  text: `Hello ${hostName}, this is Yamu Car Rentals Concierge regarding Booking #${booking.bookingNumber} for your ${vehFull}. We have a verified customer requesting ${datesStr} (${totalDaysStr}) at ${totalValStr}. Is this vehicle available for these dates?`,
+                },
+                {
+                  id: "host_urgent_followup",
+                  title: "2. Urgent Availability Follow-Up",
+                  recipient: "Host",
+                  phone: hostWaNumber,
+                  category: "reminder",
+                  color: "#f59e0b",
+                  bg: "rgba(245, 158, 11, 0.08)",
+                  text: `Hello ${hostName}, following up on our booking inquiry #${booking.bookingNumber} for your ${vehName} (${datesStr}). The customer is active on WhatsApp waiting to confirm. Could you please let us know if the car is free or busy? Thank you!`,
+                },
+                {
+                  id: "cust_car_busy_alternative",
+                  title: "3. Car Busy → Suggesting Alternative",
+                  recipient: "Customer",
+                  phone: customerWaNumber,
+                  category: "alternative",
+                  color: "#ea580c",
+                  bg: "rgba(234, 88, 12, 0.08)",
+                  text: `Hello ${custName}, Yamu Concierge here regarding your booking inquiry #${booking.bookingNumber} for the ${vehName} (${datesStr}):\n\nUnfortunately, that specific car was just booked or is undergoing routine maintenance for those dates. However, we have found an excellent matching verified alternative ready for you! Would you like us to share photos and reserve it for your trip?`,
+                },
+                {
+                  id: "cust_booking_confirmed",
+                  title: "4. Booking Confirmed Voucher",
+                  recipient: "Customer",
+                  phone: customerWaNumber,
+                  category: "confirmed",
+                  color: "#16a34a",
+                  bg: "rgba(22, 163, 74, 0.08)",
+                  text: `🎉 *Yamu Car Rentals - Booking Confirmed!*\n\nDear ${custName},\nYour reservation #${booking.bookingNumber} for the ${vehFull} is officially CONFIRMED!\n\n• *Trip Dates:* ${datesStr} (${totalDaysStr})\n• *Mode:* ${booking.rentMode || "Self-Drive"}\n• *Total Rate:* ${totalValStr}\n• *Host Contact:* ${hostName} (${hostPhone || "Available via Yamu"})\n• *Handover Location:* ${currentVehicle?.location || "Colombo"}\n\nPlease present your valid Driving License & NIC/Passport at key handover. Have a pleasant journey with Yamu Car Rentals!`,
+                },
+                {
+                  id: "host_booking_finalized",
+                  title: "5. Booking Confirmed — Prepare Vehicle",
+                  recipient: "Host",
+                  phone: hostWaNumber,
+                  category: "confirmed",
+                  color: "#059669",
+                  bg: "rgba(5, 150, 105, 0.08)",
+                  text: `🎉 *Booking Confirmed!* Hello ${hostName}, Yamu booking #${booking.bookingNumber} for your ${vehFull} is finalized!\n\n• *Customer:* ${custName} (${booking.customerPhone})\n• *Rental Period:* ${datesStr} (${totalDaysStr})\n• *Total Value:* ${totalValStr}\n\nPlease prepare the vehicle and coordinate key handover at ${currentVehicle?.location || "your location"}. Thank you for hosting with Yamu!`,
+                },
+                {
+                  id: "cust_booking_cancelled",
+                  title: "6. Booking Cancellation Notice",
+                  recipient: "Customer",
+                  phone: customerWaNumber,
+                  category: "cancelled",
+                  color: "#64748b",
+                  bg: "rgba(100, 116, 139, 0.08)",
+                  text: `Hello ${custName}, regarding your Yamu Car Rentals booking inquiry #${booking.bookingNumber} for the ${vehName}: This request has been cancelled. If your plans change or you need another car anywhere in Sri Lanka, please feel free to message us here anytime!`,
+                },
+              ];
+
+              const copyText = (idx, text) => {
+                navigator.clipboard.writeText(text);
+                setCopiedTemplateIndex(idx);
+                setTimeout(() => setCopiedTemplateIndex(null), 2000);
+              };
+
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14 }}>
+                  {templates.map((tmpl, idx) => (
+                    <div
+                      key={tmpl.id}
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 12,
+                        padding: 14,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: "0.85rem", fontWeight: 750, color: "#0f172a" }}>
+                          {tmpl.title}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "0.7rem",
+                            fontWeight: 750,
+                            padding: "2px 8px",
+                            borderRadius: 999,
+                            color: tmpl.color,
+                            background: tmpl.bg,
+                            border: `1px solid ${tmpl.color}30`,
+                          }}
+                        >
+                          {tmpl.recipient === "Host" ? "🏢 TO HOST" : "👤 TO CUSTOMER"}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 8,
+                          padding: "10px 12px",
+                          fontSize: "0.78rem",
+                          color: "#334155",
+                          lineHeight: 1.45,
+                          whiteSpace: "pre-wrap",
+                          maxHeight: 110,
+                          overflowY: "auto",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {tmpl.text}
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, marginTop: "auto", paddingTop: 4 }}>
+                        {tmpl.phone ? (
+                          <a
+                            href={`https://wa.me/${tmpl.phone}?text=${encodeURIComponent(tmpl.text)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              flex: 1,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 6,
+                              padding: "8px 12px",
+                              borderRadius: 8,
+                              background: "#25D366",
+                              color: "#ffffff",
+                              fontSize: "0.82rem",
+                              fontWeight: 700,
+                              textDecoration: "none",
+                              boxShadow: "0 2px 6px rgba(37, 211, 102, 0.25)",
+                            }}
+                          >
+                            <MessageSquare size={14} /> Send on WhatsApp
+                          </a>
+                        ) : (
+                          <span style={{ flex: 1, textAlign: "center", fontSize: "0.75rem", color: "#94a3b8", padding: "8px 0" }}>
+                            No phone available
+                          </span>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => copyText(idx, tmpl.text)}
+                          style={{
+                            padding: "8px 12px",
+                            borderRadius: 8,
+                            border: "1px solid #cbd5e1",
+                            background: copiedTemplateIndex === idx ? "#f0fdf4" : "#ffffff",
+                            color: copiedTemplateIndex === idx ? "#16a34a" : "#475569",
+                            fontSize: "0.8rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                          title="Copy message text"
+                        >
+                          {copiedTemplateIndex === idx ? <Check size={14} /> : <Copy size={14} />}
+                          <span>{copiedTemplateIndex === idx ? "Copied" : "Copy"}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </section>
 

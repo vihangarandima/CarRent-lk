@@ -296,6 +296,22 @@ router.patch("/dispatch/:id/status", verifyDispatchAccess, async (req, res) => {
       if (status === "cancelled") {
         booking.cancelledBy = "admin";
         booking.cancellationReason = cancellationReason || "Admin cancelled booking";
+        if (booking.confirmedRental) {
+          try {
+            const rentalToCancel = await Rental.findById(booking.confirmedRental);
+            if (rentalToCancel && rentalToCancel.status === "active") {
+              rentalToCancel.status = "cancelled";
+              await rentalToCancel.save();
+              const rentedVeh = await Vehicle.findById(rentalToCancel.vehicle);
+              if (rentedVeh && rentedVeh.status === "rented") {
+                rentedVeh.status = "active";
+                await rentedVeh.save();
+              }
+            }
+          } catch (e) {
+            console.error("Error reverting rental on cancel:", e);
+          }
+        }
       }
 
       // If CONFIRMED, create or activate a Rental document in the database
@@ -316,6 +332,8 @@ router.patch("/dispatch/:id/status", verifyDispatchAccess, async (req, res) => {
             totalDays: booking.totalDays,
             totalAmount: booking.totalPrice,
             status: "active",
+            rentalType: "rental",
+            isBlocked: false,
             notes: `Confirmed via Yamu Concierge Booking #${booking.bookingNumber}`,
           });
           const savedRental = await rental.save();
