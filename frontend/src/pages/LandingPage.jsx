@@ -30,6 +30,7 @@ import punsaraImg from "../assets/images/punsara.png";
 import nirmalImg from "../assets/images/nirmal.png";
 import wagonrBlueImg from "../assets/images/wagonr_blue.png";
 import yamuHeroPreviewImg from "../assets/images/yamu_hero_preview.png";
+import yamuPhonePreviewImg from "../assets/images/yamu_phone_preview.png";
 
 const categories = [
   {
@@ -356,22 +357,10 @@ const LandingPage = () => {
 
                   <div className="hiw-phone-mockup">
                     <div className="hiw-phone-notch"></div>
-                    <img src={yamuHeroPreviewImg} alt="Yamu App preview phone" />
-                  </div>
-                </div>
-
-                <div className="hiw-glass-stats">
-                  <div className="hiw-stat">
-                    <span className="hiw-stat-val">{totalListed ?? "—"}</span>
-                    <span className="hiw-stat-label">{totalListed === 1 ? "VEHICLE" : "VEHICLES"}</span>
-                  </div>
-                  <div className="hiw-stat">
-                    <span className="hiw-stat-val">2</span>
-                    <span className="hiw-stat-label">MINS</span>
-                  </div>
-                  <div className="hiw-stat">
-                    <span className="hiw-stat-val">Rs. 0</span>
-                    <span className="hiw-stat-label">BOOKING FEES</span>
+                    <div className="hiw-phone-screen">
+                      <img src={yamuPhonePreviewImg} alt="Yamu App preview phone" />
+                    </div>
+                    <div className="hiw-phone-home-indicator"></div>
                   </div>
                 </div>
               </div>
@@ -477,13 +466,13 @@ const LandingPage = () => {
                 </div>
                 <div className="trust-divider" />
                 <div className="trust-stat">
-                  <span className="stat-number">Rs. 0</span>
-                  <span className="stat-label">Booking Fees</span>
+                  <span className="stat-number">Instant</span>
+                  <span className="stat-label">Response</span>
                 </div>
                 <div className="trust-divider" />
                 <div className="trust-stat">
-                  <span className="stat-number">Direct</span>
-                  <span className="stat-label">Owner Contact</span>
+                  <span className="stat-number">Country-wide</span>
+                  <span className="stat-label">Service</span>
                 </div>
               </div>
             </motion.div>
@@ -826,7 +815,6 @@ const LandingPage = () => {
           align-items: center;
           width: 100%;
           max-width: 480px;
-          height: 600px;
           margin: 0 auto;
           border-radius: 28px;
           overflow: hidden;
@@ -886,30 +874,30 @@ const LandingPage = () => {
           position: absolute;
           top: 0;
           left: 50%;
-          transform: translateX(-55%);
-          width: 340px;
+          transform: translateX(-58%);
+          width: 280px;
           z-index: 1;
         }
 
         .hiw-laptop-screen {
           width: 100%;
-          height: 220px;
-          background: #111;
-          border-radius: 12px 12px 0 0;
-          padding: 8px 8px 0 8px;
+          height: 180px;
+          background: #1a1a1a;
+          border-radius: 10px 10px 0 0;
+          padding: 6px 6px 0 6px;
           box-shadow: 0 10px 30px rgba(0,0,0,0.3);
           position: relative;
         }
 
         .hiw-laptop-notch {
           position: absolute;
-          top: 8px;
+          top: 4px;
           left: 50%;
           transform: translateX(-50%);
-          width: 60px;
-          height: 12px;
-          background: #111;
-          border-radius: 0 0 6px 6px;
+          width: 8px;
+          height: 8px;
+          background: #333;
+          border-radius: 50%;
           z-index: 2;
         }
 
@@ -917,103 +905,86 @@ const LandingPage = () => {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          border-radius: 6px 6px 0 0;
+          object-position: top center;
+          border-radius: 4px 4px 0 0;
         }
 
         .hiw-laptop-base {
           width: 112%;
-          height: 14px;
-          background: #333;
-          border-radius: 0 0 16px 16px;
+          height: 12px;
+          background: linear-gradient(to bottom, #444, #2a2a2a);
+          border-radius: 0 0 12px 12px;
           margin-left: -6%;
           position: relative;
           display: flex;
           justify-content: center;
-          box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+          box-shadow: 0 6px 16px rgba(0,0,0,0.2);
         }
 
         .hiw-laptop-trackpad {
-          width: 50px;
-          height: 6px;
+          width: 44px;
+          height: 4px;
           background: #222;
-          border-radius: 0 0 4px 4px;
+          border-radius: 0 0 3px 3px;
         }
 
         .hiw-phone-mockup {
           position: absolute;
-          bottom: 30px;
-          right: 30px;
-          width: 130px;
-          height: 260px;
-          background: #111;
-          border-radius: 20px 20px 0 0;
-          padding: 8px 8px 0 8px;
-          box-shadow: -10px 10px 40px rgba(0,0,0,0.4);
+          bottom: 24px;
+          right: 28px;
+          width: 132px;
+          height: 264px;
+          background: #0f1115;
+          border-radius: 28px;
+          padding: 7px 7px 9px 7px;
+          box-shadow: -12px 16px 40px rgba(0,0,0,0.48), 0 0 0 1.5px rgba(255,255,255,0.08);
           z-index: 2;
         }
 
         .hiw-phone-notch {
           position: absolute;
-          top: 8px;
+          top: 7px;
           left: 50%;
           transform: translateX(-50%);
-          width: 40px;
-          height: 12px;
-          background: #111;
-          border-radius: 0 0 6px 6px;
-          z-index: 2;
+          width: 36px;
+          height: 10px;
+          background: #0f1115;
+          border-radius: 0 0 7px 7px;
+          z-index: 4;
         }
 
-        .hiw-phone-mockup img {
+        .hiw-phone-screen {
+          width: 100%;
+          height: 100%;
+          border-radius: 20px;
+          overflow: hidden;
+          position: relative;
+          background: #ea580c;
+        }
+
+        .hiw-phone-screen img {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          border-radius: 12px 12px 0 0;
+          object-position: top center;
+          border-radius: 20px;
+          display: block;
         }
 
-        .hiw-glass-stats {
+        .hiw-phone-home-indicator {
           position: absolute;
-          bottom: 1.5rem;
-          left: 1.5rem;
-          right: 1.5rem;
-          display: flex;
-          justify-content: space-between;
-          background: rgba(255,255,255,0.2);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          border: 1px solid rgba(255,255,255,0.35);
-          border-radius: 16px;
-          padding: 1.25rem 0.5rem;
-          z-index: 3;
+          bottom: 4px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 38px;
+          height: 3.5px;
+          background: rgba(255, 255, 255, 0.85);
+          border-radius: 99px;
+          z-index: 4;
+          pointer-events: none;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
 
-        .hiw-stat {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          flex: 1;
-          border-right: 1px solid rgba(255,255,255,0.25);
-        }
-        
-        .hiw-stat:last-child {
-          border-right: none;
-        }
-
-        .hiw-stat-val {
-          font-size: 1.25rem;
-          font-weight: 800;
-          color: white;
-          line-height: 1.2;
-        }
-        
-        .hiw-stat-label {
-          font-size: 0.65rem;
-          font-weight: 700;
-          color: rgba(255,255,255,0.9);
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-top: 0.3rem;
-        }
 
         /* Right Steps Timeline */
         .hiw-steps {
@@ -1100,6 +1071,40 @@ const LandingPage = () => {
           .hiw-main-img {
             max-width: 100%;
             height: 380px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .hiw-mockups {
+            height: 260px;
+          }
+          .hiw-laptop-mockup {
+            width: 230px;
+            transform: translateX(-56%);
+          }
+          .hiw-laptop-screen {
+            height: 150px;
+          }
+          .hiw-phone-mockup {
+            width: 110px;
+            height: 220px;
+            bottom: 16px;
+            right: 18px;
+            border-radius: 22px;
+            padding: 5px 5px 8px 5px;
+          }
+          .hiw-phone-screen {
+            border-radius: 17px;
+          }
+          .hiw-phone-notch {
+            width: 30px;
+            height: 8px;
+            top: 5px;
+          }
+          .hiw-phone-home-indicator {
+            width: 32px;
+            height: 3px;
+            bottom: 3px;
           }
         }
 
