@@ -60,6 +60,7 @@ const VehicleDetail = () => {
   
 
   const [sent, setSent] = useState(false);
+  const [customerMessage, setCustomerMessage] = useState("");
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState("login");
@@ -190,6 +191,7 @@ const VehicleDetail = () => {
           endDate: endDate || null,
           customerName: viewer?.name || "Customer",
           customerPhone: phoneToUse,
+          customerMessage: customerMessage.trim(),
           rentMode: vehicle?.rentMode || "self-drive",
           clientBaseUrl: window.location.origin,
         },
@@ -663,6 +665,39 @@ const VehicleDetail = () => {
                       </div>
                     </div>
                   )}
+
+                  <div style={{ marginTop: "1rem" }}>
+                    <label
+                      htmlFor="booking-customer-message"
+                      style={{
+                        display: "block",
+                        fontSize: "0.8rem",
+                        fontWeight: 650,
+                        color: "#374151",
+                        marginBottom: 4,
+                      }}
+                    >
+                      Message or Special Request <span style={{ color: "#9ca3af", fontWeight: 400 }}>(Optional)</span>
+                    </label>
+                    <textarea
+                      id="booking-customer-message"
+                      rows={2}
+                      value={customerMessage}
+                      onChange={(e) => setCustomerMessage(e.target.value)}
+                      placeholder="e.g., flight pickup time, baby seat, or specific inquiries..."
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        fontSize: "0.82rem",
+                        borderRadius: "8px",
+                        border: "1px solid #d1d5db",
+                        resize: "vertical",
+                        boxSizing: "border-box",
+                        fontFamily: "inherit",
+                        lineHeight: 1.4,
+                      }}
+                    />
+                  </div>
 
                   <button
                     type="button"

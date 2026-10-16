@@ -3901,7 +3901,8 @@ const AdminDashboard = () => {
                       const cust = (b.customerName || "").toLowerCase();
                       const phone = (b.customerPhone || "").toLowerCase();
                       const car = `${veh?.brand || ""} ${veh?.model || ""}`.toLowerCase();
-                      if (!ref.includes(q) && !cust.includes(q) && !phone.includes(q) && !car.includes(q)) {
+                      const note = (b.customerMessage || "").toLowerCase();
+                      if (!ref.includes(q) && !cust.includes(q) && !phone.includes(q) && !car.includes(q) && !note.includes(q)) {
                         return false;
                       }
                     }
@@ -3998,6 +3999,27 @@ const AdminDashboard = () => {
                                       </a>
                                     ) : (
                                       <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>No phone</span>
+                                    )}
+                                    {b.customerMessage && (
+                                      <div
+                                        style={{
+                                          marginTop: 5,
+                                          background: "#f8fafc",
+                                          border: "1px solid #e2e8f0",
+                                          borderLeft: "3px solid #f97316",
+                                          borderRadius: 4,
+                                          padding: "3px 6px",
+                                          fontSize: "0.73rem",
+                                          color: "#334155",
+                                          maxWidth: 220,
+                                          wordBreak: "break-word",
+                                          lineHeight: 1.3,
+                                        }}
+                                        title={b.customerMessage}
+                                      >
+                                        <span style={{ fontWeight: 700, color: "#ea580c" }}>Note: </span>
+                                        "{b.customerMessage}"
+                                      </div>
                                     )}
                                   </div>
                                 </td>

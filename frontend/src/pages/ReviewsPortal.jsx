@@ -1,5 +1,5 @@
 import PageHero from "../components/PageHero";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
@@ -14,6 +14,8 @@ import {
   Sparkles,
   Car,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Calendar,
   MapPin,
   X,
@@ -23,6 +25,12 @@ import {
   HeartHandshake,
   Check,
   Award,
+  Upload,
+  Image,
+  CornerDownRight,
+  Loader2,
+  Share2,
+  Eye,
 } from "lucide-react";
 import { API_URL } from "../config";
 import { useToast } from "../context/ToastContext";
@@ -87,20 +95,40 @@ const ReviewsPortal = () => {
     },
   });
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedRating, setSelectedRating] = useState("all");
   const [selectedTripType, setSelectedTripType] = useState("all");
+  const [onlyMyReviews, setOnlyMyReviews] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
+
+  // Lightbox State for Trip Photos
+  const [lightbox, setLightbox] = useState({
+    isOpen: false,
+    images: [],
+    currentIndex: 0,
+  });
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalMatching, setTotalMatching] = useState(0);
+  const REVIEWS_PER_PAGE = 9;
+
+  // Expanded review text tracking (Read More)
+  const [expandedReviews, setExpandedReviews] = useState(new Set());
 
   // Modal / Submission Wizard State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
   const [vehiclesList, setVehiclesList] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
   // Form State
   const [formVehicleId, setFormVehicleId] = useState("");
   const [formRating, setFormRating] = useState(5);
+  const [formHoverRating, setFormHoverRating] = useState(0);
   const [formCleanliness, setFormCleanliness] = useState(5);
   const [formCommunication, setFormCommunication] = useState(5);
   const [formValue, setFormValue] = useState(5);
@@ -112,19 +140,40 @@ const ReviewsPortal = () => {
   const [formImageUrl, setFormImageUrl] = useState("");
   const [formImages, setFormImages] = useState([]);
 
-  // Fetch Reviews & Stats
-  const fetchReviews = async () => {
+  // Debounced search ref
+  const searchTimerRef = useRef(null);
+
+  // Fetch Reviews & Stats (with pagination)
+  const fetchReviews = async (page = 1, append = false) => {
     try {
-      setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
       const params = new URLSearchParams();
       if (selectedCategory !== "all") params.append("vehicleType", selectedCategory);
       if (selectedRating !== "all") params.append("rating", selectedRating);
       if (selectedTripType !== "all") params.append("tripType", selectedTripType);
       if (searchQuery.trim()) params.append("search", searchQuery.trim());
+      if (onlyMyReviews && user?._id) params.append("userId", user._id);
       if (sortBy) params.append("sort", sortBy);
+      params.append("page", page);
+      params.append("limit", REVIEWS_PER_PAGE);
 
       const res = await axios.get(`${API_URL}/api/reviews?${params.toString()}`);
-      setReviews(res.data.reviews || []);
+      const newReviews = res.data.reviews || [];
+
+      if (append) {
+        setReviews((prev) => [...prev, ...newReviews]);
+      } else {
+        setReviews(newReviews);
+      }
+
+      setCurrentPage(res.data.currentPage || 1);
+      setTotalPages(res.data.totalPages || 1);
+      setTotalMatching(res.data.totalMatching || 0);
+
       if (res.data.stats) {
         setStats(res.data.stats);
       }
@@ -133,6 +182,7 @@ const ReviewsPortal = () => {
       toast.error("Could not load reviews. Please try again.");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -146,17 +196,162 @@ const ReviewsPortal = () => {
     }
   };
 
+  // Reset to page 1 when filters change
   useEffect(() => {
-    fetchReviews();
-  }, [selectedCategory, selectedRating, selectedTripType, sortBy]);
+    setCurrentPage(1);
+    fetchReviews(1);
+  }, [selectedCategory, selectedRating, selectedTripType, sortBy, onlyMyReviews]);
 
   useEffect(() => {
     fetchVehicles();
   }, []);
 
+  // Debounced search — auto-search as user types
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setCurrentPage(1);
+      fetchReviews(1);
+    }, 350);
+    return () => clearTimeout(searchTimerRef.current);
+  }, [searchQuery]);
+
+  // Lightbox keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!lightbox.isOpen) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowRight") handleNextLightbox();
+      if (e.key === "ArrowLeft") handlePrevLightbox();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightbox.isOpen, lightbox.images.length]);
+
+  const openLightbox = (images, index = 0) => {
+    if (!images || images.length === 0) return;
+    setLightbox({
+      isOpen: true,
+      images,
+      currentIndex: index,
+    });
+  };
+
+  const closeLightbox = () => {
+    setLightbox((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const handleNextLightbox = (e) => {
+    if (e) e.stopPropagation();
+    setLightbox((prev) => ({
+      ...prev,
+      currentIndex: (prev.currentIndex + 1) % prev.images.length,
+    }));
+  };
+
+  const handlePrevLightbox = (e) => {
+    if (e) e.stopPropagation();
+    setLightbox((prev) => ({
+      ...prev,
+      currentIndex: (prev.currentIndex - 1 + prev.images.length) % prev.images.length,
+    }));
+  };
+
+  const hasActiveFilters =
+    selectedCategory !== "all" ||
+    selectedRating !== "all" ||
+    selectedTripType !== "all" ||
+    searchQuery.trim() !== "" ||
+    onlyMyReviews;
+
+  const clearAllFilters = () => {
+    setSelectedCategory("all");
+    setSelectedRating("all");
+    setSelectedTripType("all");
+    setSearchQuery("");
+    setOnlyMyReviews(false);
+    setSortBy("newest");
+  };
+
+  const getSentimentInfo = (rating) => {
+    const r = Number(rating);
+    if (r >= 5) return { label: "Exceptional", emoji: "⭐", cls: "sentiment-exceptional" };
+    if (r >= 4) return { label: "Very Good", emoji: "✨", cls: "sentiment-great" };
+    if (r >= 3) return { label: "Good", emoji: "👍", cls: "sentiment-good" };
+    if (r >= 2) return { label: "Fair", emoji: "⚠️", cls: "sentiment-fair" };
+    return { label: "Disappointing", emoji: "👎", cls: "sentiment-poor" };
+  };
+
+  const handleShareReview = async (rev) => {
+    const url = `${window.location.origin}/reviews#review-${rev._id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `CarRent.lk Review: ${rev.title || "Traveler Review"}`,
+          text: `Check out this ${rev.rating}-star review on CarRent.lk!`,
+          url,
+        });
+        return;
+      } catch (err) {
+        // user dismissed or native share unsupported
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Review link copied to clipboard!");
+    } catch (err) {
+      toast.info("Could not copy link to clipboard.");
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (formImages.length >= 3) {
+      toast.warning("Maximum 3 trip photos allowed.");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file (PNG, JPG, WebP).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image file size must be less than 5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result) {
+        setFormImages((prev) => [...prev, reader.result]);
+        toast.success("Photo attached successfully!");
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleLoadMore = () => {
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    fetchReviews(nextPage, true);
+  };
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchReviews();
+    setCurrentPage(1);
+    fetchReviews(1);
+  };
+
+  const toggleExpandReview = (reviewId) => {
+    setExpandedReviews((prev) => {
+      const next = new Set(prev);
+      if (next.has(reviewId)) {
+        next.delete(reviewId);
+      } else {
+        next.add(reviewId);
+      }
+      return next;
+    });
   };
 
   const handleAddImage = () => {
@@ -182,13 +377,52 @@ const ReviewsPortal = () => {
       );
       setReviews((prev) =>
         prev.map((r) =>
-          r._id === reviewId ? { ...r, helpfulCount: res.data.helpfulCount } : r
+          r._id === reviewId
+            ? {
+                ...r,
+                helpfulCount: res.data.helpfulCount,
+                hasVoted: res.data.hasVoted,
+              }
+            : r
         )
       );
-      toast.success("Thank you for your feedback!", "Review Marked Helpful");
+      if (res.data.hasVoted) {
+        toast.success("Thank you for your feedback!", "Review Marked Helpful");
+      } else {
+        toast.info("Vote removed.");
+      }
     } catch (err) {
       console.warn("Helpful vote error:", err);
     }
+  };
+
+  // Wizard Modal helpers
+  const openReviewModal = () => {
+    if (!token) {
+      toast.info("Please log in to submit a review.");
+      navigate("/login?redirect=/reviews");
+      return;
+    }
+    setWizardStep(1);
+    setIsModalOpen(true);
+  };
+
+  const formHasContent = formTitle || formComment || formImages.length > 0 || formVehicleId;
+
+  const closeReviewModal = () => {
+    if (formHasContent) {
+      if (!window.confirm("You have unsaved changes. Discard your review?")) return;
+    }
+    setIsModalOpen(false);
+    setWizardStep(1);
+  };
+
+  const getRatingLabel = (r) => {
+    if (r >= 5) return "Outstanding";
+    if (r >= 4) return "Very Good";
+    if (r >= 3) return "Average";
+    if (r >= 2) return "Below Average";
+    return "Poor";
   };
 
   const handleSubmitReview = async (e) => {
@@ -228,14 +462,24 @@ const ReviewsPortal = () => {
 
       toast.success("Your review has been verified and published to the community!", "Review Published");
       setIsModalOpen(false);
+      setWizardStep(1);
       // Reset form
       setFormTitle("");
       setFormComment("");
       setFormVehicleId("");
       setFormRating(5);
+      setFormHoverRating(0);
+      setFormCleanliness(5);
+      setFormCommunication(5);
+      setFormValue(5);
+      setFormCondition(5);
+      setFormTripType(TRIP_TYPES[0]);
+      setFormRecommended(true);
       setFormImages([]);
-      // Reload reviews
-      fetchReviews();
+      setFormImageUrl("");
+      // Reload reviews from page 1
+      setCurrentPage(1);
+      fetchReviews(1);
     } catch (err) {
       console.error("Submit review error:", err);
       toast.error(err.response?.data?.msg || "Failed to submit review.");
@@ -256,14 +500,7 @@ const ReviewsPortal = () => {
             <button
               type="button"
               className="y-btn y-btn-white"
-              onClick={() => {
-                if (!token) {
-                  toast.info("Please log in to submit a review.");
-                  navigate("/login?redirect=/reviews");
-                } else {
-                  setIsModalOpen(true);
-                }
-              }}
+              onClick={openReviewModal}
             >
               <Plus size={18} /> Write a review
             </button>
@@ -288,8 +525,28 @@ const ReviewsPortal = () => {
       <section className="container score-breakdown-section">
         <div className="breakdown-card">
           <div className="breakdown-col star-bars-col">
-            <h3>Rating Breakdown</h3>
-            <p className="subtext">Based on {stats.totalReviews} verified community ratings</p>
+            <div className="breakdown-header-row">
+              <div>
+                <h3>Rating Breakdown</h3>
+                <p className="subtext">Based on {stats.totalReviews} verified community ratings</p>
+              </div>
+              {selectedRating !== "all" && (
+                <button
+                  type="button"
+                  className="clear-rating-pill"
+                  onClick={() => setSelectedRating("all")}
+                  title="Clear star filter"
+                >
+                  Clear {selectedRating}★ filter <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {selectedRating !== "all" && (
+              <div className="rating-filter-active-alert">
+                <span>Filtering by <strong>{selectedRating} Star</strong> reviews only</span>
+              </div>
+            )}
 
             <div className="star-bars-list">
               {[5, 4, 3, 2, 1].map((stars) => {
@@ -298,14 +555,15 @@ const ReviewsPortal = () => {
                   stats.totalReviews > 0
                     ? Math.round((count / stats.totalReviews) * 100)
                     : 0;
+                const isActive = selectedRating === String(stars);
                 return (
                   <div
                     key={stars}
-                    className={`star-bar-row ${selectedRating === String(stars) ? "active-filter" : ""}`}
+                    className={`star-bar-row ${isActive ? "active-filter" : ""}`}
                     onClick={() =>
-                      setSelectedRating(selectedRating === String(stars) ? "all" : String(stars))
+                      setSelectedRating(isActive ? "all" : String(stars))
                     }
-                    title={`Click to filter by ${stars} star reviews`}
+                    title={isActive ? "Click to clear filter" : `Click to filter by ${stars} star reviews`}
                   >
                     <div className="star-label">
                       <span>{stars}</span>
@@ -318,6 +576,7 @@ const ReviewsPortal = () => {
                       />
                     </div>
                     <span className="count-label">{count}</span>
+                    {isActive && <span className="active-dot-indicator">✓</span>}
                   </div>
                 );
               })}
@@ -421,18 +680,32 @@ const ReviewsPortal = () => {
             </button>
           </form>
 
-          {/* Category Tabs */}
+          {/* Category Tabs & Controls */}
           <div className="filter-tags-row">
             <div className="category-chips">
               {VEHICLE_CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
-                  className={`chip-btn ${selectedCategory === cat.id ? "active" : ""}`}
-                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`chip-btn ${selectedCategory === cat.id && !onlyMyReviews ? "active" : ""}`}
+                  onClick={() => {
+                    setSelectedCategory(cat.id);
+                    setOnlyMyReviews(false);
+                  }}
                 >
                   {cat.label}
                 </button>
               ))}
+
+              {token && user && (
+                <button
+                  type="button"
+                  className={`chip-btn my-reviews-chip ${onlyMyReviews ? "active" : ""}`}
+                  onClick={() => setOnlyMyReviews(!onlyMyReviews)}
+                  title="Filter to reviews you have written"
+                >
+                  <User size={13} /> My Reviews
+                </button>
+              )}
             </div>
 
             <div className="filter-dropdowns">
@@ -461,15 +734,89 @@ const ReviewsPortal = () => {
               </select>
             </div>
           </div>
+
+          {/* Active Filter Chips Summary Bar */}
+          {hasActiveFilters && (
+            <div className="active-filters-bar">
+              <span className="active-filters-title">
+                <Filter size={13} /> Active Filters:
+              </span>
+              <div className="active-chips-wrap">
+                {selectedCategory !== "all" && (
+                  <span className="active-filter-badge">
+                    {VEHICLE_CATEGORIES.find((c) => c.id === selectedCategory)?.label || selectedCategory}
+                    <button type="button" onClick={() => setSelectedCategory("all")} title="Remove category filter">
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+                {selectedRating !== "all" && (
+                  <span className="active-filter-badge">
+                    {selectedRating} Stars
+                    <button type="button" onClick={() => setSelectedRating("all")} title="Remove rating filter">
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+                {selectedTripType !== "all" && (
+                  <span className="active-filter-badge">
+                    {selectedTripType}
+                    <button type="button" onClick={() => setSelectedTripType("all")} title="Remove trip type filter">
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+                {searchQuery.trim() !== "" && (
+                  <span className="active-filter-badge">
+                    &ldquo;{searchQuery}&rdquo;
+                    <button type="button" onClick={() => setSearchQuery("")} title="Clear search">
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+                {onlyMyReviews && (
+                  <span className="active-filter-badge my-reviews-badge">
+                    My Reviews
+                    <button type="button" onClick={() => setOnlyMyReviews(false)} title="Show all reviewers">
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+                <button type="button" className="clear-all-btn" onClick={clearAllFilters}>
+                  Clear all filters
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
       {/* 4. Reviews Grid & Feed */}
       <section className="container reviews-feed-section">
         {loading ? (
-          <div className="reviews-loading-state">
-            <div className="spinner" />
-            <p>Loading genuine traveler reviews...</p>
+          <div className="reviews-grid skeleton-grid">
+            {[1, 2, 3, 4, 5, 6].map((sk) => (
+              <div key={sk} className="review-card-premium skeleton-card">
+                <div className="skeleton-header">
+                  <div className="skeleton-avatar shimmer" />
+                  <div className="skeleton-user-meta">
+                    <div className="skeleton-line shimmer short" />
+                    <div className="skeleton-line shimmer extra-short" />
+                  </div>
+                  <div className="skeleton-stars shimmer" />
+                </div>
+                <div className="skeleton-vehicle shimmer" />
+                <div className="skeleton-body">
+                  <div className="skeleton-line shimmer title" />
+                  <div className="skeleton-line shimmer" />
+                  <div className="skeleton-line shimmer medium" />
+                </div>
+                <div className="skeleton-footer">
+                  <div className="skeleton-pill shimmer" />
+                  <div className="skeleton-pill shimmer" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : reviews.length === 0 ? (
           <div className="reviews-empty-state">
@@ -518,6 +865,11 @@ const ReviewsPortal = () => {
                     <div className="user-text-info">
                       <div className="user-name-badge">
                         <h4>{rev.user?.name || "Verified Traveler"}</h4>
+                        {user && rev.user?._id === user._id && (
+                          <span className="your-review-badge" title="You authored this review">
+                            Your Review
+                          </span>
+                        )}
                         {rev.isVerifiedTrip && (
                           <span className="verified-badge" title="Verified Car Rental">
                             <CheckCircle2 size={13} />
@@ -543,17 +895,28 @@ const ReviewsPortal = () => {
                   </div>
 
                   <div className="stars-cluster">
-                    <div className="stars-row">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={14}
-                          fill={i < rev.rating ? "#f59e0b" : "#e2e8f0"}
-                          color={i < rev.rating ? "#f59e0b" : "#cbd5e1"}
-                        />
-                      ))}
+                    <div className="stars-cluster-top">
+                      <div className="stars-row">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            size={14}
+                            fill={i < rev.rating ? "#f59e0b" : "#e2e8f0"}
+                            color={i < rev.rating ? "#f59e0b" : "#cbd5e1"}
+                          />
+                        ))}
+                      </div>
+                      <span className="rating-digit">{Number(rev.rating).toFixed(1)}</span>
                     </div>
-                    <span className="rating-digit">{Number(rev.rating).toFixed(1)}</span>
+                    {(() => {
+                      const sent = getSentimentInfo(rev.rating);
+                      return (
+                        <div className={`sentiment-badge ${sent.cls}`}>
+                          <span>{sent.emoji}</span>
+                          <span>{sent.label}</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -586,10 +949,34 @@ const ReviewsPortal = () => {
                   </Link>
                 )}
 
-                {/* Review Title & Body */}
+                {/* Review Title & Body with Read More */}
                 <div className="review-body">
                   {rev.title && <h5 className="review-title">{rev.title}</h5>}
-                  <p className="review-text">{rev.comment}</p>
+                  {rev.comment && rev.comment.length > 220 && !expandedReviews.has(rev._id) ? (
+                    <>
+                      <p className="review-text">{rev.comment.slice(0, 220)}...</p>
+                      <button
+                        type="button"
+                        className="read-more-btn"
+                        onClick={() => toggleExpandReview(rev._id)}
+                      >
+                        Read more
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="review-text">{rev.comment}</p>
+                      {rev.comment && rev.comment.length > 220 && (
+                        <button
+                          type="button"
+                          className="read-more-btn"
+                          onClick={() => toggleExpandReview(rev._id)}
+                        >
+                          Show less
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Sub-ratings Badges */}
@@ -607,48 +994,117 @@ const ReviewsPortal = () => {
                   </div>
                 )}
 
-                {/* Trip Images if uploaded */}
+                {/* Trip Images with Lightbox */}
                 {rev.images && rev.images.length > 0 && (
                   <div className="trip-photos-strip">
                     {rev.images.map((imgUrl, idx) => (
-                      <img
+                      <div
                         key={idx}
-                        src={imgUrl}
-                        alt="Trip Photo"
-                        className="trip-photo-thumb"
-                      />
+                        className="trip-photo-wrapper"
+                        onClick={() => openLightbox(rev.images, idx)}
+                        title="Click to view photo full size"
+                      >
+                        <img
+                          src={imgUrl}
+                          alt="Trip Photo"
+                          className="trip-photo-thumb"
+                        />
+                        <div className="photo-zoom-overlay">
+                          <Eye size={12} />
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
 
-                {/* Card Footer: Helpful button & recommendation */}
+                {/* Host Reply */}
+                {rev.hostReply && rev.hostReply.comment && (
+                  <div className="host-reply-card">
+                    <div className="host-reply-header">
+                      <CornerDownRight size={14} className="host-reply-icon" />
+                      <span className="host-reply-label">Host Response</span>
+                      {rev.hostReply.repliedAt && (
+                        <span className="host-reply-date">
+                          {new Date(rev.hostReply.repliedAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                    <p className="host-reply-text">{rev.hostReply.comment}</p>
+                  </div>
+                )}
+
+                {/* Card Footer: Recommendation, Share & Helpful */}
                 <div className="card-footer-row">
-                  {rev.recommended && (
+                  {rev.recommended ? (
                     <div className="recommend-flag">
                       <Check size={14} className="check-icon" />
                       <span>Recommends this rental</span>
                     </div>
-                  )}
+                  ) : <div />}
 
-                  <button
-                    type="button"
-                    className="helpful-btn"
-                    onClick={() => handleHelpfulClick(rev._id)}
-                    title="Mark this review as helpful"
-                  >
-                    <ThumbsUp size={14} />
-                    <span>Helpful ({rev.helpfulCount || 0})</span>
-                  </button>
+                  <div className="card-actions-group">
+                    <button
+                      type="button"
+                      className="share-review-btn"
+                      onClick={() => handleShareReview(rev)}
+                      title="Share review"
+                    >
+                      <Share2 size={13} />
+                      <span>Share</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`helpful-btn ${rev.hasVoted ? "helpful-voted" : ""}`}
+                      onClick={() => handleHelpfulClick(rev._id)}
+                      title={rev.hasVoted ? "Remove your helpful vote" : "Mark this review as helpful"}
+                    >
+                      <ThumbsUp size={13} />
+                      <span>{rev.hasVoted ? "Helpful" : "Helpful"} ({rev.helpfulCount || 0})</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        {/* Load More Pagination */}
+        {!loading && reviews.length > 0 && currentPage < totalPages && (
+          <div className="load-more-container">
+            <button
+              type="button"
+              className="load-more-btn"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+            >
+              {loadingMore ? (
+                <>
+                  <Loader2 size={16} className="spin-icon" /> Loading...
+                </>
+              ) : (
+                <>
+                  Load More Reviews
+                  <span className="load-more-count">
+                    ({reviews.length} of {totalMatching})
+                  </span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Reviews count summary */}
+        {!loading && reviews.length > 0 && currentPage >= totalPages && (
+          <div className="reviews-count-summary">
+            Showing all {reviews.length} review{reviews.length !== 1 ? "s" : ""}
+          </div>
+        )}
       </section>
 
-      {/* 5. Interactive Write a Review Modal */}
+      {/* 5. Multi-Step Write a Review Wizard */}
       {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+        <div className="modal-overlay" onClick={closeReviewModal}>
           <div
             className="modal-content review-builder-modal"
             onClick={(e) => e.stopPropagation()}
@@ -659,223 +1115,353 @@ const ReviewsPortal = () => {
               </div>
               <div>
                 <h3>Submit Your Travel Experience</h3>
-                <p>Help future travelers choose the best vehicles and verified hosts.</p>
+                <p>Step {wizardStep} of 3 — {wizardStep === 1 ? "Vehicle & Rating" : wizardStep === 2 ? "Quality Scores" : "Your Story"}</p>
               </div>
               <button
                 className="close-modal-btn"
-                onClick={() => setIsModalOpen(false)}
+                onClick={closeReviewModal}
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitReview} className="modal-form">
-              {/* Vehicle Selector */}
-              <div className="form-group">
-                <label>Select Rented Vehicle (Optional)</label>
-                <select
-                  value={formVehicleId}
-                  onChange={(e) => setFormVehicleId(e.target.value)}
-                  className="modal-input"
+            {/* Wizard Progress Bar */}
+            <div className="wizard-progress">
+              {[1, 2, 3].map((step) => (
+                <div
+                  key={step}
+                  className={`wizard-step-dot ${wizardStep >= step ? "active" : ""} ${wizardStep === step ? "current" : ""}`}
                 >
-                  <option value="">General Platform Experience / Other Car</option>
-                  {vehiclesList.map((v) => (
-                    <option key={v._id} value={v._id}>
-                      {v.brand} {v.model} ({v.year}) - {v.location || "Sri Lanka"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Star Rating Pickers */}
-              <div className="form-group rating-picker-box">
-                <label>Overall Experience Rating</label>
-                <div className="interactive-stars">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      type="button"
-                      key={star}
-                      className="star-button"
-                      onClick={() => setFormRating(star)}
-                    >
-                      <Star
-                        size={28}
-                        fill={star <= formRating ? "#f59e0b" : "transparent"}
-                        color={star <= formRating ? "#f59e0b" : "#cbd5e1"}
-                      />
-                    </button>
-                  ))}
-                  <span className="rating-tag-label">
-                    {formRating === 5
-                      ? "Outstanding (5.0)"
-                      : formRating === 4
-                      ? "Very Good (4.0)"
-                      : formRating === 3
-                      ? "Average (3.0)"
-                      : formRating === 2
-                      ? "Below Average (2.0)"
-                      : "Poor (1.0)"}
+                  <div className="dot-circle">{step}</div>
+                  <span className="dot-label">
+                    {step === 1 ? "Vehicle" : step === 2 ? "Ratings" : "Review"}
                   </span>
                 </div>
+              ))}
+              <div className="wizard-progress-line">
+                <div className="wizard-progress-fill" style={{ width: `${((wizardStep - 1) / 2) * 100}%` }} />
               </div>
+            </div>
 
-              {/* Sub-rating Criteria */}
-              <div className="sub-ratings-form-row">
-                <div className="sub-rate-item">
-                  <span>Cleanliness</span>
-                  <div className="mini-star-picker">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star
-                        key={s}
-                        size={16}
-                        className="star-click"
-                        fill={s <= formCleanliness ? "#f59e0b" : "#e2e8f0"}
-                        color={s <= formCleanliness ? "#f59e0b" : "#cbd5e1"}
-                        onClick={() => setFormCleanliness(s)}
-                      />
-                    ))}
+            <form onSubmit={handleSubmitReview} className="modal-form">
+              {/* === Step 1: Vehicle & Overall Rating === */}
+              {wizardStep === 1 && (
+                <>
+                  <div className="form-group">
+                    <label>Select Rented Vehicle (Optional)</label>
+                    <select
+                      value={formVehicleId}
+                      onChange={(e) => setFormVehicleId(e.target.value)}
+                      className="modal-input"
+                    >
+                      <option value="">General Platform Experience / Other Car</option>
+                      {vehiclesList.map((v) => (
+                        <option key={v._id} value={v._id}>
+                          {v.brand} {v.model} ({v.year}) - {v.location || "Sri Lanka"}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                </div>
 
-                <div className="sub-rate-item">
-                  <span>Host Support</span>
-                  <div className="mini-star-picker">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star
-                        key={s}
-                        size={16}
-                        className="star-click"
-                        fill={s <= formCommunication ? "#f59e0b" : "#e2e8f0"}
-                        color={s <= formCommunication ? "#f59e0b" : "#cbd5e1"}
-                        onClick={() => setFormCommunication(s)}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="sub-rate-item">
-                  <span>Value for Money</span>
-                  <div className="mini-star-picker">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star
-                        key={s}
-                        size={16}
-                        className="star-click"
-                        fill={s <= formValue ? "#f59e0b" : "#e2e8f0"}
-                        color={s <= formValue ? "#f59e0b" : "#cbd5e1"}
-                        onClick={() => setFormValue(s)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Trip Category */}
-              <div className="form-group">
-                <label>Trip Category</label>
-                <select
-                  value={formTripType}
-                  onChange={(e) => setFormTripType(e.target.value)}
-                  className="modal-input"
-                >
-                  {TRIP_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Review Title */}
-              <div className="form-group">
-                <label>Review Headline</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Unforgettable family coastal road trip to Mirissa!"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  className="modal-input"
-                  required
-                />
-              </div>
-
-              {/* Detailed Review Story */}
-              <div className="form-group">
-                <label>Your Review Story</label>
-                <textarea
-                  rows={4}
-                  placeholder="Share details about the car's condition, driving experience, host responsiveness, pickup/drop-off ease..."
-                  value={formComment}
-                  onChange={(e) => setFormComment(e.target.value)}
-                  className="modal-textarea"
-                  required
-                />
-              </div>
-
-              {/* Photo Attachment */}
-              <div className="form-group">
-                <label>Add Trip Photo URL (Optional)</label>
-                <div className="photo-input-row">
-                  <input
-                    type="url"
-                    placeholder="https://example.com/photo.jpg"
-                    value={formImageUrl}
-                    onChange={(e) => setFormImageUrl(e.target.value)}
-                    className="modal-input"
-                  />
-                  <button
-                    type="button"
-                    className="btn-add-photo"
-                    onClick={handleAddImage}
-                  >
-                    Add
-                  </button>
-                </div>
-                {formImages.length > 0 && (
-                  <div className="form-images-preview">
-                    {formImages.map((img, i) => (
-                      <div key={i} className="preview-item">
-                        <img src={img} alt="Preview" />
+                  <div className="form-group rating-picker-box">
+                    <label>Overall Experience Rating</label>
+                    <div className="interactive-stars">
+                      {[1, 2, 3, 4, 5].map((star) => (
                         <button
                           type="button"
-                          onClick={() => handleRemoveImage(i)}
+                          key={star}
+                          className="star-button"
+                          onClick={() => setFormRating(star)}
+                          onMouseEnter={() => setFormHoverRating(star)}
+                          onMouseLeave={() => setFormHoverRating(0)}
                         >
-                          <X size={12} />
+                          <Star
+                            size={32}
+                            fill={star <= (formHoverRating || formRating) ? "#f59e0b" : "transparent"}
+                            color={star <= (formHoverRating || formRating) ? "#f59e0b" : "#cbd5e1"}
+                          />
+                        </button>
+                      ))}
+                      <span className="rating-tag-label">
+                        {getRatingLabel(formHoverRating || formRating)} ({(formHoverRating || formRating)}.0)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="modal-actions">
+                    <button type="button" className="btn-cancel" onClick={closeReviewModal}>
+                      Cancel
+                    </button>
+                    <button type="button" className="btn-primary" onClick={() => setWizardStep(2)}>
+                      Next: Quality Scores <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* === Step 2: Sub-Ratings & Trip Type === */}
+              {wizardStep === 2 && (
+                <>
+                  <div className="sub-ratings-form-row">
+                    <div className="sub-rate-item">
+                      <span>Cleanliness</span>
+                      <div className="mini-star-picker">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            size={18}
+                            className="star-click"
+                            fill={s <= formCleanliness ? "#f59e0b" : "#e2e8f0"}
+                            color={s <= formCleanliness ? "#f59e0b" : "#cbd5e1"}
+                            onClick={() => setFormCleanliness(s)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="sub-rate-item">
+                      <span>Host Support</span>
+                      <div className="mini-star-picker">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            size={18}
+                            className="star-click"
+                            fill={s <= formCommunication ? "#f59e0b" : "#e2e8f0"}
+                            color={s <= formCommunication ? "#f59e0b" : "#cbd5e1"}
+                            onClick={() => setFormCommunication(s)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="sub-rate-item">
+                      <span>Value for Money</span>
+                      <div className="mini-star-picker">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            size={18}
+                            className="star-click"
+                            fill={s <= formValue ? "#f59e0b" : "#e2e8f0"}
+                            color={s <= formValue ? "#f59e0b" : "#cbd5e1"}
+                            onClick={() => setFormValue(s)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="sub-rate-item">
+                      <span>Vehicle Condition</span>
+                      <div className="mini-star-picker">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            size={18}
+                            className="star-click"
+                            fill={s <= formCondition ? "#f59e0b" : "#e2e8f0"}
+                            color={s <= formCondition ? "#f59e0b" : "#cbd5e1"}
+                            onClick={() => setFormCondition(s)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Trip Category</label>
+                    <select
+                      value={formTripType}
+                      onChange={(e) => setFormTripType(e.target.value)}
+                      className="modal-input"
+                    >
+                      {TRIP_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="modal-actions">
+                    <button type="button" className="btn-cancel" onClick={() => setWizardStep(1)}>
+                      <ChevronLeft size={16} /> Back
+                    </button>
+                    <button type="button" className="btn-primary" onClick={() => setWizardStep(3)}>
+                      Next: Write Review <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* === Step 3: Title, Story, Photos, Recommend, Submit === */}
+              {wizardStep === 3 && (
+                <>
+                  <div className="form-group">
+                    <label>Review Headline</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Unforgettable family coastal road trip to Mirissa!"
+                      value={formTitle}
+                      onChange={(e) => setFormTitle(e.target.value)}
+                      className="modal-input"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Your Review Story</label>
+                    <textarea
+                      rows={5}
+                      placeholder="Share details about the car's condition, driving experience, host responsiveness, pickup/drop-off ease..."
+                      value={formComment}
+                      onChange={(e) => setFormComment(e.target.value)}
+                      className="modal-textarea"
+                      maxLength={2000}
+                      required
+                    />
+                    <div className="char-counter">
+                      <span className={formComment.length < 10 ? "char-warn" : ""}>
+                        {formComment.length < 10 ? `${10 - formComment.length} more characters needed` : "\u2713 Minimum met"}
+                      </span>
+                      <span>{formComment.length}/2000</span>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Trip Photos (Optional — Max 3)</label>
+                    <div className="photo-input-section">
+                      <div className="photo-input-row">
+                        <input
+                          type="url"
+                          placeholder="Paste image link (https://...)"
+                          value={formImageUrl}
+                          onChange={(e) => setFormImageUrl(e.target.value)}
+                          className="modal-input"
+                        />
+                        <button
+                          type="button"
+                          className="btn-add-photo"
+                          onClick={handleAddImage}
+                        >
+                          <Plus size={14} /> Add URL
                         </button>
                       </div>
-                    ))}
+
+                      <div className="photo-divider-or">
+                        <span>or upload file</span>
+                      </div>
+
+                      <label className="btn-file-picker">
+                        <Upload size={14} />
+                        <span>Upload Photo from Device</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                          style={{ display: "none" }}
+                        />
+                      </label>
+                    </div>
+
+                    {formImages.length > 0 && (
+                      <div className="form-images-preview">
+                        {formImages.map((img, i) => (
+                          <div key={i} className="preview-item">
+                            <img src={img} alt="Preview" />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(i)}
+                              title="Remove photo"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {formImages.length < 3 && (
+                      <p className="photo-hint">{3 - formImages.length} photo slot{3 - formImages.length !== 1 ? "s" : ""} remaining</p>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Recommend Toggle */}
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={formRecommended}
-                  onChange={(e) => setFormRecommended(e.target.checked)}
-                />
-                <span>I recommend Yamu Car Rentals to other drivers</span>
-              </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={formRecommended}
+                      onChange={(e) => setFormRecommended(e.target.checked)}
+                    />
+                    <span>I recommend Yamu Car Rentals to other drivers</span>
+                  </label>
 
-              {/* Submit Buttons */}
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={submitting}
-                >
-                  {submitting ? "Publishing..." : "Publish Review"}
-                </button>
-              </div>
+                  <div className="modal-actions">
+                    <button type="button" className="btn-cancel" onClick={() => setWizardStep(2)}>
+                      <ChevronLeft size={16} /> Back
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                      disabled={submitting || formComment.trim().length < 10}
+                    >
+                      {submitting ? (
+                        <><Loader2 size={16} className="spin-icon" /> Publishing...</>
+                      ) : (
+                        <><Send size={16} /> Publish Review</>
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Trip Photo Lightbox Overlay */}
+      {lightbox.isOpen && lightbox.images.length > 0 && (
+        <div className="lightbox-overlay" onClick={closeLightbox}>
+          <div className="lightbox-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="lightbox-close-btn"
+              onClick={closeLightbox}
+              title="Close (Esc)"
+            >
+              <X size={20} />
+            </button>
+
+            {lightbox.images.length > 1 && (
+              <button
+                type="button"
+                className="lightbox-nav-btn prev"
+                onClick={handlePrevLightbox}
+                title="Previous Photo"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
+
+            <div className="lightbox-figure">
+              <img
+                src={lightbox.images[lightbox.currentIndex]}
+                alt={`Trip Photo ${lightbox.currentIndex + 1}`}
+                className="lightbox-main-img"
+              />
+              <div className="lightbox-caption-tag">
+                Photo {lightbox.currentIndex + 1} of {lightbox.images.length}
+              </div>
+            </div>
+
+            {lightbox.images.length > 1 && (
+              <button
+                type="button"
+                className="lightbox-nav-btn next"
+                onClick={handleNextLightbox}
+                title="Next Photo"
+              >
+                <ChevronRight size={24} />
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1898,8 +2484,726 @@ const ReviewsPortal = () => {
             display: none;
           }
           .sub-ratings-form-row {
+            grid-template-columns: 1fr 1fr;
+          }
+          .reviews-grid {
             grid-template-columns: 1fr;
           }
+          .filter-tags-row {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .category-chips {
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+          }
+          .chip-btn {
+            white-space: nowrap;
+            flex-shrink: 0;
+          }
+        }
+
+        @media (max-width: 500px) {
+          .sub-ratings-form-row {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        /* === Wizard Progress Bar === */
+        .wizard-progress {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          position: relative;
+          padding: 0 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .wizard-step-dot {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+          position: relative;
+          z-index: 2;
+        }
+
+        .dot-circle {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #e2e8f0;
+          color: #94a3b8;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800;
+          font-size: 0.82rem;
+          transition: all 0.3s ease;
+          border: 2px solid transparent;
+        }
+
+        .wizard-step-dot.active .dot-circle {
+          background: #f97316;
+          color: white;
+          border-color: #f97316;
+        }
+
+        .wizard-step-dot.current .dot-circle {
+          box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.2);
+          transform: scale(1.1);
+        }
+
+        .dot-label {
+          font-size: 0.72rem;
+          font-weight: 600;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .wizard-step-dot.active .dot-label {
+          color: #f97316;
+        }
+
+        .wizard-progress-line {
+          position: absolute;
+          top: 15px;
+          left: calc(1rem + 16px);
+          right: calc(1rem + 16px);
+          height: 3px;
+          background: #e2e8f0;
+          border-radius: 999px;
+          z-index: 1;
+        }
+
+        .wizard-progress-fill {
+          height: 100%;
+          background: #f97316;
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+
+        /* === Read More Button === */
+        .read-more-btn {
+          background: none;
+          border: none;
+          color: #f97316;
+          font-size: 0.85rem;
+          font-weight: 700;
+          cursor: pointer;
+          padding: 2px 0;
+          margin-top: 4px;
+          transition: color 0.2s;
+        }
+
+        .read-more-btn:hover {
+          color: #ea580c;
+          text-decoration: underline;
+        }
+
+        /* === Host Reply Card === */
+        .host-reply-card {
+          background: #fef3c7;
+          border: 1px solid #fde68a;
+          border-radius: 10px;
+          padding: 0.85rem 1rem;
+          margin-top: 2px;
+        }
+
+        .host-reply-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 0.4rem;
+        }
+
+        .host-reply-icon {
+          color: #d97706;
+          flex-shrink: 0;
+        }
+
+        .host-reply-label {
+          font-size: 0.78rem;
+          font-weight: 800;
+          color: #92400e;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+
+        .host-reply-date {
+          margin-left: auto;
+          font-size: 0.72rem;
+          color: #a16207;
+        }
+
+        .host-reply-text {
+          font-size: 0.88rem;
+          color: #78350f;
+          line-height: 1.5;
+          margin: 0;
+        }
+
+        /* === Helpful Voted State === */
+        .helpful-btn.helpful-voted {
+          background: #dbeafe;
+          border-color: #93c5fd;
+          color: #1d4ed8;
+        }
+
+        .helpful-btn.helpful-voted:hover {
+          background: #bfdbfe;
+        }
+
+        /* === Load More === */
+        .load-more-container {
+          display: flex;
+          justify-content: center;
+          margin-top: 2rem;
+        }
+
+        .load-more-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: #ffffff;
+          border: 2px solid #e2e8f0;
+          color: #0f172a;
+          padding: 0.85rem 2rem;
+          border-radius: 12px;
+          font-weight: 700;
+          font-size: 0.95rem;
+          cursor: pointer;
+          transition: all 0.25s;
+        }
+
+        .load-more-btn:hover:not(:disabled) {
+          border-color: #f97316;
+          color: #f97316;
+          box-shadow: 0 6px 20px rgba(249, 115, 22, 0.12);
+          transform: translateY(-1px);
+        }
+
+        .load-more-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .load-more-count {
+          font-weight: 500;
+          color: #64748b;
+          font-size: 0.85rem;
+        }
+
+        .reviews-count-summary {
+          text-align: center;
+          margin-top: 1.5rem;
+          font-size: 0.85rem;
+          color: #94a3b8;
+          font-weight: 600;
+        }
+
+        /* === Character Counter === */
+        .char-counter {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 6px;
+          font-size: 0.78rem;
+          color: #94a3b8;
+        }
+
+        .char-counter .char-warn {
+          color: #ef4444;
+          font-weight: 600;
+        }
+
+        /* === Photo Hint === */
+        .photo-hint {
+          font-size: 0.78rem;
+          color: #94a3b8;
+          margin-top: 6px;
+          font-style: italic;
+        }
+
+        /* === Spin Animation === */
+        .spin-icon {
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* === Breakdown Header & Active Filter Alert === */
+        .breakdown-header-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 1rem;
+          margin-bottom: 0.5rem;
+        }
+        .clear-rating-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: #fef3c7;
+          color: #b45309;
+          border: 1px solid #fde68a;
+          border-radius: 999px;
+          padding: 4px 10px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+        .clear-rating-pill:hover {
+          background: #fde68a;
+          color: #92400e;
+        }
+        .rating-filter-active-alert {
+          background: #fffbeb;
+          border-left: 3px solid #f59e0b;
+          padding: 8px 12px;
+          border-radius: 0 8px 8px 0;
+          font-size: 0.8rem;
+          color: #92400e;
+          margin-bottom: 0.75rem;
+        }
+        .active-dot-indicator {
+          margin-left: 6px;
+          color: #f59e0b;
+          font-weight: 800;
+          font-size: 0.85rem;
+        }
+
+        /* === Active Filters Bar === */
+        .active-filters-bar {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 12px 14px;
+          background: #f8fafc;
+          border: 1px dashed #cbd5e1;
+          border-radius: 12px;
+          margin-top: 1rem;
+        }
+        .active-filters-title {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #475569;
+        }
+        .active-chips-wrap {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 6px;
+          flex: 1;
+        }
+        .active-filter-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: #fff;
+          border: 1px solid #e2e8f0;
+          color: #1e293b;
+          font-size: 0.78rem;
+          font-weight: 600;
+          padding: 3px 8px;
+          border-radius: 999px;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+        .active-filter-badge button {
+          background: none;
+          border: none;
+          color: #94a3b8;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          padding: 0;
+          transition: color 0.15s;
+        }
+        .active-filter-badge button:hover {
+          color: #ef4444;
+        }
+        .my-reviews-badge {
+          background: #eff6ff !important;
+          border-color: #bfdbfe !important;
+          color: #1d4ed8 !important;
+        }
+        .clear-all-btn {
+          background: none;
+          border: none;
+          color: #f97316;
+          font-size: 0.78rem;
+          font-weight: 700;
+          cursor: pointer;
+          padding: 4px 8px;
+          margin-left: auto;
+          border-radius: 6px;
+          transition: all 0.15s;
+        }
+        .clear-all-btn:hover {
+          background: #fff7ed;
+          text-decoration: underline;
+        }
+        .my-reviews-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+        }
+
+        /* === Sentiment Badges & Author Tag === */
+        .stars-cluster-top {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          justify-content: flex-end;
+        }
+        .sentiment-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.72rem;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 999px;
+          margin-top: 4px;
+          align-self: flex-end;
+        }
+        .sentiment-exceptional {
+          background: #ecfdf5;
+          color: #065f46;
+          border: 1px solid #a7f3d0;
+        }
+        .sentiment-great {
+          background: #eff6ff;
+          color: #1e40af;
+          border: 1px solid #bfdbfe;
+        }
+        .sentiment-good {
+          background: #fffbeb;
+          color: #92400e;
+          border: 1px solid #fde68a;
+        }
+        .sentiment-fair {
+          background: #fff7ed;
+          color: #9a3412;
+          border: 1px solid #fed7aa;
+        }
+        .sentiment-poor {
+          background: #fef2f2;
+          color: #991b1b;
+          border: 1px solid #fecaca;
+        }
+        .your-review-badge {
+          display: inline-flex;
+          align-items: center;
+          background: #f0fdf4;
+          color: #166534;
+          border: 1px solid #bbf7d0;
+          font-size: 0.68rem;
+          font-weight: 700;
+          padding: 2px 7px;
+          border-radius: 999px;
+          letter-spacing: 0.02em;
+        }
+
+        /* === Trip Photos Lightbox & Hover === */
+        .trip-photo-wrapper {
+          position: relative;
+          border-radius: 8px;
+          overflow: hidden;
+          cursor: pointer;
+          display: inline-block;
+        }
+        .photo-zoom-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0,0,0,0.38);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+        .trip-photo-wrapper:hover .photo-zoom-overlay {
+          opacity: 1;
+        }
+        .trip-photo-wrapper:hover .trip-photo-thumb {
+          transform: scale(1.06);
+        }
+        .trip-photo-thumb {
+          transition: transform 0.25s ease;
+          width: 80px;
+          height: 60px;
+          object-fit: cover;
+          display: block;
+        }
+
+        /* === Lightbox Overlay === */
+        .lightbox-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.88);
+          backdrop-filter: blur(8px);
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1.5rem;
+          animation: fadeIn 0.2s ease;
+        }
+        .lightbox-modal {
+          position: relative;
+          max-width: 90vw;
+          max-height: 85vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .lightbox-figure {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .lightbox-main-img {
+          max-width: 85vw;
+          max-height: 75vh;
+          border-radius: 12px;
+          object-fit: contain;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .lightbox-caption-tag {
+          margin-top: 10px;
+          color: #e2e8f0;
+          font-size: 0.85rem;
+          font-weight: 600;
+          background: rgba(0, 0, 0, 0.5);
+          padding: 4px 12px;
+          border-radius: 999px;
+        }
+        .lightbox-close-btn {
+          position: absolute;
+          top: -45px;
+          right: 0;
+          background: rgba(255, 255, 255, 0.18);
+          border: none;
+          color: #fff;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .lightbox-close-btn:hover {
+          background: rgba(255, 255, 255, 0.35);
+          transform: rotate(90deg);
+        }
+        .lightbox-nav-btn {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          color: #fff;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s;
+          z-index: 10;
+        }
+        .lightbox-nav-btn:hover {
+          background: rgba(255, 255, 255, 0.4);
+          transform: translateY(-50%) scale(1.08);
+        }
+        .lightbox-nav-btn.prev {
+          left: -55px;
+        }
+        .lightbox-nav-btn.next {
+          right: -55px;
+        }
+        @media (max-width: 640px) {
+          .lightbox-nav-btn.prev { left: 8px; }
+          .lightbox-nav-btn.next { right: 8px; }
+          .lightbox-close-btn { top: -40px; right: 5px; }
+        }
+
+        /* === Share Review Button === */
+        .card-actions-group {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .share-review-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          color: #475569;
+          border-radius: 8px;
+          padding: 6px 12px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .share-review-btn:hover {
+          background: #e2e8f0;
+          color: #0f172a;
+        }
+
+        /* === Photo Input in Wizard === */
+        .photo-input-section {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .photo-divider-or {
+          display: flex;
+          align-items: center;
+          text-align: center;
+          color: #94a3b8;
+          font-size: 0.72rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          margin: 2px 0;
+        }
+        .photo-divider-or::before,
+        .photo-divider-or::after {
+          content: '';
+          flex: 1;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .photo-divider-or span {
+          padding: 0 8px;
+        }
+        .btn-file-picker {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          background: #fff;
+          border: 1.5px dashed #cbd5e1;
+          color: #475569;
+          border-radius: 8px;
+          padding: 9px 14px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .btn-file-picker:hover {
+          border-color: #f97316;
+          color: #ea580c;
+          background: #fff7ed;
+        }
+
+        /* === Shimmer Skeletons === */
+        .skeleton-card {
+          pointer-events: none;
+        }
+        .skeleton-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 1rem;
+        }
+        .skeleton-avatar {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .skeleton-user-meta {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .skeleton-stars {
+          width: 70px;
+          height: 16px;
+          border-radius: 4px;
+        }
+        .skeleton-vehicle {
+          height: 48px;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+        }
+        .skeleton-body {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 1rem;
+        }
+        .skeleton-footer {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 1rem;
+        }
+        .skeleton-pill {
+          width: 90px;
+          height: 28px;
+          border-radius: 6px;
+        }
+        .skeleton-line {
+          height: 12px;
+          border-radius: 4px;
+          width: 100%;
+        }
+        .skeleton-line.title {
+          height: 16px;
+          width: 65%;
+          margin-bottom: 4px;
+        }
+        .skeleton-line.short {
+          width: 45%;
+        }
+        .skeleton-line.extra-short {
+          width: 30%;
+        }
+        .skeleton-line.medium {
+          width: 75%;
+        }
+        .shimmer {
+          background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+
+        /* === Btn Primary Enhancement === */
+        .btn-primary {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .btn-cancel {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
         }
       `}</style>
     </div>

@@ -90,6 +90,7 @@ router.post("/", optionalAuth, async (req, res) => {
       customerPhone,
       customerEmail,
       customerNIC,
+      customerMessage,
       rentMode,
       clientBaseUrl,
     } = req.body;
@@ -155,6 +156,7 @@ router.post("/", optionalAuth, async (req, res) => {
       customerPhone: resolvedCustomerPhone,
       customerEmail: customerEmail || (req.user ? req.user.email : ""),
       customerNIC: customerNIC || "",
+      customerMessage: customerMessage ? String(customerMessage).trim() : "",
       startDate: start,
       endDate: end,
       totalDays,
@@ -188,6 +190,7 @@ router.post("/", optionalAuth, async (req, res) => {
     const rentModeStr = rentMode === "with-driver" ? "With Driver" : "Self-Drive";
 
     const customerDisplay = resolvedCustomerPhone ? `${resolvedCustomerName} (${resolvedCustomerPhone})` : resolvedCustomerName;
+    const trimmedMsg = customerMessage ? String(customerMessage).trim() : "";
     const whatsappMessage = 
       `\u{1F697} *New Booking Request - Yamu Car Rentals*\n` +
       `\u2022 *Ref:* ${bookingNumber}\n` +
@@ -195,9 +198,62 @@ router.post("/", optionalAuth, async (req, res) => {
       `\u2022 *Dates:* ${dateRangeStr} (${totalDays} day${totalDays > 1 ? "s" : ""})\n` +
       `\u2022 *Mode:* ${rentModeStr}\n` +
       `\u2022 *Customer:* ${customerDisplay}\n` +
+      (trimmedMsg ? `\u2022 *Customer Note:* "${trimmedMsg}"\n` : "") +
       `\u2022 *Est. Total:* Rs. ${totalPrice.toLocaleString()}\n\n` +
       `\u{1F511} *Admin Concierge Dispatch Portal:*\n` +
       `${dispatchUrl}`;
+
+    // Fire background automated email alert to all platform administrators
+    (async () => {
+      try {
+        const { sendEmail } = require("../utils/mailer");
+        const adminUsers = await User.find({ role: "admin" }).select("email name");
+        const adminEmails = adminUsers.map((a) => a.email).filter(Boolean);
+        if (!adminEmails.includes("yamucarrentals@gmail.com")) {
+          adminEmails.push("yamucarrentals@gmail.com");
+        }
+
+        const emailHtml = `
+          <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+            <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 18px 22px; border-radius: 8px; color: #ffffff;">
+              <h2 style="margin: 0; font-size: 20px; font-weight: 800;">🚗 New Booking Request Received</h2>
+              <p style="margin: 6px 0 0; opacity: 0.92; font-size: 13px;">Reference ID: <strong>${bookingNumber}</strong></p>
+            </div>
+            <div style="padding: 22px 4px;">
+              <p style="font-size: 14.5px; color: #334155; margin-top: 0;">A customer has just submitted a booking request on <strong>Yamu Car Rentals</strong>.</p>
+              
+              <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px;">
+                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 9px 0; color: #64748b;">Vehicle:</td><td style="padding: 9px 0; font-weight: 700; color: #0f172a;">${vehicle.brand} ${vehicle.model} (${vehicle.year})</td></tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 9px 0; color: #64748b;">Customer:</td><td style="padding: 9px 0; font-weight: 700; color: #0f172a;">${resolvedCustomerName} (${resolvedCustomerPhone})</td></tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 9px 0; color: #64748b;">Rental Dates:</td><td style="padding: 9px 0; font-weight: 700; color: #0f172a;">${dateRangeStr} (${totalDays} day${totalDays > 1 ? "s" : ""})</td></tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 9px 0; color: #64748b;">Mode:</td><td style="padding: 9px 0; font-weight: 700; color: #0f172a;">${rentModeStr}</td></tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 9px 0; color: #64748b;">Total Value:</td><td style="padding: 9px 0; font-weight: 800; color: #ea580c;">Rs. ${totalPrice.toLocaleString()}</td></tr>
+                ${trimmedMsg ? `<tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 9px 0; color: #64748b;">Customer Note:</td><td style="padding: 9px 0; color: #1e293b; font-style: italic; background: #fff7ed; padding: 8px 10px; border-radius: 6px;">"${trimmedMsg}"</td></tr>` : ""}
+              </table>
+
+              <div style="text-align: center; margin: 28px 0 10px;">
+                <a href="${dispatchUrl}" style="background: #f97316; color: #ffffff; padding: 13px 28px; border-radius: 8px; text-decoration: none; font-weight: 800; font-size: 14px; display: inline-block; box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);">
+                  Open Admin Concierge Dispatch Desk →
+                </a>
+              </div>
+            </div>
+            <div style="text-align: center; padding: 14px 0 0; font-size: 11.5px; color: #94a3b8; border-top: 1px solid #f1f5f9;">
+              Yamu Car Rentals Platform Operations • Instant Booking Notification
+            </div>
+          </div>
+        `;
+
+        for (const email of adminEmails) {
+          sendEmail({
+            to: email,
+            subject: `[New Booking ${bookingNumber}] ${vehicle.brand} ${vehicle.model} - ${resolvedCustomerName}`,
+            html: emailHtml,
+          }).catch((e) => console.warn(`Admin notification email to ${email} failed:`, e.message));
+        }
+      } catch (mailErr) {
+        console.warn("Background admin email alert error:", mailErr.message);
+      }
+    })();
 
     res.status(201).json({
       success: true,
@@ -619,7 +675,12 @@ router.patch("/:id/cancel", auth, async (req, res) => {
 // @desc    Admin fetches all platform bookings for Admin Panel
 router.get("/admin/all", auth, async (req, res) => {
   try {
-    if (req.user.role !== "admin") return res.status(403).json({ msg: "Admin access required" });
+    let role = req.user?.role;
+    if (!role && req.user?.id) {
+      const dbUser = await User.findById(req.user.id).select("role");
+      role = dbUser?.role;
+    }
+    if (role !== "admin") return res.status(403).json({ msg: "Admin access required" });
 
     const { status } = req.query;
     const query = {};
@@ -628,6 +689,7 @@ router.get("/admin/all", auth, async (req, res) => {
     const bookings = await Booking.find(query)
       .populate("vehicle", "brand model year vehicleType pricePerDay images location")
       .populate("assignedVehicle", "brand model year vehicleType pricePerDay images location")
+      .populate("customer", "name phone email profileImage")
       .populate("host", "name phone email")
       .populate("company", "companyName logo phone")
       .sort({ createdAt: -1 });

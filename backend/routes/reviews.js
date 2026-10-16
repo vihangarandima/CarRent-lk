@@ -42,12 +42,18 @@ router.get("/", async (req, res) => {
       rating,
       tripType,
       search,
+      userId,
       sort = "newest",
       page = 1,
       limit = 20,
     } = req.query;
 
     let filter = {};
+
+    // Filter by specific user (e.g. My Reviews)
+    if (userId) {
+      filter.user = userId;
+    }
 
     // Filter by specific rating threshold
     if (rating && rating !== "all") {

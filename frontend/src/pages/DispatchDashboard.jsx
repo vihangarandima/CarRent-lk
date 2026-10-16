@@ -451,6 +451,25 @@ export default function DispatchDashboard() {
                 </div>
               </div>
 
+              {booking.customerMessage && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    background: "#fff7ed",
+                    border: "1px solid #fed7aa",
+                    borderRadius: 8,
+                    padding: "8px 12px",
+                    fontSize: "0.82rem",
+                    color: "#9a3412",
+                  }}
+                >
+                  <strong style={{ display: "block", fontSize: "0.74rem", textTransform: "uppercase", color: "#ea580c" }}>
+                    Customer Note / Special Request:
+                  </strong>
+                  "{booking.customerMessage}"
+                </div>
+              )}
+
               {/* Customer WhatsApp / Call Triggers */}
               <div className="action-row mt-3">
                 {customerWaNumber && (

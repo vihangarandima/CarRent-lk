@@ -56,6 +56,11 @@ const BookingSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    customerMessage: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     startDate: {
       type: Date,
       required: true,

@@ -22,7 +22,7 @@ const findUserByEmail = (email) =>
   User.findOne({ email: new RegExp(`^${escapeRegex(email)}$`, "i") });
 
 const signToken = (user) =>
-  jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
 const publicUser = (user) => ({
   id: user._id,
