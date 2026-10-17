@@ -3789,36 +3789,36 @@ const AdminDashboard = () => {
 
                 return (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
-                    <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px" }}>
-                      <span style={{ fontSize: "0.74rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Total Requests</span>
-                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#0f172a", marginTop: 2 }}>{totalInquiries}</div>
-                      <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>Across platform</span>
+                    <div style={{ background: "#111827", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 12, padding: "14px 16px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase" }}>Total Requests</span>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#ffffff", marginTop: 2 }}>{totalInquiries}</div>
+                      <span style={{ fontSize: "0.72rem", color: "#64748b" }}>Across platform</span>
                     </div>
 
-                    <div style={{ background: "#fff7ed", border: "1px solid #ffedd5", borderRadius: 12, padding: "14px 16px" }}>
-                      <span style={{ fontSize: "0.74rem", color: "#ea580c", fontWeight: 700, textTransform: "uppercase" }}>Awaiting Action</span>
-                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#c2410c", marginTop: 2 }}>{pendingCnt}</div>
+                    <div style={{ background: "rgba(249, 115, 22, 0.08)", border: "1px solid rgba(249, 115, 22, 0.2)", borderRadius: 12, padding: "14px 16px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "#fb923c", fontWeight: 700, textTransform: "uppercase" }}>Awaiting Action</span>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#f97316", marginTop: 2 }}>{pendingCnt}</div>
                       <span style={{ fontSize: "0.72rem", color: "#ea580c" }}>Pending verification</span>
                     </div>
 
-                    <div style={{ background: "#fefce8", border: "1px solid #fef08a", borderRadius: 12, padding: "14px 16px" }}>
-                      <span style={{ fontSize: "0.74rem", color: "#a16207", fontWeight: 700, textTransform: "uppercase" }}>Alternative Needed</span>
-                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#854d0e", marginTop: 2 }}>{altCnt}</div>
-                      <span style={{ fontSize: "0.72rem", color: "#a16207" }}>Car unavailable</span>
+                    <div style={{ background: "rgba(234, 179, 8, 0.08)", border: "1px solid rgba(234, 179, 8, 0.2)", borderRadius: 12, padding: "14px 16px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "#facc15", fontWeight: 700, textTransform: "uppercase" }}>Alternative Needed</span>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#eab308", marginTop: 2 }}>{altCnt}</div>
+                      <span style={{ fontSize: "0.72rem", color: "#ca8a04" }}>Car unavailable</span>
                     </div>
 
-                    <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "14px 16px" }}>
-                      <span style={{ fontSize: "0.74rem", color: "#16a34a", fontWeight: 700, textTransform: "uppercase" }}>Confirmed</span>
-                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#15803d", marginTop: 2 }}>{confCnt}</div>
-                      <span style={{ fontSize: "0.72rem", color: "#16a34a" }}>Synced to Rentals</span>
+                    <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 12, padding: "14px 16px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "#34d399", fontWeight: 700, textTransform: "uppercase" }}>Confirmed</span>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#10b981", marginTop: 2 }}>{confCnt}</div>
+                      <span style={{ fontSize: "0.72rem", color: "#34d399" }}>Synced to Rentals</span>
                     </div>
 
-                    <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px" }}>
-                      <span style={{ fontSize: "0.74rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Pipeline Value</span>
-                      <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
+                    <div style={{ background: "#111827", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 12, padding: "14px 16px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase" }}>Pipeline Value</span>
+                      <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#ffffff", marginTop: 2 }}>
                         LKR {totalPipeline.toLocaleString()}
                       </div>
-                      <span style={{ fontSize: "0.72rem", color: "#16a34a" }}>Gross rental requests</span>
+                      <span style={{ fontSize: "0.72rem", color: "#10b981" }}>Gross rental requests</span>
                     </div>
                   </div>
                 );
@@ -3849,9 +3849,9 @@ const AdminDashboard = () => {
                           fontSize: "0.8rem",
                           fontWeight: bookingStatusFilter === filter.id ? 750 : 600,
                           border: "1px solid",
-                          borderColor: bookingStatusFilter === filter.id ? "#f97316" : "#e2e8f0",
-                          background: bookingStatusFilter === filter.id ? "#fff7ed" : "#ffffff",
-                          color: bookingStatusFilter === filter.id ? "#ea580c" : "#475569",
+                          borderColor: bookingStatusFilter === filter.id ? "#f97316" : "rgba(255, 255, 255, 0.12)",
+                          background: bookingStatusFilter === filter.id ? "rgba(249, 115, 22, 0.18)" : "rgba(255, 255, 255, 0.04)",
+                          color: bookingStatusFilter === filter.id ? "#fb923c" : "#94a3b8",
                           cursor: "pointer",
                           display: "inline-flex",
                           alignItems: "center",
@@ -3860,7 +3860,7 @@ const AdminDashboard = () => {
                         }}
                       >
                         <span>{filter.label}</span>
-                        <span style={{ background: bookingStatusFilter === filter.id ? "#ffedd5" : "#f1f5f9", padding: "1px 6px", borderRadius: 999, fontSize: "0.7rem" }}>
+                        <span style={{ background: bookingStatusFilter === filter.id ? "rgba(249, 115, 22, 0.3)" : "rgba(255, 255, 255, 0.08)", color: bookingStatusFilter === filter.id ? "#ffffff" : "#94a3b8", padding: "1px 6px", borderRadius: 999, fontSize: "0.7rem" }}>
                           {count}
                         </span>
                       </button>
@@ -3878,9 +3878,10 @@ const AdminDashboard = () => {
                       width: "100%",
                       padding: "7px 12px 7px 32px",
                       borderRadius: 8,
-                      border: "1px solid #cbd5e1",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
                       fontSize: "0.82rem",
-                      background: "#ffffff",
+                      background: "#111827",
+                      color: "#ffffff",
                     }}
                   />
                   <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
@@ -3922,11 +3923,11 @@ const AdminDashboard = () => {
                   }
 
                   const statusBadges = {
-                    pending: { label: "Pending", bg: "#fff7ed", color: "#ea580c" },
-                    reviewing: { label: "In Review", bg: "#eff6ff", color: "#2563eb" },
-                    finding_alternative: { label: "Alternative Needed", bg: "#fefce8", color: "#a16207" },
-                    confirmed: { label: "Confirmed", bg: "#f0fdf4", color: "#16a34a" },
-                    cancelled: { label: "Cancelled", bg: "#f8fafc", color: "#64748b" },
+                    pending: { label: "Pending", bg: "rgba(249, 115, 22, 0.16)", color: "#fb923c" },
+                    reviewing: { label: "In Review", bg: "rgba(59, 130, 246, 0.16)", color: "#60a5fa" },
+                    finding_alternative: { label: "Alternative Needed", bg: "rgba(234, 179, 8, 0.16)", color: "#facc15" },
+                    confirmed: { label: "Confirmed", bg: "rgba(16, 185, 129, 0.16)", color: "#34d399" },
+                    cancelled: { label: "Cancelled", bg: "rgba(148, 163, 184, 0.14)", color: "#94a3b8" },
                   };
 
                   return (
@@ -3947,7 +3948,7 @@ const AdminDashboard = () => {
                         <tbody>
                           {filtered.map((b) => {
                             const veh = b.assignedVehicle || b.vehicle;
-                            const badge = statusBadges[b.status] || { label: b.status, bg: "#f1f5f9", color: "#475569" };
+                            const badge = statusBadges[b.status] || { label: b.status, bg: "rgba(148, 163, 184, 0.14)", color: "#94a3b8" };
                             const hostName = b.company?.companyName || b.host?.name || "Host";
                             const hostStatus = b.hostAvailabilityStatus;
 
@@ -3955,7 +3956,7 @@ const AdminDashboard = () => {
                               <tr key={b._id}>
                                 <td>
                                   <div>
-                                    <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: "0.85rem", color: "#0f172a" }}>
+                                    <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: "0.85rem", color: "#f8fafc" }}>
                                       {b.bookingNumber}
                                     </span>
                                     <span style={{ display: "block", fontSize: "0.72rem", color: "#94a3b8" }}>
@@ -3969,14 +3970,14 @@ const AdminDashboard = () => {
                                     <img
                                       src={formatVehicleImageUrl(veh?.images?.[0])}
                                       alt={veh?.brand}
-                                      style={{ width: 44, height: 32, objectFit: "cover", borderRadius: 6, border: "1px solid #e2e8f0" }}
+                                      style={{ width: 44, height: 32, objectFit: "cover", borderRadius: 6, border: "1px solid rgba(255, 255, 255, 0.12)" }}
                                       onError={handleImageError}
                                     />
                                     <div>
-                                      <span style={{ fontWeight: 700, fontSize: "0.84rem", display: "block", color: "#0f172a" }}>
+                                      <span style={{ fontWeight: 700, fontSize: "0.84rem", display: "block", color: "#ffffff" }}>
                                         {veh?.brand || "Vehicle"} {veh?.model || ""}
                                       </span>
-                                      <span style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                                      <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
                                         {veh?.year || ""} · {veh?.location || "Sri Lanka"}
                                       </span>
                                     </div>
@@ -3985,7 +3986,7 @@ const AdminDashboard = () => {
 
                                 <td>
                                   <div>
-                                    <span style={{ fontWeight: 700, fontSize: "0.84rem", display: "block", color: "#0f172a" }}>
+                                    <span style={{ fontWeight: 700, fontSize: "0.84rem", display: "block", color: "#ffffff" }}>
                                       {b.customerName || "Customer"}
                                     </span>
                                     {b.customerPhone ? (
@@ -3993,7 +3994,7 @@ const AdminDashboard = () => {
                                         href={`https://wa.me/${(b.customerPhone || "").replace(/\D/g, "")}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        style={{ fontSize: "0.74rem", color: "#16a34a", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 }}
+                                        style={{ fontSize: "0.74rem", color: "#22c55e", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 }}
                                       >
                                         <Phone size={10} /> {b.customerPhone}
                                       </a>
@@ -4004,13 +4005,13 @@ const AdminDashboard = () => {
                                       <div
                                         style={{
                                           marginTop: 5,
-                                          background: "#f8fafc",
-                                          border: "1px solid #e2e8f0",
+                                          background: "rgba(255, 255, 255, 0.04)",
+                                          border: "1px solid rgba(255, 255, 255, 0.08)",
                                           borderLeft: "3px solid #f97316",
                                           borderRadius: 4,
                                           padding: "3px 6px",
                                           fontSize: "0.73rem",
-                                          color: "#334155",
+                                          color: "#cbd5e1",
                                           maxWidth: 220,
                                           wordBreak: "break-word",
                                           lineHeight: 1.3,
@@ -4026,7 +4027,7 @@ const AdminDashboard = () => {
 
                                 <td>
                                   <div>
-                                    <span style={{ fontSize: "0.82rem", fontWeight: 650, color: "#334155", display: "block" }}>
+                                    <span style={{ fontSize: "0.82rem", fontWeight: 650, color: "#e2e8f0", display: "block" }}>
                                       {hostName}
                                     </span>
                                     {hostStatus === "available" ? (
@@ -4047,7 +4048,7 @@ const AdminDashboard = () => {
 
                                 <td>
                                   <div>
-                                    <span style={{ fontSize: "0.8rem", color: "#0f172a", fontWeight: 600, display: "block" }}>
+                                    <span style={{ fontSize: "0.8rem", color: "#ffffff", fontWeight: 600, display: "block" }}>
                                       {new Date(b.startDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} → {new Date(b.endDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                                     </span>
                                     <span style={{ fontSize: "0.72rem", color: "#ea580c", fontWeight: 700 }}>
@@ -4058,10 +4059,10 @@ const AdminDashboard = () => {
 
                                 <td>
                                   <div>
-                                    <span style={{ fontWeight: 800, fontSize: "0.88rem", color: "#0f172a", display: "block" }}>
+                                    <span style={{ fontWeight: 800, fontSize: "0.88rem", color: "#ffffff", display: "block" }}>
                                       LKR {(b.totalPrice || 0).toLocaleString()}
                                     </span>
-                                    <span style={{ fontSize: "0.7rem", color: "#64748b" }}>
+                                    <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>
                                       {(b.dailyRate || 0).toLocaleString()} / day
                                     </span>
                                   </div>
