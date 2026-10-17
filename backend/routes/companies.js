@@ -8,8 +8,8 @@ const Review = require('../models/Review');
 const { auth, escapeRegex } = require('../middleware/auth');
 
 // Listings the owner paused or an admin flagged are not shown publicly
-// Only approved, live listings are shown publicly (not pending, rejected, paused, flagged or rented)
-const PUBLIC_STATUS_FILTER = { status: 'active' };
+// Only approved, live listings are shown publicly (includes active listings and vehicles rented on dates)
+const PUBLIC_STATUS_FILTER = { status: { $in: ['active', 'rented'] } };
 
 // @route   GET /api/companies
 // @desc    Get all companies with vehicle counts (public)

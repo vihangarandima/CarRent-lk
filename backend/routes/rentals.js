@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Rental = require("../models/Rental");
+const Booking = require("../models/Booking");
 const Vehicle = require("../models/Vehicle");
 const Company = require("../models/Company");
 const mongoose = require("mongoose");
@@ -10,20 +11,51 @@ const { autoExpireRentals } = require("../utils/rentalExpiry");
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // @route   GET api/rentals/vehicle/:id
-// @desc    Get active booked date ranges for a vehicle (public)
+// @desc    Get active booked date ranges for a vehicle (merges active rentals and live bookings)
 router.get("/vehicle/:id", async (req, res) => {
   try {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Invalid vehicle ID" });
     await autoExpireRentals(); // Check global overdue rentals
     const now = new Date();
-    // Read-only: overdue rentals are expired by the background job in server.js, which also
-    // puts the vehicle back to "active". Only upcoming/current bookings are returned here.
+
+    // 1. Active rentals from Rental collection
     const activeRentals = await Rental.find({
       vehicle: req.params.id,
       status: "active",
       returnDate: { $gte: now },
     }).select("pickupDate returnDate");
-    res.json(activeRentals);
+
+    // 2. Active bookings (confirmed, reviewing, or pending) from Booking collection
+    const activeBookings = await Booking.find({
+      $or: [{ vehicle: req.params.id }, { assignedVehicle: req.params.id }],
+      status: { $in: ["confirmed", "pending", "reviewing"] },
+      endDate: { $gte: now },
+    }).select("startDate endDate status");
+
+    const intervals = [];
+
+    activeRentals.forEach((r) => {
+      if (r.pickupDate && r.returnDate) {
+        intervals.push({
+          pickupDate: r.pickupDate,
+          returnDate: r.returnDate,
+          source: "rental",
+        });
+      }
+    });
+
+    activeBookings.forEach((b) => {
+      if (b.startDate && b.endDate) {
+        intervals.push({
+          pickupDate: b.startDate,
+          returnDate: b.endDate,
+          source: "booking",
+          status: b.status,
+        });
+      }
+    });
+
+    res.json(intervals);
   } catch (err) {
     console.error("Error fetching vehicle booked dates:", err);
     res.status(500).json({ msg: "Server Error" });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   MapPin,
@@ -13,6 +13,8 @@ import {
   Phone,
   Gauge,
   Calendar,
+  CalendarX,
+  AlertTriangle,
   KeyRound,
   Building2,
   Shield,
@@ -75,6 +77,38 @@ const VehicleDetail = () => {
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
   });
 
+  // Helper: check if a calendar day falls within any active booked interval
+  const isDateBooked = (date) => {
+    if (!date || !bookedIntervals || bookedIntervals.length === 0) return false;
+    const d = new Date(date).setHours(0, 0, 0, 0);
+    return bookedIntervals.some((interval) => {
+      const s = new Date(interval.start).setHours(0, 0, 0, 0);
+      const e = new Date(interval.end).setHours(0, 0, 0, 0);
+      return d >= s && d <= e;
+    });
+  };
+
+  // Helper: detect if currently selected dates collide with existing bookings (must be top-level hook)
+  const bookingConflict = useMemo(() => {
+    if (!startDate || !bookedIntervals || bookedIntervals.length === 0) return null;
+    const s = new Date(startDate).setHours(0, 0, 0, 0);
+    const e = endDate ? new Date(endDate).setHours(0, 0, 0, 0) : s;
+
+    for (const interval of bookedIntervals) {
+      const iStart = new Date(interval.start).setHours(0, 0, 0, 0);
+      const iEnd = new Date(interval.end).setHours(0, 0, 0, 0);
+      if (s <= iEnd && e >= iStart) {
+        return {
+          start: new Date(interval.start),
+          end: new Date(interval.end),
+        };
+      }
+    }
+    return null;
+  }, [startDate, endDate, bookedIntervals]);
+
+  const isBookedConflict = Boolean(bookingConflict);
+
   useEffect(() => {
     const fetchVehicleData = async () => {
       try {
@@ -97,8 +131,8 @@ const VehicleDetail = () => {
         if (Array.isArray(rentalsRes.data)) {
           setBookedIntervals(
             rentalsRes.data.map((r) => ({
-              start: new Date(r.pickupDate),
-              end: new Date(r.returnDate),
+              start: new Date(r.pickupDate || r.startDate),
+              end: new Date(r.returnDate || r.endDate),
             }))
           );
         }
@@ -125,6 +159,14 @@ const VehicleDetail = () => {
   const handleContact = (e) => {
     if (e) e.preventDefault();
     if (bookingSubmitting) return;
+
+    if (isBookedConflict) {
+      toast.error(
+        `This vehicle is already booked from ${bookingConflict.start.toLocaleDateString("en-GB")} to ${bookingConflict.end.toLocaleDateString("en-GB")}. Please select different dates.`,
+        "Vehicle Unavailable"
+      );
+      return;
+    }
 
     if (belowMinDays) {
       toast.warning(`This vehicle is rented for at least ${minDays} days. Please choose a longer period.`, "Minimum Rental");
@@ -274,7 +316,7 @@ const VehicleDetail = () => {
   const directPhone = vehicle.company?.phone || vehicle.owner?.phone || "";
   const viewer = getStoredUser();
   const isOwnListing = Boolean(viewer && vehicle.owner?._id && (viewer.id || viewer._id) === vehicle.owner._id);
-  const isUnavailable = ["hidden", "flagged", "rented", "pending", "rejected"].includes(vehicle.status);
+  const isUnavailable = ["hidden", "flagged", "pending", "rejected"].includes(vehicle.status);
   const rentModeLabel = { "self-drive": "Self-drive", "with-driver": "With driver", both: "Self-drive or with driver" }[vehicle.rentMode || "self-drive"];
   const kmPerDay = vehicle.kmPerDay === 0 ? 0 : vehicle.kmPerDay || 100;
   const minDays = vehicle.minRentalDays || 1;
@@ -564,8 +606,19 @@ const VehicleDetail = () => {
                       selectsRange
                       inline
                       minDate={new Date()}
-                      excludeDateIntervals={bookedIntervals}
+                      dayClassName={(date) => (isDateBooked(date) ? "booked-day-pill" : undefined)}
                     />
+                    <div className="calendar-legend">
+                      <span className="legend-item">
+                        <span className="legend-swatch swatch-available" /> Available
+                      </span>
+                      <span className="legend-item">
+                        <span className="legend-swatch swatch-booked" /> Booked / Unavailable
+                      </span>
+                      <span className="legend-item">
+                        <span className="legend-swatch swatch-selected" /> Selected
+                      </span>
+                    </div>
                   </div>
 
                   {belowMinDays && (
@@ -699,25 +752,50 @@ const VehicleDetail = () => {
                     />
                   </div>
 
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    onClick={handleContact}
-                    disabled={bookingSubmitting}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px",
-                      marginTop: "1rem",
-                      opacity: bookingSubmitting ? 0.7 : 1,
-                      cursor: bookingSubmitting ? "wait" : "pointer"
-                    }}
-                  >
-                    <MessageSquare size={18} />
-                    <span>{bookingSubmitting ? "Connecting..." : "Contact via WhatsApp"}</span>
-                  </button>
+                  {isBookedConflict ? (
+                    <div style={{ marginTop: "1rem" }}>
+                      <div className="booked-conflict-box">
+                        <AlertTriangle size={18} style={{ color: "#dc2626", flexShrink: 0, marginTop: 2 }} />
+                        <div>
+                          <strong>Vehicle Booked for Selected Dates</strong>
+                          <p>
+                            This vehicle is already reserved for dates overlapping your selection (
+                            <b>{bookingConflict.start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</b> to{" "}
+                            <b>{bookingConflict.end.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</b>
+                            ). Please choose other dates on the calendar.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-booked-disabled"
+                        disabled
+                      >
+                        <CalendarX size={18} />
+                        <span>Booked for these dates</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={handleContact}
+                      disabled={bookingSubmitting}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px",
+                        marginTop: "1rem",
+                        opacity: bookingSubmitting ? 0.7 : 1,
+                        cursor: bookingSubmitting ? "wait" : "pointer"
+                      }}
+                    >
+                      <MessageSquare size={18} />
+                      <span>{bookingSubmitting ? "Connecting..." : "Contact via WhatsApp"}</span>
+                    </button>
+                  )}
 
                   {directPhone && (
                     <a
@@ -1051,77 +1129,310 @@ const VehicleDetail = () => {
         .booking-form > p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; line-height: 1.5; }
         .booking-form { display: flex; flex-direction: column; }
         
-        /* Custom react-datepicker styling for premium look */
+        /* Custom react-datepicker styling for premium symmetrical alignment */
         .calendar-wrapper {
           display: flex;
-          justify-content: center;
+          flex-direction: column;
+          align-items: center;
           width: 100%;
+          box-sizing: border-box;
         }
         .react-datepicker {
+          display: block !important;
           border: 1px solid var(--border) !important;
-          border-radius: 12px !important;
+          border-radius: 16px !important;
           font-family: inherit !important;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
-          padding: 0.5rem !important;
-          width: 100%;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.06) !important;
+          padding: 1rem 0.75rem 0.85rem !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+          background: #ffffff !important;
+          position: relative !important;
         }
         .react-datepicker__month-container {
-          width: 100%;
+          width: 100% !important;
+          float: none !important;
         }
         .react-datepicker__header {
           background-color: transparent !important;
-          border-bottom: 1px solid var(--border) !important;
-          padding-top: 0.5rem !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+          padding: 0 0 0.6rem !important;
+          margin: 0 !important;
+          position: relative !important;
         }
         .react-datepicker__current-month {
           font-weight: 700 !important;
-          font-size: 1rem !important;
+          font-size: 0.95rem !important;
           color: #0f172a !important;
-          margin-bottom: 0.5rem !important;
+          margin: 0 0 0.75rem !important;
+          text-align: center !important;
+          padding: 0 2rem !important;
+        }
+        .react-datepicker__navigation {
+          position: absolute !important;
+          top: 0.85rem !important;
+          height: 28px !important;
+          width: 28px !important;
+          border-radius: 8px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          background: #f8fafc !important;
+          border: 1px solid #e2e8f0 !important;
+          cursor: pointer !important;
+          transition: all 0.2s ease !important;
+          padding: 0 !important;
+          z-index: 2 !important;
+        }
+        .react-datepicker__navigation:hover {
+          background: #f1f5f9 !important;
+          border-color: #cbd5e1 !important;
+        }
+        .react-datepicker__navigation--previous {
+          left: 0.75rem !important;
+        }
+        .react-datepicker__navigation--next {
+          right: 0.75rem !important;
+        }
+        .react-datepicker__navigation-icon {
+          top: 0 !important;
+          left: 0 !important;
+          position: relative !important;
+          width: 0 !important;
+        }
+        .react-datepicker__navigation-icon::before {
+          border-color: #475569 !important;
+          border-width: 2px 2px 0 0 !important;
+          width: 7px !important;
+          height: 7px !important;
+          top: -4px !important;
+          position: absolute !important;
+        }
+        .react-datepicker__navigation-icon--previous::before {
+          transform: rotate(225deg) !important;
+          right: -3px !important;
+        }
+        .react-datepicker__navigation-icon--next::before {
+          transform: rotate(45deg) !important;
+          left: -4px !important;
+        }
+        .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+          border-color: #0f172a !important;
+        }
+        .react-datepicker__month {
+          margin: 0 !important;
+          padding: 0.5rem 0 0.2rem !important;
+          width: 100% !important;
+        }
+        .react-datepicker__day-names,
+        .react-datepicker__week {
+          display: grid !important;
+          grid-template-columns: repeat(7, 1fr) !important;
+          justify-items: center !important;
+          align-items: center !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
+        }
+        .react-datepicker__day-names {
+          margin-bottom: 0 !important;
         }
         .react-datepicker__day-name {
-          color: var(--text-muted) !important;
-          font-weight: 600 !important;
-          width: 2rem !important;
-          line-height: 2rem !important;
-          margin: 0.2rem !important;
+          color: #64748b !important;
+          font-weight: 700 !important;
+          font-size: 0.74rem !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
+          width: 34px !important;
+          height: 26px !important;
+          line-height: 26px !important;
+          margin: 0 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-sizing: border-box !important;
         }
         .react-datepicker__day {
-          width: 2rem !important;
-          line-height: 2rem !important;
-          margin: 0.2rem !important;
-          border-radius: 6px !important;
+          width: 34px !important;
+          height: 34px !important;
+          line-height: 34px !important;
+          margin: 2px 0 !important;
+          border-radius: 8px !important;
           color: #0f172a !important;
           font-weight: 500 !important;
-          transition: all 0.2s;
+          font-size: 0.85rem !important;
+          transition: all 0.15s ease !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-sizing: border-box !important;
+          border: 1px solid transparent !important;
         }
         .react-datepicker__day:hover {
           background-color: var(--primary-soft) !important;
           color: var(--primary) !important;
+          border-color: rgba(249, 115, 22, 0.3) !important;
+        }
+        .react-datepicker__day--disabled {
+          color: #cbd5e1 !important;
+          cursor: not-allowed !important;
+          pointer-events: none !important;
+          background: transparent !important;
+        }
+        .react-datepicker__day--outside-month {
+          color: #e2e8f0 !important;
+          pointer-events: none !important;
+          opacity: 0.25 !important;
+          background: transparent !important;
+          border: none !important;
+        }
+        .react-datepicker__day--outside-month.booked-day-pill {
+          background: transparent !important;
+          border: none !important;
+          color: #e2e8f0 !important;
+          text-decoration: none !important;
+          opacity: 0.15 !important;
         }
         .react-datepicker__day--selected, 
-        .react-datepicker__day--in-range, 
-        .react-datepicker__day--in-selecting-range {
+        .react-datepicker__day--range-start,
+        .react-datepicker__day--range-end {
           background-color: var(--primary) !important;
           color: white !important;
           font-weight: 700 !important;
+          border-color: var(--primary) !important;
+        }
+        .react-datepicker__day--range-start:not(.react-datepicker__day--range-end) {
+          border-radius: 8px 0 0 8px !important;
+        }
+        .react-datepicker__day--range-end:not(.react-datepicker__day--range-start) {
+          border-radius: 0 8px 8px 0 !important;
+        }
+        .react-datepicker__day--in-range:not(.react-datepicker__day--range-start):not(.react-datepicker__day--range-end) {
+          background-color: #ffedd5 !important;
+          color: #c2410c !important;
+          font-weight: 600 !important;
+          border-radius: 0 !important;
+          border-color: #ffedd5 !important;
         }
         .react-datepicker__day--in-selecting-range:not(.react-datepicker__day--in-range) {
-          background-color: rgba(249, 115, 22, 0.4) !important;
+          background-color: #fff7ed !important;
+          color: #ea580c !important;
         }
-        /* Excluded / Booked Dates */
-        .react-datepicker__day--excluded {
-          background-color: #f1f5f9 !important;
-          color: #cbd5e1 !important;
+        .react-datepicker__day--today:not(.react-datepicker__day--selected):not(.react-datepicker__day--in-range):not(.booked-day-pill) {
+          font-weight: 800 !important;
+          color: var(--primary) !important;
+          border-color: #fdba74 !important;
+          background-color: #fff7ed !important;
+        }
+        /* Excluded / Booked Dates Highlight */
+        .react-datepicker__day--excluded,
+        .booked-day-pill {
+          background-color: #fee2e2 !important;
+          border: 1px solid #fca5a5 !important;
+          color: #dc2626 !important;
+          font-weight: 750 !important;
           text-decoration: line-through !important;
-          cursor: not-allowed !important;
+          cursor: pointer !important;
+          box-sizing: border-box !important;
+          border-radius: 8px !important;
+          opacity: 0.95 !important;
         }
-        .react-datepicker__day--excluded:hover {
-          background-color: #f1f5f9 !important;
-          color: #cbd5e1 !important;
+        .react-datepicker__day--excluded:hover,
+        .booked-day-pill:hover {
+          background-color: #fecaca !important;
+          color: #b91c1c !important;
+          border-color: #f87171 !important;
         }
-        .react-datepicker__navigation {
-          top: 0.8rem !important;
+
+        /* Calendar Legend */
+        .calendar-legend {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          margin-top: 12px;
+          padding: 8px 12px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          font-size: 0.74rem;
+          color: #475569;
+          width: 100%;
+          box-sizing: border-box;
+          flex-wrap: wrap;
+        }
+        .legend-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-weight: 600;
+        }
+        .legend-swatch {
+          width: 12px;
+          height: 12px;
+          border-radius: 3px;
+          display: inline-block;
+          flex-shrink: 0;
+        }
+        .swatch-available {
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+        }
+        .swatch-booked {
+          background: #fee2e2;
+          border: 1px solid #ef4444;
+        }
+        .swatch-selected {
+          background: #f97316;
+          border: 1px solid #ea580c;
+        }
+
+        /* Booking Conflict Warning Box */
+        .booked-conflict-box {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-left: 4px solid #ef4444;
+          border-radius: 8px;
+          padding: 10px 12px;
+          margin-bottom: 10px;
+          display: flex;
+          gap: 10px;
+          align-items: flex-start;
+          color: #991b1b;
+          font-size: 0.82rem;
+          line-height: 1.4;
+          animation: fadeIn 0.2s ease;
+        }
+        .booked-conflict-box strong {
+          display: block;
+          font-size: 0.85rem;
+          color: #7f1d1d;
+          margin-bottom: 2px;
+        }
+        .booked-conflict-box p {
+          margin: 0;
+          color: #991b1b;
+        }
+
+        /* Disabled Booked Button */
+        .btn-booked-disabled {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 11px 16px;
+          border-radius: 8px;
+          border: 1px solid #fca5a5;
+          background: #fef2f2;
+          color: #dc2626;
+          font-weight: 750;
+          font-size: 0.92rem;
+          cursor: not-allowed;
+          opacity: 0.95;
+          letter-spacing: 0.01em;
+          box-shadow: 0 1px 2px rgba(220, 38, 38, 0.08);
         }
 
         /* Dynamic Trip Pricing Card */

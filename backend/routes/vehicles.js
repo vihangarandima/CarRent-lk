@@ -5,13 +5,15 @@ const Vehicle = require("../models/Vehicle");
 const Company = require("../models/Company");
 const User = require("../models/User");
 const Review = require("../models/Review");
+const Rental = require("../models/Rental");
+const Booking = require("../models/Booking");
 const { auth, escapeRegex } = require("../middleware/auth");
 const { autoExpireRentals } = require("../utils/rentalExpiry");
 
 const VEHICLE_TYPES = ["bicycle", "threewheeler", "mini-car", "car", "premium-car", "mini-van", "van", "others"];
 
-// Only active, approved listings are shown to public browsing customers
-const PUBLIC_STATUS_FILTER = { status: "active" };
+// Both active listings and vehicles currently booked for dates remain visible in the catalog
+const PUBLIC_STATUS_FILTER = { status: { $in: ["active", "rented"] } };
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -34,13 +36,13 @@ const cleanImages = (images) =>
     : [];
 
 // @route   GET api/vehicles
-// @desc    Get all vehicles with filters (only active public listings by default)
+// @desc    Get all vehicles with filters (shows both available and date-booked vehicles)
 router.get("/", async (req, res) => {
   try {
     await autoExpireRentals(); // Refresh overdue rentals into active inventory
     const { brand, model, location, minPrice, maxPrice, companyId, vehicleType, mode } = req.query;
-    // Only approved, live listings are public — the query string can't widen this
-    let query = { status: "active" };
+    // Approved vehicles remain listed even when booked for specific dates
+    let query = { status: { $in: ["active", "rented"] } };
     // "self-drive" also matches vehicles offered both ways (and older listings without a mode)
     if (mode === "self-drive") query.rentMode = { $in: ["self-drive", "both", null] };
     else if (mode === "with-driver") query.rentMode = { $in: ["with-driver", "both"] };
@@ -63,7 +65,62 @@ router.get("/", async (req, res) => {
       .populate("company", "companyName logo address phone contactEmail isVerified")
       .sort({ isFeatured: -1, createdAt: -1 })
       .lean();
-    res.json(vehicles);
+
+    const vehicleIds = vehicles.map((v) => v._id);
+    const now = new Date();
+
+    const [activeRentals, activeBookings] = await Promise.all([
+      Rental.find({
+        vehicle: { $in: vehicleIds },
+        status: "active",
+        returnDate: { $gte: now },
+      }).select("vehicle pickupDate returnDate").lean(),
+      Booking.find({
+        $or: [
+          { vehicle: { $in: vehicleIds } },
+          { assignedVehicle: { $in: vehicleIds } },
+        ],
+        status: { $in: ["confirmed", "pending", "reviewing"] },
+        endDate: { $gte: now },
+      }).select("vehicle assignedVehicle startDate endDate status").lean(),
+    ]);
+
+    const intervalsByVeh = {};
+    activeRentals.forEach((r) => {
+      const vid = r.vehicle?.toString();
+      if (!vid) return;
+      intervalsByVeh[vid] = intervalsByVeh[vid] || [];
+      intervalsByVeh[vid].push({
+        pickupDate: r.pickupDate,
+        returnDate: r.returnDate,
+        type: "rental",
+      });
+    });
+
+    activeBookings.forEach((b) => {
+      const vid = (b.assignedVehicle || b.vehicle)?.toString();
+      if (!vid) return;
+      intervalsByVeh[vid] = intervalsByVeh[vid] || [];
+      intervalsByVeh[vid].push({
+        pickupDate: b.startDate,
+        returnDate: b.endDate,
+        type: "booking",
+        status: b.status,
+      });
+    });
+
+    const enrichedVehicles = vehicles.map((v) => {
+      const vid = v._id.toString();
+      const intervals = intervalsByVeh[vid] || [];
+      const hasActiveBookings = intervals.length > 0 || v.status === "rented";
+      return {
+        ...v,
+        bookedIntervals: intervals,
+        hasBookings: hasActiveBookings,
+      };
+    });
+
+    res.json(enrichedVehicles);
   } catch (err) {
     console.error("Error fetching vehicles:", err);
     res.status(500).json({ msg: "Server Error" });

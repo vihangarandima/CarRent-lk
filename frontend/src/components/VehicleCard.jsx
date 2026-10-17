@@ -67,7 +67,10 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         />
         <div className="v-card-badges">
           {year && <span className="v-year-badge">{year}</span>}
-          {isRecent(vehicle.createdAt) && <span className="v-new-badge">New</span>}
+          {(vehicle.hasBookings || vehicle.status === "rented") && (
+            <span className="v-booked-dates-badge">📅 Booked for Some Dates</span>
+          )}
+          {isRecent(vehicle.createdAt) && !vehicle.hasBookings && vehicle.status !== "rented" && <span className="v-new-badge">New</span>}
           {vehicle.distanceFromCenter !== null &&
             vehicle.distanceFromCenter !== undefined && (
               <span className="v-dist-badge">
@@ -123,6 +126,21 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           )}
         </div>
 
+        {(vehicle.hasBookings || vehicle.status === "rented") && (
+          <div className="v-booked-notice-line">
+            <span className="dot-booked-indicator" />
+            <span>
+              {vehicle.bookedIntervals?.[0] ? (
+                <>
+                  Reserved {new Date(vehicle.bookedIntervals[0].pickupDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {new Date(vehicle.bookedIntervals[0].returnDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · Other dates open
+                </>
+              ) : (
+                <>Reserved on certain dates · Check calendar</>
+              )}
+            </span>
+          </div>
+        )}
+
         <div className="v-card-footer">
           <div className="v-location">
             <MapPin size={13} />
@@ -139,8 +157,8 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           </div>
         </div>
 
-        <Link to={`/vehicle/${vehicle._id}`} className="v-cta">
-          View Details <ArrowRight size={16} />
+        <Link to={`/vehicle/${vehicle._id}`} className={`v-cta ${vehicle.hasBookings || vehicle.status === "rented" ? "v-cta-check-dates" : ""}`}>
+          {vehicle.hasBookings || vehicle.status === "rented" ? "Check Available Dates" : "View Details"} <ArrowRight size={16} />
         </Link>
       </div>
 
@@ -148,6 +166,40 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         .v-new-badge {
           background: #16a34a; color: #fff; font-size: 0.7rem; font-weight: 800;
           padding: 3px 9px; border-radius: 999px; letter-spacing: 0.03em;
+        }
+        .v-booked-dates-badge {
+          background: #ea580c; color: #fff; font-size: 0.7rem; font-weight: 750;
+          padding: 3px 9px; border-radius: 999px; letter-spacing: 0.02em;
+          box-shadow: 0 2px 6px rgba(234, 88, 12, 0.35);
+        }
+        .v-booked-notice-line {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: #fff7ed;
+          border: 1px solid #ffedd5;
+          border-radius: 6px;
+          padding: 5px 8px;
+          font-size: 0.74rem;
+          font-weight: 650;
+          color: #c2410c;
+          margin: 0 0 0.75rem;
+        }
+        .dot-booked-indicator {
+          width: 7px;
+          height: 7px;
+          border-radius: 999px;
+          background: #ea580c;
+          display: inline-block;
+          flex-shrink: 0;
+        }
+        .v-cta.v-cta-check-dates {
+          background: #0f172a;
+          color: #ffffff;
+        }
+        .v-cta.v-cta-check-dates:hover {
+          background: #ea580c;
+          color: #ffffff;
         }
         .v-specs .v-mode-chip {
           padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(249,115,22,0.25);
