@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
   MapPin,
   Star,
@@ -51,18 +51,34 @@ const toWhatsAppNumber = (phone) => {
 
 const VehicleDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { config } = useSiteConfig();
   const { formatPrice, formatRawPrice, currency } = useCurrency();
   
-  // Booking State
-  const [dateRange, setDateRange] = useState([null, null]);
+  // Booking State - initialized from URL parameters if redirected back from sign in
+  const [dateRange, setDateRange] = useState(() => {
+    try {
+      const s = searchParams.get("startDate");
+      const e = searchParams.get("endDate");
+      const sDate = s ? new Date(s) : null;
+      const eDate = e ? new Date(e) : null;
+      return [
+        sDate && !isNaN(sDate.getTime()) ? sDate : null,
+        eDate && !isNaN(eDate.getTime()) ? eDate : null,
+      ];
+    } catch {
+      return [null, null];
+    }
+  });
   const [startDate, endDate] = dateRange;
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   
 
   const [sent, setSent] = useState(false);
-  const [customerMessage, setCustomerMessage] = useState("");
+  const [customerMessage, setCustomerMessage] = useState(() => searchParams.get("message") || "");
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState("login");
@@ -147,6 +163,26 @@ const VehicleDetail = () => {
     fetchVehicleData();
   }, [id]);
 
+  // Sync URL search params with date selection & message if returning from sign in
+  useEffect(() => {
+    const s = searchParams.get("startDate");
+    const e = searchParams.get("endDate");
+    if (s || e) {
+      const sDate = s ? new Date(s) : null;
+      const eDate = e ? new Date(e) : null;
+      if ((sDate && !isNaN(sDate.getTime())) || (eDate && !isNaN(eDate.getTime()))) {
+        setDateRange([
+          sDate && !isNaN(sDate.getTime()) ? sDate : null,
+          eDate && !isNaN(eDate.getTime()) ? eDate : null,
+        ]);
+      }
+    }
+    const msg = searchParams.get("message");
+    if (msg) {
+      setCustomerMessage(msg);
+    }
+  }, [searchParams]);
+
   const handleReviewAdded = (newReview) => {
     setReviews([newReview, ...reviews]);
   };
@@ -155,6 +191,18 @@ const VehicleDetail = () => {
     ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
     : "New";
   const numReviews = reviews.length;
+
+  const redirectToLogin = (warningMsg = "Please sign in to continue with your booking.") => {
+    const queryParams = new URLSearchParams();
+    if (startDate) queryParams.set("startDate", startDate.toISOString());
+    if (endDate) queryParams.set("endDate", endDate.toISOString());
+    if (customerMessage.trim()) queryParams.set("message", customerMessage.trim());
+    const searchStr = queryParams.toString() ? `?${queryParams.toString()}` : "";
+    const returnUrl = `/vehicle/${id}${searchStr}`;
+
+    toast.info(warningMsg, "Sign In Required");
+    navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`);
+  };
 
   const handleContact = (e) => {
     if (e) e.preventDefault();
@@ -176,10 +224,9 @@ const VehicleDetail = () => {
     const viewer = getStoredUser();
     const token = localStorage.getItem("token");
 
-    // 1. If not logged in, prompt user to sign in or proceed as guest
+    // 1. If not logged in, redirect directly to the sign in page
     if (!token || !viewer) {
-      setAuthModalMode("login");
-      setAuthModalOpen(true);
+      redirectToLogin("Please sign in to chat via WhatsApp and book this vehicle.");
       return;
     }
 
@@ -196,6 +243,22 @@ const VehicleDetail = () => {
   };
 
   const executeBooking = async (customerPhone) => {
+    const viewer = getStoredUser();
+    const token = localStorage.getItem("token");
+
+    // Strictly enforce authentication before proceeding with booking
+    if (!token || !viewer) {
+      redirectToLogin("Please sign in to chat via WhatsApp and book this vehicle.");
+      return;
+    }
+
+    const phoneToUse = customerPhone || viewer.phone;
+    if (!phoneToUse || String(phoneToUse).replace(/\D/g, "").length < 9) {
+      setAuthModalMode("phone");
+      setAuthModalOpen(true);
+      return;
+    }
+
     // Company WhatsApp Concierge line (or host fallback)
     const companySupportPhone =
       config?.global?.whatsAppSupport?.phoneNumber ||
@@ -211,13 +274,14 @@ const VehicleDetail = () => {
     }
 
     setBookingSubmitting(true);
-    const viewer = getStoredUser();
-    const token = localStorage.getItem("token");
-    const phoneToUse = customerPhone || viewer?.phone || "Pending (WhatsApp Direct)";
 
+    const effectiveEnd = endDate || startDate;
     const rentModeText = { "self-drive": "Self-drive", "with-driver": "With driver", both: "Self-drive or with driver" }[vehicle?.rentMode || "self-drive"];
-    const dateStr = startDate && endDate
-      ? `${startDate.toLocaleDateString("en-GB")} to ${endDate.toLocaleDateString("en-GB")}`
+    const isSingleDay = startDate && (!endDate || startDate.getTime() === endDate.getTime());
+    const dateStr = startDate
+      ? isSingleDay
+        ? `${startDate.toLocaleDateString("en-GB")} (1 Day)`
+        : `${startDate.toLocaleDateString("en-GB")} to ${effectiveEnd.toLocaleDateString("en-GB")} (${tripDays} Days)`
       : "Flexible / To be confirmed";
     let finalWaUrl = `https://wa.me/${targetWaNumber}?text=${encodeURIComponent(
       `Hello! I would like to rent the ${vehicle.brand} ${vehicle.model} (${vehicle.year}) listed on Yamu Car Rentals (${rentModeText.toLowerCase()}) for ${dateStr}.\n${window.location.href}`
@@ -229,15 +293,20 @@ const VehicleDetail = () => {
         `${API_URL}/api/bookings`,
         {
           vehicleId: vehicle._id,
-          startDate: startDate || null,
-          endDate: endDate || null,
-          customerName: viewer?.name || "Customer",
+          startDate: startDate ? startDate.toISOString() : null,
+          endDate: effectiveEnd ? effectiveEnd.toISOString() : null,
+          customerName: viewer.name || "Customer",
           customerPhone: phoneToUse,
           customerMessage: customerMessage.trim(),
           rentMode: vehicle?.rentMode || "self-drive",
           clientBaseUrl: window.location.origin,
         },
-        token ? { headers: { "x-auth-token": token } } : {}
+        {
+          headers: {
+            "x-auth-token": token,
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (bookingRes.data?.whatsappMessage) {
@@ -245,6 +314,11 @@ const VehicleDetail = () => {
       }
     } catch (bookingErr) {
       console.warn("Could not record booking ahead of WhatsApp:", bookingErr?.response?.data || bookingErr.message);
+      if (bookingErr.response?.status === 401) {
+        redirectToLogin("Please sign in to complete your booking reservation.");
+        setBookingSubmitting(false);
+        return;
+      }
     } finally {
       setBookingSubmitting(false);
     }
@@ -334,8 +408,12 @@ const VehicleDetail = () => {
 
   const currentImage = images[activeImageIndex] || images[0];
 
-  const diffTime = startDate && endDate ? Math.abs(new Date(endDate).setHours(0,0,0,0) - new Date(startDate).setHours(0,0,0,0)) : 0;
-  const tripDays = startDate && endDate ? Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24))) : 0;
+  const effectiveEndDate = endDate || startDate;
+  const startMidnight = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : 0;
+  const endMidnight = effectiveEndDate ? new Date(effectiveEndDate).setHours(0, 0, 0, 0) : 0;
+  const diffTime = startDate ? Math.abs(endMidnight - startMidnight) : 0;
+  // Inclusive calendar days: same day = 1 day, next day = 2 days, 2 days later = 3 days
+  const tripDays = startDate ? Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1 : 0;
   const baseCost = tripDays * (vehicle.pricePerDay || 0);
   const freeKm = kmPerDay === 0 ? null : tripDays * kmPerDay;
   const belowMinDays = tripDays > 0 && tripDays < minDays;
@@ -793,7 +871,7 @@ const VehicleDetail = () => {
                       }}
                     >
                       <MessageSquare size={18} />
-                      <span>{bookingSubmitting ? "Connecting..." : "Contact via WhatsApp"}</span>
+                      <span>{bookingSubmitting ? "Connecting..." : "Chat via WhatsApp"}</span>
                     </button>
                   )}
 
@@ -1079,8 +1157,32 @@ const VehicleDetail = () => {
           margin-bottom: 0.5rem;
         }
         
-        /* Bid Panel */
-        .bid-panel { position: sticky; top: 88px; }
+        /* Bid Panel - Sticky sidebar that moves down with the user */
+        .bid-panel {
+          position: -webkit-sticky;
+          position: sticky;
+          top: 96px;
+          align-self: start;
+          height: fit-content;
+          max-height: calc(100vh - 110px);
+          overflow-y: auto;
+          overflow-x: hidden;
+          padding: 4px;
+          margin: -4px;
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
+          z-index: 20;
+        }
+        .bid-panel::-webkit-scrollbar {
+          width: 5px;
+        }
+        .bid-panel::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 999px;
+        }
+        .bid-panel::-webkit-scrollbar-track {
+          background: transparent;
+        }
         .bid-card {
           background: #ffffff;
           border: 1px solid var(--border);
@@ -1578,12 +1680,209 @@ const VehicleDetail = () => {
         }
 
         @media (max-width: 900px) {
-          .detail-grid { grid-template-columns: minmax(0, 1fr); }
+          .detail-wrap {
+            padding: 85px 1rem 4rem !important;
+          }
+          .detail-grid {
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 1.5rem !important;
+          }
           .detail-grid > * { min-width: 0; }
-          .bid-panel { position: relative; top: auto; }
+          .bid-panel {
+            position: relative !important;
+            top: auto !important;
+            max-height: none !important;
+            overflow-y: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
           .main-image { height: 280px; }
           .features-grid { grid-template-columns: 1fr; }
           .detail-map-wrapper { height: 220px; }
+        }
+
+        @media (max-width: 768px) {
+          .detail-wrap {
+            padding: 75px 0.85rem 3rem !important;
+          }
+          .breadcrumb {
+            margin-bottom: 0.85rem !important;
+          }
+          .breadcrumb a {
+            font-size: 0.82rem !important;
+          }
+          .main-image-wrap {
+            margin-bottom: 1.25rem !important;
+          }
+          .main-image {
+            height: 250px !important;
+            border-radius: 16px !important;
+          }
+          .photo-nav {
+            width: 34px !important;
+            height: 34px !important;
+            font-size: 1.25rem !important;
+          }
+          .thumbnails-gallery {
+            gap: 8px !important;
+            margin-bottom: 1.25rem !important;
+            -webkit-overflow-scrolling: touch;
+          }
+          .thumbnails-gallery button {
+            width: 62px !important;
+            height: 46px !important;
+            border-radius: 8px !important;
+          }
+          .vehicle-header {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+            align-items: flex-start !important;
+            margin-bottom: 1.25rem !important;
+          }
+          .vehicle-header h1 {
+            font-size: 1.5rem !important;
+            line-height: 1.25 !important;
+            letter-spacing: -0.01em !important;
+          }
+          .vehicle-rating {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            padding: 0.45rem 0.85rem !important;
+            border-radius: 8px !important;
+          }
+          .vehicle-rating span {
+            font-size: 0.95rem !important;
+          }
+          .vehicle-rating small {
+            font-size: 0.78rem !important;
+          }
+          .specs-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+            padding: 12px 14px !important;
+            margin-bottom: 1.25rem !important;
+            border-radius: 12px !important;
+          }
+          .spec-item {
+            gap: 8px !important;
+          }
+          .spec-label {
+            font-size: 0.65rem !important;
+          }
+          .spec-value {
+            font-size: 0.82rem !important;
+          }
+          .about-section,
+          .features-section,
+          .location-map-section {
+            padding: 1.15rem !important;
+            margin-bottom: 1.25rem !important;
+            border-radius: 14px !important;
+          }
+          .features-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.5rem !important;
+          }
+          .bid-card {
+            padding: 1.25rem !important;
+            border-radius: 16px !important;
+          }
+          .price {
+            font-size: 1.65rem !important;
+          }
+          .rental-requirements-card {
+            padding: 1rem !important;
+            border-radius: 14px !important;
+          }
+          .req-item {
+            gap: 8px !important;
+          }
+          .react-datepicker {
+            padding: 0.75rem 0.4rem !important;
+            border-radius: 14px !important;
+          }
+          .react-datepicker__current-month {
+            font-size: 0.88rem !important;
+            margin-bottom: 0.5rem !important;
+          }
+          .react-datepicker__day-name {
+            width: 32px !important;
+            height: 24px !important;
+            line-height: 24px !important;
+            font-size: 0.7rem !important;
+          }
+          .react-datepicker__day {
+            width: 32px !important;
+            height: 32px !important;
+            line-height: 32px !important;
+            font-size: 0.8rem !important;
+          }
+          .calendar-legend {
+            gap: 8px !important;
+            font-size: 0.7rem !important;
+            padding: 6px 8px !important;
+          }
+          .btn-primary {
+            min-height: 48px !important;
+            font-size: 0.96rem !important;
+            font-weight: 750 !important;
+            border-radius: 12px !important;
+          }
+          .similar-section {
+            margin-top: 2.5rem !important;
+          }
+          .similar-head {
+            margin-bottom: 1rem !important;
+          }
+          .similar-head h2 {
+            font-size: 1.35rem !important;
+          }
+          .similar-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.65rem !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .detail-wrap {
+            padding: 70px 0.75rem 2.5rem !important;
+          }
+          .main-image {
+            height: 215px !important;
+            border-radius: 14px !important;
+          }
+          .photo-counter {
+            font-size: 0.72rem !important;
+            padding: 3px 8px !important;
+          }
+          .specs-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+            padding: 10px 12px !important;
+          }
+          .features-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.4rem !important;
+          }
+          .detail-map-wrapper {
+            height: 190px !important;
+          }
+          .react-datepicker__day-name {
+            width: 29px !important;
+            font-size: 0.66rem !important;
+          }
+          .react-datepicker__day {
+            width: 29px !important;
+            height: 29px !important;
+            line-height: 29px !important;
+            font-size: 0.75rem !important;
+            border-radius: 6px !important;
+          }
+          .similar-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.5rem !important;
+          }
         }
       `}</style>
       {/* Progressive Booking Auth & Phone Modal */}

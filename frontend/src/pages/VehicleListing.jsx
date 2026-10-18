@@ -2561,6 +2561,24 @@ const VehicleListing = () => {
           }
         }
 
+        @media (max-width: 768px) {
+          .modern-header-section {
+            padding: 70px 0.85rem 1.25rem !important;
+          }
+          .results-header-modern {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+          }
+          .results-header-actions {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .sort-dropdown-wrap {
+            flex: 1;
+          }
+        }
+
         @media (max-width: 640px) {
           .vehicle-type-compact-grid {
             grid-template-columns: repeat(4, 1fr);
@@ -2576,10 +2594,27 @@ const VehicleListing = () => {
           .type-card-label {
             font-size: 0.65rem;
           }
+          .vehicle-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.65rem !important;
+          }
           .fuel-group {
             overflow-x: auto;
             max-width: 100%;
             padding-bottom: 4px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .vehicle-type-compact-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.3rem;
+          }
+          .type-card-label {
+            font-size: 0.6rem;
+          }
+          .vehicle-grid {
+            gap: 0.5rem !important;
           }
         }
       `}</style>

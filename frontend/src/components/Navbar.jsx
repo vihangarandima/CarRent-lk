@@ -858,6 +858,32 @@ const Navbar = () => {
             display: block;
           }
         }
+
+        @media (max-width: 768px) {
+          .hero-nav {
+            padding: 0.75rem 1rem !important;
+          }
+          .hero-nav.scrolled {
+            padding: 0.65rem 1rem !important;
+          }
+          .nav-logo {
+            font-size: 1.25rem !important;
+          }
+          .nav-logo-img {
+            width: 36px !important;
+            height: 36px !important;
+            margin-right: 8px !important;
+          }
+          .hero-nav.on-dark:not(.scrolled) .burger span {
+            background: #ffffff !important;
+          }
+          .mobile-menu {
+            height: 100vh;
+            height: 100dvh;
+            padding: 5rem 1.25rem 2rem;
+            width: min(300px, 86vw);
+          }
+        }
       `}</style>
     </>
   );

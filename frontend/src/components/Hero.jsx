@@ -38,19 +38,44 @@ const Hero = () => {
   const { config } = useSiteConfig();
   const hero = config?.hero;
 
+  const PRICE_MIN = 0;
+  const PRICE_MAX = 100000;
+  const PRICE_STEP = 1000;
+
   const [activeTab, setActiveTab] = useState("rent"); // "rent" | "buy"
   const [vehicleType, setVehicleType] = useState("");
   const [location, setLocation] = useState("");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [minPrice, setMinPrice] = useState(5000);
+  const [maxPrice, setMaxPrice] = useState(80000);
   const [rentMode, setRentMode] = useState(""); // "" = any, "self-drive", "with-driver"
+
+  const handleMinChange = (e) => {
+    const val = Number(e.target.value);
+    if (val > maxPrice - PRICE_STEP) {
+      setMinPrice(maxPrice - PRICE_STEP);
+    } else {
+      setMinPrice(val);
+    }
+  };
+
+  const handleMaxChange = (e) => {
+    const val = Number(e.target.value);
+    if (val < minPrice + PRICE_STEP) {
+      setMaxPrice(minPrice + PRICE_STEP);
+    } else {
+      setMaxPrice(val);
+    }
+  };
+
+  const minPercent = Math.min(100, Math.max(0, (minPrice / PRICE_MAX) * 100));
+  const maxPercent = Math.min(100, Math.max(0, (maxPrice / PRICE_MAX) * 100));
 
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (vehicleType) params.set("type", vehicleType);
     if (location && location.trim()) params.set("location", location.trim());
-    if (minPrice) params.set("minPrice", minPrice);
-    if (maxPrice) params.set("maxPrice", maxPrice);
+    if (minPrice > 0) params.set("minPrice", minPrice);
+    if (maxPrice < PRICE_MAX) params.set("maxPrice", maxPrice);
     if (rentMode) params.set("mode", rentMode);
     navigate(`/vehicles${params.toString() ? `?${params.toString()}` : ""}`);
   };
@@ -146,11 +171,26 @@ const Hero = () => {
           <h2 className="hero-sub-bottom">
             {hero?.taglineBottom || "Find Your Dream Car, Which will Give You Wings"}
           </h2>
+
+          {/* Mobile Scroll Indicator to Search Filter */}
+          <button
+            type="button"
+            className="hero-scroll-hint-pill"
+            onClick={() => {
+              const el = document.getElementById("hero-search-filter-card");
+              if (el) el.scrollIntoView({ behavior: "smooth" });
+            }}
+            aria-label="Scroll down to vehicle search filter"
+          >
+            <span>Search & Filter</span>
+            <ChevronDown size={14} className="hero-scroll-chevron" />
+          </button>
         </motion.div>
       </div>
 
       {/* Standalone Search Card Bar */}
       <motion.div
+        id="hero-search-filter-card"
         className="hero-search-card-container"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -179,14 +219,15 @@ const Hero = () => {
           </div>
 
           {/* Vehicle Type Select */}
-          <div className="search-field-pill">
+          <div className="search-field-pill search-vehicle-pill">
+            <Car size={16} className="vehicle-type-field-icon" />
             <select
               value={vehicleType}
               onChange={(e) => setVehicleType(e.target.value)}
               className="search-select"
             >
-              <option value="">Vehicle Type</option>
-              {VEHICLE_TYPES.map((t) => (
+              <option value="">Any vehicle</option>
+              {VEHICLE_TYPES.filter((t) => t.id !== "").map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.label}
                 </option>
@@ -197,11 +238,13 @@ const Hero = () => {
 
           {/* Location Input */}
           <div className="search-field-pill search-location-pill">
-            <MapPin size={15} className="location-field-icon" />
+            <MapPin size={18} className="location-field-icon" />
             <input
               type="text"
               list="popular-locations-list"
-              placeholder="Find location (e.g. Colombo)"
+              placeholder="Location (e.g. Colombo)"
+              aria-label="Location"
+              enterKeyHint="search"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               className="location-input"
@@ -213,36 +256,43 @@ const Hero = () => {
             </datalist>
           </div>
 
-          {/* Price Range Row (From & To) */}
-          <div className="search-price-row">
-            {/* Price Range: From */}
-            <div className="search-price-group">
-              <span className="price-label">From</span>
-              <div className="search-input-pill">
-                <span className="currency-symbol">LKR</span>
-                <input
-                  type="number"
-                  placeholder="5,000"
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  className="price-input"
-                />
-              </div>
+          {/* Price Range Dual-Slider Mechanism */}
+          <div className="search-price-range-pill" aria-label="Price range filter">
+            <div className="price-row">
+              <span className="price-label">Price / day</span>
+              <output className="price-output">
+                LKR {minPrice.toLocaleString("en-US")} – {maxPrice.toLocaleString("en-US")}{maxPrice >= PRICE_MAX ? "+" : ""}
+              </output>
             </div>
-
-            {/* Price Range: To */}
-            <div className="search-price-group">
-              <span className="price-label">To</span>
-              <div className="search-input-pill">
-                <span className="currency-symbol">LKR</span>
-                <input
-                  type="number"
-                  placeholder="80,000"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  className="price-input"
-                />
-              </div>
+            <div className="range-slider-wrap">
+              <div className="range-track" />
+              <div
+                className="range-fill"
+                style={{
+                  left: `${minPercent}%`,
+                  right: `${100 - maxPercent}%`,
+                }}
+              />
+              <input
+                type="range"
+                min={PRICE_MIN}
+                max={PRICE_MAX}
+                step={PRICE_STEP}
+                value={minPrice}
+                onChange={handleMinChange}
+                aria-label="Minimum price per day in LKR"
+                className="range-input range-input-min"
+              />
+              <input
+                type="range"
+                min={PRICE_MIN}
+                max={PRICE_MAX}
+                step={PRICE_STEP}
+                value={maxPrice}
+                onChange={handleMaxChange}
+                aria-label="Maximum price per day in LKR"
+                className="range-input range-input-max"
+              />
             </div>
           </div>
 
@@ -515,12 +565,16 @@ const Hero = () => {
           text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
+        .hero-scroll-hint-pill {
+          display: none;
+        }
+
         /* Search Card Container */
         .hero-search-card-container {
           position: relative;
           z-index: 25;
           width: 100%;
-          max-width: 1020px;
+          max-width: 1140px;
           margin-top: auto;
           display: flex;
           flex-direction: column;
@@ -529,32 +583,43 @@ const Hero = () => {
 
         /* Pure White Search Card Bar */
         .search-mode {
-          display: inline-flex; flex-shrink: 0; padding: 4px; gap: 2px;
-          background: #fff7ed; border: 1px solid rgba(249, 115, 22, 0.22); border-radius: 999px;
+          display: inline-flex;
+          flex-shrink: 0;
+          padding: 4px;
+          gap: 2px;
+          background: #fff7ed;
+          border: 1px solid rgba(249, 115, 22, 0.22);
+          border-radius: 999px;
+          box-sizing: border-box;
         }
         .search-mode-btn {
-          padding: 0.45rem 0.8rem; border-radius: 999px; background: transparent;
-          font-size: 0.8rem; font-weight: 700; color: #9a3412; white-space: nowrap; cursor: pointer;
+          padding: 0.45rem 0.75rem;
+          border-radius: 999px;
+          background: transparent;
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: #9a3412;
+          white-space: nowrap;
+          cursor: pointer;
           transition: background 0.2s ease, color 0.2s ease;
+          border: none;
         }
         .search-mode-btn.active {
-          background: linear-gradient(135deg, #ff8800 0%, #ea580c 100%); color: #fff;
+          background: linear-gradient(135deg, #ff8800 0%, #ea580c 100%);
+          color: #fff;
           box-shadow: 0 4px 12px -4px rgba(249, 115, 22, 0.6);
-        }
-        @media (max-width: 900px) {
-          .search-mode { width: 100%; }
-          .search-mode-btn { flex: 1; padding: 0.55rem 0.4rem; }
         }
 
         .hero-search-bar {
           background: #ffffff;
           border-radius: 20px;
           box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.08);
-          padding: 14px 20px;
+          padding: 12px 16px;
           width: 100%;
+          max-width: 100%;
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
           box-sizing: border-box;
           flex-wrap: nowrap;
         }
@@ -574,11 +639,12 @@ const Hero = () => {
           align-items: center;
           background: #f8fafc;
           border: 1.5px solid #e2e8f0;
-          border-radius: 10px;
-          padding: 0 12px;
-          height: 44px;
-          flex: 1.2;
-          min-width: 120px;
+          border-radius: 12px;
+          padding: 0 14px;
+          height: 48px;
+          flex: 1.1;
+          min-width: 125px;
+          box-sizing: border-box;
           transition: all 0.2s;
         }
 
@@ -593,12 +659,17 @@ const Hero = () => {
           box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
         }
 
+        .search-vehicle-pill {
+          flex: 1.1;
+          min-width: 125px;
+        }
+
         .search-select {
           width: 100%;
           border: none;
           background: transparent;
           outline: none;
-          font-size: 0.88rem;
+          font-size: 0.9rem;
           font-weight: 600;
           color: #1e293b;
           cursor: pointer;
@@ -614,18 +685,32 @@ const Hero = () => {
           pointer-events: none;
         }
 
+        .vehicle-type-field-icon {
+          display: none;
+        }
+
+        /* Location Field on Desktop: Substantially bigger and more spacious */
+        .search-location-pill {
+          flex: 2;
+          min-width: 190px;
+          padding: 0 14px;
+        }
+
         .location-field-icon {
           color: #ea580c;
-          margin-right: 8px;
+          margin-right: 10px;
+          width: 18px;
+          height: 18px;
           flex-shrink: 0;
         }
 
         .location-input {
           width: 100%;
+          min-width: 0;
           border: none;
           background: transparent;
           outline: none;
-          font-size: 0.88rem;
+          font-size: 0.95rem;
           font-weight: 600;
           color: #1e293b;
         }
@@ -635,73 +720,157 @@ const Hero = () => {
           font-weight: 500;
         }
 
-        /* Price Range Row */
-        .search-price-row {
+        /* Price Range Mechanism on Desktop: Balanced, never wraps, clean containment */
+        .search-price-range-pill {
+          position: relative;
           display: flex;
-          align-items: center;
-          gap: 10px;
-          flex: 1.5;
-        }
-
-        /* Price Input Groups */
-        .search-price-group {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          flex: 1;
-          min-width: 120px;
-        }
-
-        .price-label {
-          font-size: 0.82rem;
-          font-weight: 700;
-          color: #64748b;
-          white-space: nowrap;
-        }
-
-        .search-input-pill {
-          display: flex;
-          align-items: center;
+          flex-direction: column;
+          justify-content: space-between;
           background: #f8fafc;
           border: 1.5px solid #e2e8f0;
-          border-radius: 10px;
-          padding: 0 10px;
-          height: 44px;
-          width: 100%;
+          border-radius: 12px;
+          padding: 7px 14px 6px;
+          height: 48px;
+          flex: 2.2;
+          min-width: 240px;
+          box-sizing: border-box;
           transition: all 0.2s;
         }
 
-        .search-input-pill:hover {
+        .search-price-range-pill:hover {
           border-color: #cbd5e1;
           background: #ffffff;
         }
 
-        .search-input-pill:focus-within {
+        .search-price-range-pill:focus-within {
           border-color: #ea580c;
           background: #ffffff;
           box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
         }
 
-        .currency-symbol {
-          font-size: 0.72rem;
-          font-weight: 800;
-          color: #ea580c;
-          margin-right: 4px;
-        }
-
-        .price-input {
+        .search-price-range-pill .price-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           width: 100%;
-          border: none;
-          background: transparent;
-          outline: none;
-          font-size: 0.88rem;
-          font-weight: 600;
-          color: #0f172a;
+          line-height: 1;
+          white-space: nowrap;
         }
 
-        .price-input::placeholder {
-          color: #94a3b8;
-          font-weight: 500;
+        .search-price-range-pill .price-label {
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          white-space: nowrap;
+          user-select: none;
+        }
+
+        .search-price-range-pill .price-output {
+          font-size: 0.82rem;
+          font-weight: 800;
+          color: #0f172a;
+          white-space: nowrap;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .search-price-range-pill .range-slider-wrap {
+          position: relative;
+          width: 100%;
+          height: 14px;
+          margin: 0;
+          display: flex;
+          align-items: center;
+        }
+
+        .search-price-range-pill .range-track,
+        .search-price-range-pill .range-fill {
+          position: absolute;
+          top: 50%;
+          height: 4px;
+          border-radius: 2px;
+          transform: translateY(-50%);
+          pointer-events: none;
+        }
+
+        .search-price-range-pill .range-track {
+          left: 0;
+          right: 0;
+          background: #e2e8f0;
+        }
+
+        .search-price-range-pill .range-fill {
+          background: #ea580c;
+        }
+
+        .search-price-range-pill .range-input {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          padding: 0;
+          border: 0;
+          border-radius: 0;
+          background: transparent;
+          margin: 0;
+          -webkit-appearance: none;
+          appearance: none;
+          pointer-events: none;
+        }
+
+        .search-price-range-pill .range-input::-webkit-slider-runnable-track {
+          background: transparent;
+          border: none;
+          height: 100%;
+        }
+
+        .search-price-range-pill .range-input::-moz-range-track {
+          background: transparent;
+          border: none;
+          height: 100%;
+        }
+
+        .search-price-range-pill .range-input::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          pointer-events: auto;
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: #ffffff;
+          border: 2.5px solid #ea580c;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+          cursor: grab;
+          transition: transform 0.1s ease;
+        }
+
+        .search-price-range-pill .range-input::-webkit-slider-thumb:hover {
+          transform: scale(1.2);
+        }
+
+        .search-price-range-pill .range-input::-moz-range-thumb {
+          pointer-events: auto;
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: #ffffff;
+          border: 2.5px solid #ea580c;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+          cursor: grab;
+          transition: transform 0.1s ease;
+        }
+
+        .search-price-range-pill .range-input::-moz-range-thumb:hover {
+          transform: scale(1.2);
+        }
+
+        .search-price-range-pill .range-input:focus {
+          outline: none;
+        }
+
+        .search-price-range-pill .range-input:active {
+          z-index: 10;
         }
 
         /* Search CTA Button — Radiant Sunset Orange Theme */
@@ -709,19 +878,21 @@ const Hero = () => {
           background: linear-gradient(135deg, #ff8800 0%, #f97316 45%, #ea580c 100%);
           color: #ffffff;
           border: none;
-          border-radius: 10px;
-          padding: 0 28px;
-          height: 44px;
+          border-radius: 12px;
+          padding: 0 24px;
+          height: 48px;
           font-size: 0.95rem;
           font-weight: 700;
           cursor: pointer;
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 8px;
           transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
           box-shadow: 0 6px 20px -2px rgba(249, 115, 22, 0.45);
           white-space: nowrap;
           font-family: inherit;
+          flex-shrink: 0;
         }
 
         .hero-search-submit-btn:hover {
@@ -730,21 +901,26 @@ const Hero = () => {
           box-shadow: 0 10px 26px -2px rgba(234, 88, 12, 0.55);
         }
 
-        /* =========================================================
-           2. TABLET MODE (768px <= width <= 1024px)
-           ========================================================= */
-        @media (min-width: 769px) and (max-width: 1024px) {
+        @media (max-width: 1240px) {
           .yamu-exact-hero {
-            padding: 85px 1.5rem 2rem;
+            padding-left: 1.25rem;
+            padding-right: 1.25rem;
+          }
+        }
+
+        /* =========================================================
+           2. TABLET & COMPRESSED LAPTOP MODE (769px <= width <= 1180px)
+           ========================================================= */
+        @media (min-width: 769px) and (max-width: 1180px) {
+          .yamu-exact-hero {
+            padding: 85px 1.25rem 2rem;
             min-height: 100vh;
             min-height: 100dvh;
           }
 
-
-
           .heroic-fleet-stage {
-            max-width: 700px;
-            padding-top: 3.8rem;
+            max-width: 740px;
+            padding-top: 3.5rem;
           }
 
           .watermark-yamu-text {
@@ -766,34 +942,62 @@ const Hero = () => {
           }
 
           .hero-search-card-container {
-            max-width: 760px;
+            max-width: 1000px;
+            width: 100%;
           }
 
           .hero-search-bar {
-            flex-wrap: wrap;
-            gap: 12px;
-            padding: 16px 18px;
-          }
-
-          .search-lead-label {
+            display: grid;
+            grid-template-columns: auto minmax(110px, 1fr) minmax(150px, 1.6fr) 140px;
+            grid-template-rows: auto auto;
+            gap: 10px;
+            padding: 12px 14px;
             width: 100%;
-            margin-bottom: -2px;
+            box-sizing: border-box;
           }
 
-          .search-field-pill {
-            flex: 1 1 45%;
-            min-width: 180px;
+          .search-mode {
+            grid-column: 1;
+            grid-row: 1;
+            align-self: center;
+            width: auto;
           }
 
-          .search-price-row {
-            flex: 1 1 60%;
-            min-width: 240px;
+          .search-mode-btn {
+            padding: 0.45rem 0.65rem;
+            font-size: 0.8rem;
+          }
+
+          .search-vehicle-pill {
+            grid-column: 2;
+            grid-row: 1;
+            width: 100%;
+            min-width: 0;
+            padding: 0 10px;
+          }
+
+          .search-location-pill {
+            grid-column: 3 / 5;
+            grid-row: 1;
+            width: 100%;
+            min-width: 0;
+            padding: 0 12px;
+          }
+
+          .search-price-range-pill {
+            grid-column: 1 / 4;
+            grid-row: 2;
+            width: 100%;
+            min-width: 0;
           }
 
           .hero-search-submit-btn {
-            flex: 1 1 30%;
+            grid-column: 4;
+            grid-row: 2;
+            width: 100%;
+            height: 48px;
             justify-content: center;
-            height: 44px;
+            padding: 0 12px;
           }
         }
 
@@ -802,73 +1006,125 @@ const Hero = () => {
            ========================================================= */
         @media (max-width: 768px) {
           .yamu-exact-hero {
-            padding: 72px 1rem 1.5rem;
+            padding: 76px 1rem 2.5rem;
             min-height: auto;
-            min-height: 100dvh;
+            overflow: visible;
+            overflow-x: hidden;
             justify-content: flex-start;
-            gap: 0.75rem;
+            gap: 1;
           }
 
-
-
           .hero-center-stage {
-            margin: auto 0 0.5rem;
-            padding-top: 0.25rem;
+            min-height: calc(100dvh - 84px);
+            min-height: calc(100vh - 84px);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            margin: 0;
+            padding-top: 1rem;
+            padding-bottom: 3.25rem;
             width: 100%;
+            box-sizing: border-box;
           }
 
           .heroic-fleet-stage {
             max-width: 100%;
             width: 100%;
-            padding-top: 2.8rem;
+            padding-top: 3rem;
           }
 
           .watermark-yamu-text {
-            font-size: clamp(4.6rem, 19vw, 6.8rem);
+            font-size: clamp(4.4rem, 18vw, 6.2rem);
             letter-spacing: -0.02em;
             line-height: 0.85;
             text-shadow: 0 10px 24px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.18);
           }
 
           .fleet-image-wrap {
-            margin-top: -2.2rem;
+            margin-top: -2rem;
           }
 
           .fleet-cutout-img {
-            max-height: 200px;
+            max-height: 185px;
             width: 100%;
           }
 
           .hero-taglines {
             margin-top: 0.5rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.5rem;
             padding: 0 0.5rem;
           }
 
           .hero-sub-top {
-            font-size: 0.76rem;
-            padding: 3px 12px;
-            margin-bottom: 4px;
+            font-size: 0.74rem;
+            padding: 4px 14px;
+            margin-bottom: 20px;
           }
 
           .hero-sub-bottom {
-            font-size: 1.05rem;
-            line-height: 1.35;
+            font-size: 1.02rem;
+            line-height: 1.4;
           }
 
-          /* Attached Tabs on Mobile */
+          /* Scroll Hint Pill on Mobile - with more breathing room */
+          .hero-scroll-hint-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 1.85rem;
+            padding: 7px 18px;
+            background: rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 999px;
+            color: #ffffff;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+            transition: all 0.2s ease;
+            animation: heroHintBounce 2.4s ease-in-out infinite;
+          }
+
+          .hero-scroll-hint-pill:active {
+            transform: scale(0.96);
+            background: rgba(255, 255, 255, 0.28);
+          }
+
+          .hero-scroll-chevron {
+            transition: transform 0.2s ease;
+          }
+
+          @keyframes heroHintBounce {
+            0%, 100% {
+              transform: translateY(0);
+            }
+            50% {
+              transform: translateY(5px);
+            }
+          }
+
+          /* Vehicle filter card stays at the bottom, visible only when scrolling down */
           .hero-search-card-container {
             width: 100%;
-            max-width: 100%;
-            margin-top: auto;
+            max-width: 440px;
+            margin-top: 2rem;
+            margin-bottom: 2.5rem;
+            padding: 0 8px;
+            box-sizing: border-box;
+            z-index: 25;
+            scroll-margin-top: 76px;
           }
 
           .hero-buttons-container {
             width: 100%;
             max-width: 440px;
             display: flex;
-            gap: 10px;
-            margin-bottom: 1.15rem;
+            gap: 12px;
+            margin-bottom: 2.85rem;
             padding: 0 0.5rem;
             box-sizing: border-box;
           }
@@ -889,51 +1145,308 @@ const Hero = () => {
             height: 16px;
           }
 
-          /* Search Bar on Mobile */
+          /* Search Bar on Mobile - Clean White Card with 24px radius & 16px padding */
           .hero-search-bar {
             flex-direction: column;
             align-items: stretch;
-            border-radius: 18px;
-            padding: 14px;
-            gap: 10px;
+            border-radius: 24px;
+            padding: 16px;
+            gap: 12px;
+            box-sizing: border-box;
+            background: #ffffff !important;
+            box-shadow: 0 18px 40px rgba(60, 20, 0, 0.28), 0 4px 12px rgba(0, 0, 0, 0.08);
           }
 
-          .search-lead-label {
-            font-size: 0.82rem;
-            margin-bottom: -2px;
-          }
-
+          /* Dropdown Pills Reset on Mobile */
           .search-field-pill {
+            flex: none !important;
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+
+          /* Mode buttons on mobile: 3-way segmented control (Order 1) */
+          .search-mode {
+            order: 1 !important;
+            width: 100% !important;
+            height: 54px !important;
+            min-height: 54px !important;
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            padding: 4px !important;
+            gap: 4px !important;
+            box-sizing: border-box !important;
+            background: #F6F4F1 !important;
+            border: 1.5px solid #E7E1DA !important;
+            border-radius: 14px !important;
+            flex: none !important;
+          }
+
+          .search-mode-btn {
+            height: 100% !important;
+            min-height: 44px !important;
+            border: 0 !important;
+            border-radius: 10px !important;
+            background: transparent !important;
+            color: #6F6359 !important;
+            font-size: 14.5px !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.15s ease !important;
+          }
+
+          .search-mode-btn.active {
+            background: #E8590C !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 8px rgba(232, 89, 12, 0.35) !important;
+          }
+
+          /* Location Field on Mobile (Order 2) — Big, Spacious, matching target screenshot */
+          .search-location-pill {
+            order: 2 !important;
+            width: 100% !important;
+            height: 56px !important;
+            min-height: 56px !important;
+            max-height: 56px !important;
+            padding: 0 18px !important;
+            border-radius: 14px !important;
+            background: #F6F4F1 !important;
+            border: 1.5px solid #E7E1DA !important;
+            display: flex !important;
+            align-items: center !important;
+            box-sizing: border-box !important;
+            transition: all 0.2s ease !important;
+            flex: none !important;
+          }
+
+          .search-location-pill:focus-within {
+            background: #ffffff !important;
+            border-color: #E8590C !important;
+            box-shadow: 0 0 0 3px rgba(232, 89, 12, 0.18) !important;
+          }
+
+          .location-field-icon {
+            display: none !important;
+          }
+
+          .location-input {
+            width: 100% !important;
+            height: 100% !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            color: #1D140C !important;
+            border: none !important;
+            background: transparent !important;
+            outline: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            line-height: normal !important;
+          }
+
+          .location-input::placeholder {
+            color: #7A6F66 !important;
+            font-weight: 500 !important;
+            font-size: 16px !important;
+          }
+
+          /* Vehicle Type Field on Mobile (Order 3) */
+          .search-vehicle-pill {
+            order: 3 !important;
+            width: 100% !important;
+            height: 56px !important;
+            min-height: 56px !important;
+            max-height: 56px !important;
+            padding: 0 18px !important;
+            border-radius: 14px !important;
+            background: #F6F4F1 !important;
+            border: 1.5px solid #E7E1DA !important;
+            display: flex !important;
+            align-items: center !important;
+            box-sizing: border-box !important;
+            position: relative !important;
+            transition: all 0.2s ease !important;
+            flex: none !important;
+          }
+
+          .search-vehicle-pill:focus-within {
+            background: #ffffff !important;
+            border-color: #E8590C !important;
+            box-shadow: 0 0 0 3px rgba(232, 89, 12, 0.18) !important;
+          }
+
+          .vehicle-type-field-icon {
+            display: none !important;
+          }
+
+          .search-select {
+            width: 100% !important;
+            height: 100% !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            color: #1D140C !important;
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+            cursor: pointer !important;
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            padding-right: 32px !important;
+            padding-left: 0 !important;
+            line-height: 56px !important;
+          }
+
+          .select-chevron {
+            position: absolute !important;
+            right: 18px !important;
+            width: 18px !important;
+            height: 18px !important;
+            color: #6F6359 !important;
+            pointer-events: none !important;
+          }
+
+          /* Price Range Field on Mobile (Order 4) */
+          .search-price-range-pill {
+            order: 4;
             width: 100%;
-            min-width: 0;
-            height: 44px;
+            height: auto;
+            padding: 12px 16px 8px;
+            border: 1.5px solid #E7E1DA;
+            border-radius: 14px;
+            background: #F6F4F1;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
           }
 
-          .search-price-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
+          .search-price-range-pill:focus-within {
+            border-color: #E8590C;
+            outline: 3px solid #E8590C;
+            outline-offset: 1px;
+          }
+
+          .search-price-range-pill .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6F6359;
+          }
+
+          .search-price-range-pill .price-label {
+            text-transform: none;
+            letter-spacing: normal;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6F6359;
+          }
+
+          .search-price-range-pill .price-output {
+            color: #1D140C;
+            font-weight: 800;
+            font-size: 15px;
+          }
+
+          .search-price-range-pill .range-slider-wrap {
+            position: relative;
+            height: 36px;
+            margin: 4px 10px 0;
+            display: flex;
+            align-items: center;
+          }
+
+          .search-price-range-pill .range-track,
+          .search-price-range-pill .range-fill {
+            position: absolute;
+            top: 50%;
+            height: 6px;
+            border-radius: 3px;
+            transform: translateY(-50%);
+          }
+
+          .search-price-range-pill .range-track {
+            left: 0;
+            right: 0;
+            background: #E7E1DA;
+          }
+
+          .search-price-range-pill .range-fill {
+            background: #E8590C;
+          }
+
+          .search-price-range-pill .range-input {
+            position: absolute;
+            inset: 0;
             width: 100%;
+            height: 36px;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: none;
+            margin: 0;
+            -webkit-appearance: none;
+            appearance: none;
+            pointer-events: none;
           }
 
-          .search-price-group {
-            width: 100%;
-            min-width: 0;
+          .search-price-range-pill .range-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            pointer-events: auto;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid #E8590C;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            cursor: grab;
           }
 
-          .price-label {
-            font-size: 0.75rem;
+          .search-price-range-pill .range-input::-moz-range-thumb {
+            pointer-events: auto;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid #E8590C;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            cursor: grab;
           }
 
-          .search-input-pill {
-            height: 42px;
+          .search-price-range-pill .range-input:focus-visible::-webkit-slider-thumb {
+            outline: 3px solid #1D140C;
+            outline-offset: 2px;
           }
 
+          /* Submit Button on Mobile (Order 5) */
           .hero-search-submit-btn {
+            order: 5;
             width: 100%;
-            height: 46px;
+            height: 56px;
+            border: 0;
+            border-radius: 14px;
+            background: #E8590C;
+            color: #ffffff;
+            font-size: 17px;
+            font-weight: 800;
             justify-content: center;
-            margin-top: 2px;
+            gap: 8px;
+            margin-top: 4px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(232, 89, 12, 0.35);
+          }
+
+          .hero-search-submit-btn:focus-visible {
+            outline: 3px solid #1D140C;
+            outline-offset: 2px;
+          }
+
+          .hero-search-submit-btn:active {
+            transform: scale(0.98);
           }
         }
 
@@ -942,27 +1455,40 @@ const Hero = () => {
            ========================================================= */
         @media (max-width: 420px) {
           .yamu-exact-hero {
-            padding: 68px 0.75rem 1.25rem;
+            padding: 70px 0.75rem 2rem;
+          }
+
+          .hero-center-stage {
+            min-height: calc(100dvh - 78px);
+            min-height: calc(100vh - 78px);
+            padding-top: 0.5rem;
+            padding-bottom: 3.8rem;
           }
 
           .heroic-fleet-stage {
-            padding-top: 2.4rem;
+            padding-top: 1.8rem;
           }
 
           .watermark-yamu-text {
-            font-size: clamp(3.8rem, 18vw, 5.2rem);
+            font-size: clamp(3.6rem, 17vw, 4.8rem);
           }
 
           .fleet-image-wrap {
-            margin-top: -1.8rem;
+            margin-top: -1.6rem;
           }
 
           .fleet-cutout-img {
-            max-height: 165px;
+            max-height: 155px;
           }
 
           .hero-sub-bottom {
-            font-size: 0.95rem;
+            font-size: 0.94rem;
+            line-height: 1.3;
+          }
+
+          .hero-buttons-container {
+            margin-bottom: 1.45rem;
+            padding: 0 0.25rem;
           }
 
           .hero-action-btn {
@@ -974,6 +1500,26 @@ const Hero = () => {
           .hero-action-btn .hero-btn-icon {
             width: 14px;
             height: 14px;
+          }
+
+          .hero-scroll-hint-pill {
+            margin-top: 1.45rem;
+            font-size: 0.76rem;
+            padding: 6px 14px;
+          }
+
+          .hero-search-bar {
+            padding: 14px 12px;
+            gap: 10px;
+          }
+
+          .search-price-range-pill {
+            padding: 10px 12px 6px;
+          }
+
+          .search-mode-btn {
+            font-size: 0.8rem;
+            padding: 8px 2px;
           }
         }
       `}</style>

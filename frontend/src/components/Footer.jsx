@@ -271,60 +271,6 @@ const Footer = () => {
           gap: 2.5rem;
         }
 
-        @media (max-width: 900px) {
-          .footer-cta-inner,
-          .footer-bottom-inner {
-            flex-direction: column;
-            align-items: stretch;
-            text-align: center;
-          }
-
-          .footer-cta-actions {
-            justify-content: center;
-            width: 100%;
-            flex-wrap: wrap;
-          }
-
-          .footer-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .footer-brand {
-            text-align: center;
-          }
-
-          .footer-contact {
-            align-items: center;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .footer-cta-banner {
-            padding: 3rem 0;
-          }
-
-          .footer-cta-text h2 {
-            font-size: 1.6rem;
-          }
-
-          .footer-cta-text p {
-            max-width: 100%;
-          }
-
-          .footer-cta-actions {
-            flex-direction: column;
-          }
-
-          .footer-cta-btn {
-            width: 100%;
-            justify-content: center;
-          }
-
-          .footer-grid {
-            gap: 1.75rem;
-          }
-        }
-
         .footer-logo {
           display: flex;
           align-items: center;
@@ -519,27 +465,83 @@ const Footer = () => {
         }
 
         @media (max-width: 768px) {
+          .footer-cta-banner {
+            padding: 3rem 1rem !important;
+          }
           .footer-cta-inner {
-            flex-direction: column;
-            text-align: center;
+            flex-direction: column !important;
+            text-align: center !important;
+            gap: 1.5rem !important;
+          }
+          .footer-cta-text h2 {
+            font-size: 1.65rem !important;
           }
           .footer-cta-text p {
-            margin: 0 auto;
+            font-size: 0.95rem !important;
+            margin: 0 auto !important;
           }
           .footer-cta-actions {
-            flex-direction: column;
-            width: 100%;
+            flex-direction: column !important;
+            width: 100% !important;
+            gap: 0.75rem !important;
           }
           .footer-cta-btn {
-            justify-content: center;
+            width: 100% !important;
+            min-height: 48px !important;
+            justify-content: center !important;
+            font-size: 0.95rem !important;
+          }
+          .footer-main {
+            padding: 3rem 1rem 2rem !important;
           }
           .footer-grid {
-            grid-template-columns: 1fr;
-            gap: 2rem;
+            grid-template-columns: 1fr !important;
+            gap: 2rem !important;
+            text-align: center !important;
+          }
+          .footer-logo {
+            justify-content: center !important;
+          }
+          .footer-tagline {
+            margin: 0 auto 1.25rem auto !important;
+          }
+          .footer-social {
+            justify-content: center !important;
+          }
+          .footer-contact a,
+          .footer-contact span {
+            justify-content: center !important;
           }
           .footer-bottom-inner {
-            flex-direction: column;
-            text-align: center;
+            flex-direction: column !important;
+            text-align: center !important;
+            gap: 0.75rem !important;
+          }
+          .footer-legal {
+            justify-content: center !important;
+            gap: 1.25rem !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .footer-cta-banner {
+            padding: 2.5rem 0.85rem !important;
+          }
+          .footer-cta-text h2 {
+            font-size: 1.45rem !important;
+          }
+          .footer-cta-text p {
+            font-size: 0.88rem !important;
+          }
+          .footer-cta-btn {
+            min-height: 44px !important;
+            font-size: 0.9rem !important;
+          }
+          .footer-main {
+            padding: 2.5rem 0.85rem 1.75rem !important;
+          }
+          .footer-grid {
+            gap: 1.75rem !important;
           }
         }
       `}</style>

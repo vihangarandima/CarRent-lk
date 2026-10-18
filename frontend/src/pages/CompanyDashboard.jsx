@@ -1932,7 +1932,11 @@ export default function CompanyDashboard() {
                   </div>
                 </div>
                 {rentalForm.pickupDate && rentalForm.returnDate && (() => {
-                  const days = Math.max(1, Math.ceil((new Date(rentalForm.returnDate) - new Date(rentalForm.pickupDate)) / (1000 * 60 * 60 * 24)));
+                  const pDate = new Date(rentalForm.pickupDate);
+                  const rDate = new Date(rentalForm.returnDate);
+                  if (rDate < pDate) return null;
+                  const diff = Math.round(Math.abs(rDate.setHours(0,0,0,0) - pDate.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+                  const days = diff + 1;
                   const total = days * Number(rentalForm.dailyRate || 0);
                   return (
                     <div className="cd-quick-summary">
