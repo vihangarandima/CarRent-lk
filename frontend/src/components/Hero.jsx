@@ -1,13 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, ChevronDown, MapPin, Car, PlusCircle } from "lucide-react";
+import { Search, ChevronDown, MapPin, Car, PlusCircle, Check } from "lucide-react";
 import fleetCutoutImg from "../assets/images/yamu_fleet_cutout.png";
 import { useSiteConfig } from "../context/SiteConfigContext";
 import { FestivalHeroDecorations } from "./festivals/FestivalAccessoriesManager";
 
 const VEHICLE_TYPES = [
-  { id: "", label: "All Vehicle Types" },
+  { id: "", label: "Any vehicle" },
   { id: "car", label: "Car" },
   { id: "premium-car", label: "Premium Car" },
   { id: "mini-car", label: "Mini Car" },
@@ -48,6 +48,30 @@ const Hero = () => {
   const [minPrice, setMinPrice] = useState(5000);
   const [maxPrice, setMaxPrice] = useState(80000);
   const [rentMode, setRentMode] = useState(""); // "" = any, "self-drive", "with-driver"
+  const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState(false);
+  const vehicleDropdownRef = useRef(null);
+  const dropdownMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (vehicleDropdownRef.current && !vehicleDropdownRef.current.contains(event.target)) {
+        setVehicleDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setVehicleDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside, { passive: true });
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const handleMinChange = (e) => {
     const val = Number(e.target.value);
@@ -85,6 +109,40 @@ const Hero = () => {
       handleSearch();
     }
   };
+
+  useEffect(() => {
+    const el = dropdownMenuRef.current;
+    if (!el || !vehicleDropdownOpen) return;
+
+    const onWheel = (e) => {
+      // If the dropdown fits completely without internal scrolling, let the browser scroll natively at 100% speed!
+      const isScrollable = el.scrollHeight > el.clientHeight + 4;
+      if (!isScrollable) {
+        return;
+      }
+
+      const isAtTop = el.scrollTop <= 0;
+      const isAtBottom = Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight;
+
+      if ((e.deltaY < 0 && isAtTop) || (e.deltaY > 0 && isAtBottom)) {
+        e.preventDefault();
+        let delta = e.deltaY;
+        if (e.deltaMode === 1) {
+          // DOM_DELTA_LINE: Standard Windows mouse wheel notch is 3 lines (~38px per line)
+          delta *= 38;
+        } else if (e.deltaMode === 2) {
+          // DOM_DELTA_PAGE
+          delta *= window.innerHeight;
+        }
+        window.scrollBy({ top: delta, behavior: "auto" });
+      }
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, [vehicleDropdownOpen]);
 
   return (
     <section className="yamu-exact-hero">
@@ -218,22 +276,56 @@ const Hero = () => {
             ))}
           </div>
 
-          {/* Vehicle Type Select */}
-          <div className="search-field-pill search-vehicle-pill">
-            <Car size={16} className="vehicle-type-field-icon" />
-            <select
-              value={vehicleType}
-              onChange={(e) => setVehicleType(e.target.value)}
-              className="search-select"
+          {/* Vehicle Type Custom Dropdown */}
+          <div
+            className={`search-field-pill search-vehicle-pill ${vehicleDropdownOpen ? "dropdown-open" : ""}`}
+            ref={vehicleDropdownRef}
+          >
+            <button
+              type="button"
+              className="vehicle-dropdown-trigger"
+              onClick={() => setVehicleDropdownOpen((prev) => !prev)}
+              aria-haspopup="listbox"
+              aria-expanded={vehicleDropdownOpen}
+              aria-label="Filter by vehicle type"
             >
-              <option value="">Any vehicle</option>
-              {VEHICLE_TYPES.filter((t) => t.id !== "").map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={14} className="select-chevron" />
+              <Car size={16} className="vehicle-type-field-icon" />
+              <span className="selected-vehicle-text">
+                {VEHICLE_TYPES.find((t) => t.id === vehicleType)?.label || "Any vehicle"}
+              </span>
+              <ChevronDown
+                size={16}
+                className={`select-chevron ${vehicleDropdownOpen ? "chevron-rotated" : ""}`}
+              />
+            </button>
+
+            {vehicleDropdownOpen && (
+              <div
+                ref={dropdownMenuRef}
+                className="custom-vehicle-dropdown-menu"
+                role="listbox"
+              >
+                {VEHICLE_TYPES.map((t) => {
+                  const isSelected = vehicleType === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      className={`vehicle-dropdown-item ${isSelected ? "selected" : ""}`}
+                      onClick={() => {
+                        setVehicleType(t.id);
+                        setVehicleDropdownOpen(false);
+                      }}
+                    >
+                      <span className="item-label">{t.label}</span>
+                      {isSelected && <Check size={16} className="item-check" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Location Input */}
@@ -323,7 +415,9 @@ const Hero = () => {
           justify-content: space-between;
           padding: 85px 2rem 2.25rem;
           box-sizing: border-box;
-          overflow: hidden;
+          overflow: visible;
+          overflow-x: clip;
+          overflow-y: visible;
           background-color: #ea580c;
         }
 
@@ -579,6 +673,7 @@ const Hero = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
+          overflow: visible;
         }
 
         /* Pure White Search Card Bar */
@@ -622,6 +717,7 @@ const Hero = () => {
           gap: 10px;
           box-sizing: border-box;
           flex-wrap: nowrap;
+          overflow: visible;
         }
 
         .search-lead-label {
@@ -662,27 +758,127 @@ const Hero = () => {
         .search-vehicle-pill {
           flex: 1.1;
           min-width: 125px;
+          position: relative !important;
+          cursor: pointer;
         }
 
-        .search-select {
+        .search-vehicle-pill.dropdown-open {
+          border-color: #ea580c !important;
+          background: #ffffff !important;
+          box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15) !important;
+        }
+
+        .vehicle-dropdown-trigger {
           width: 100%;
-          border: none;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           background: transparent;
+          border: none;
           outline: none;
+          padding: 0;
+          cursor: pointer;
+          font-family: inherit;
+          text-align: left;
+        }
+
+        .selected-vehicle-text {
           font-size: 0.9rem;
           font-weight: 600;
           color: #1e293b;
-          cursor: pointer;
-          appearance: none;
-          -webkit-appearance: none;
-          padding-right: 18px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          flex: 1;
         }
 
         .select-chevron {
-          position: absolute;
-          right: 12px;
+          position: static;
           color: #ea580c;
-          pointer-events: none;
+          transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          flex-shrink: 0;
+          margin-left: 6px;
+        }
+
+        .select-chevron.chevron-rotated {
+          transform: rotate(180deg);
+        }
+
+        .custom-vehicle-dropdown-menu {
+          position: absolute;
+          top: calc(100% + 8px);
+          left: 0;
+          min-width: 220px;
+          width: 100%;
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 16px;
+          box-shadow: 0 16px 40px -8px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(0, 0, 0, 0.06);
+          padding: 6px;
+          z-index: 100;
+          max-height: min(420px, 75vh);
+          overflow-y: auto;
+          overscroll-behavior: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
+          animation: dropdownMenuIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes dropdownMenuIn {
+          from {
+            opacity: 0;
+            transform: translateY(-6px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .custom-vehicle-dropdown-menu::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-vehicle-dropdown-menu::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 10px;
+        }
+
+        .vehicle-dropdown-item {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 14px;
+          border: none;
+          background: transparent;
+          border-radius: 10px;
+          font-family: inherit;
+          font-size: 0.9rem;
+          font-weight: 550;
+          color: #334155;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          text-align: left;
+        }
+
+        .vehicle-dropdown-item:hover {
+          background: #fff7ed;
+          color: #ea580c;
+          font-weight: 650;
+        }
+
+        .vehicle-dropdown-item.selected {
+          background: #ffedd5;
+          color: #c2410c;
+          font-weight: 750;
+        }
+
+        .item-check {
+          color: #ea580c;
+          flex-shrink: 0;
+          margin-left: 8px;
         }
 
         .vehicle-type-field-icon {
@@ -916,6 +1112,9 @@ const Hero = () => {
             padding: 85px 1.25rem 2rem;
             min-height: 100vh;
             min-height: 100dvh;
+            overflow: visible !important;
+            overflow-x: clip !important;
+            overflow-y: visible !important;
           }
 
           .heroic-fleet-stage {
@@ -1008,8 +1207,9 @@ const Hero = () => {
           .yamu-exact-hero {
             padding: 76px 1rem 2.5rem;
             min-height: auto;
-            overflow: visible;
-            overflow-x: hidden;
+            overflow: visible !important;
+            overflow-x: clip !important;
+            overflow-y: visible !important;
             justify-content: flex-start;
             gap: 1;
           }
@@ -1019,11 +1219,11 @@ const Hero = () => {
             min-height: calc(100vh - 84px);
             display: flex;
             flex-direction: column;
-            justify-content: flex-end;
+            justify-content: center;
             align-items: center;
             margin: 0;
-            padding-top: 1rem;
-            padding-bottom: 3.25rem;
+            padding-top: 1.5rem;
+            padding-bottom: 5.5rem;
             width: 100%;
             box-sizing: border-box;
           }
@@ -1031,22 +1231,22 @@ const Hero = () => {
           .heroic-fleet-stage {
             max-width: 100%;
             width: 100%;
-            padding-top: 3rem;
+            padding-top: 5.6rem;
           }
 
           .watermark-yamu-text {
-            font-size: clamp(4.4rem, 18vw, 6.2rem);
-            letter-spacing: -0.02em;
-            line-height: 0.85;
-            text-shadow: 0 10px 24px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.18);
+            font-size: clamp(5.5rem, 20vw, 8rem) !important;
+            letter-spacing: -0.02em !important;
+            line-height: 0.8 !important;
+            text-shadow: 0 12px 28px rgba(0, 0, 0, 0.35), 0 3px 10px rgba(0, 0, 0, 0.2) !important;
           }
 
           .fleet-image-wrap {
-            margin-top: -2rem;
+            margin-top: -3.2rem;
           }
 
           .fleet-cutout-img {
-            max-height: 185px;
+            max-height: 205px;
             width: 100%;
           }
 
@@ -1117,6 +1317,7 @@ const Hero = () => {
             box-sizing: border-box;
             z-index: 25;
             scroll-margin-top: 76px;
+            overflow: visible !important;
           }
 
           .hero-buttons-container {
@@ -1155,6 +1356,7 @@ const Hero = () => {
             box-sizing: border-box;
             background: #ffffff !important;
             box-shadow: 0 18px 40px rgba(60, 20, 0, 0.28), 0 4px 12px rgba(0, 0, 0, 0.08);
+            overflow: visible !important;
           }
 
           /* Dropdown Pills Reset on Mobile */
@@ -1271,40 +1473,37 @@ const Hero = () => {
             flex: none !important;
           }
 
-          .search-vehicle-pill:focus-within {
+          .search-vehicle-pill:focus-within,
+          .search-vehicle-pill.dropdown-open {
             background: #ffffff !important;
             border-color: #E8590C !important;
             box-shadow: 0 0 0 3px rgba(232, 89, 12, 0.18) !important;
+            z-index: 50 !important;
           }
 
-          .vehicle-type-field-icon {
-            display: none !important;
-          }
-
-          .search-select {
-            width: 100% !important;
-            height: 100% !important;
+          .selected-vehicle-text {
             font-size: 16px !important;
             font-weight: 600 !important;
             color: #1D140C !important;
-            background: transparent !important;
-            border: none !important;
-            outline: none !important;
-            cursor: pointer !important;
-            appearance: none !important;
-            -webkit-appearance: none !important;
-            padding-right: 32px !important;
-            padding-left: 0 !important;
-            line-height: 56px !important;
           }
 
           .select-chevron {
-            position: absolute !important;
-            right: 18px !important;
+            color: #6F6359 !important;
             width: 18px !important;
             height: 18px !important;
-            color: #6F6359 !important;
-            pointer-events: none !important;
+          }
+
+          .custom-vehicle-dropdown-menu {
+            max-height: min(380px, 60vh) !important;
+            overscroll-behavior: auto !important;
+            border-radius: 16px !important;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16) !important;
+            z-index: 250 !important;
+          }
+
+          .vehicle-dropdown-item {
+            padding: 12px 14px !important;
+            font-size: 15px !important;
           }
 
           /* Price Range Field on Mobile (Order 4) */
@@ -1456,29 +1655,34 @@ const Hero = () => {
         @media (max-width: 420px) {
           .yamu-exact-hero {
             padding: 70px 0.75rem 2rem;
+            overflow: visible !important;
+            overflow-x: clip !important;
+            overflow-y: visible !important;
           }
 
           .hero-center-stage {
             min-height: calc(100dvh - 78px);
             min-height: calc(100vh - 78px);
-            padding-top: 0.5rem;
-            padding-bottom: 3.8rem;
+            padding-top: 1rem;
+            padding-bottom: 4.2rem;
+            justify-content: center;
           }
 
           .heroic-fleet-stage {
-            padding-top: 1.8rem;
+            padding-top: 5.2rem;
           }
 
           .watermark-yamu-text {
-            font-size: clamp(3.6rem, 17vw, 4.8rem);
+            font-size: clamp(6.8rem, 20vw, 11.2rem) !important;
+            line-height: 1.2 !important;
           }
 
           .fleet-image-wrap {
-            margin-top: -1.6rem;
+            margin-top: -2.8rem;
           }
 
           .fleet-cutout-img {
-            max-height: 155px;
+            max-height: 185px;
           }
 
           .hero-sub-bottom {

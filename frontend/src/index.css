@@ -1091,8 +1091,8 @@ img {
   }
 
   /* Prevent iOS automatic zoom on focus while maintaining touch target */
-  input, select, textarea {
-    font-size: 16px !important;
+  input:not(.sort-select-input), select:not(.sort-select-input), textarea {
+    font-size: 16px;
   }
 
   /* Better tap targets on mobile */

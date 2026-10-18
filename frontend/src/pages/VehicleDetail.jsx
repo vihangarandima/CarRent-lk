@@ -19,6 +19,8 @@ import {
   Building2,
   Shield,
   Info,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import axios from "axios";
 import { API_URL } from "../config";
@@ -685,6 +687,37 @@ const VehicleDetail = () => {
                       inline
                       minDate={new Date()}
                       dayClassName={(date) => (isDateBooked(date) ? "booked-day-pill" : undefined)}
+                      renderCustomHeader={({
+                        date,
+                        decreaseMonth,
+                        increaseMonth,
+                        prevMonthButtonDisabled,
+                        nextMonthButtonDisabled,
+                      }) => (
+                        <div className="custom-calendar-header">
+                          <button
+                            type="button"
+                            onClick={decreaseMonth}
+                            disabled={prevMonthButtonDisabled}
+                            className={`calendar-nav-btn ${prevMonthButtonDisabled ? "disabled" : ""}`}
+                            aria-label="Previous Month"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                          <div className="calendar-header-title">
+                            {date.toLocaleString("default", { month: "long", year: "numeric" })}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={increaseMonth}
+                            disabled={nextMonthButtonDisabled}
+                            className={`calendar-nav-btn ${nextMonthButtonDisabled ? "disabled" : ""}`}
+                            aria-label="Next Month"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </div>
+                      )}
                     />
                     <div className="calendar-legend">
                       <span className="legend-item">
@@ -1258,68 +1291,61 @@ const VehicleDetail = () => {
         .react-datepicker__header {
           background-color: transparent !important;
           border-bottom: 1px solid #f1f5f9 !important;
-          padding: 0 0 0.6rem !important;
+          padding: 2px 0 0.5rem !important;
           margin: 0 !important;
           position: relative !important;
         }
         .react-datepicker__current-month {
-          font-weight: 700 !important;
-          font-size: 0.95rem !important;
-          color: #0f172a !important;
-          margin: 0 0 0.75rem !important;
-          text-align: center !important;
-          padding: 0 2rem !important;
+          display: none !important;
         }
         .react-datepicker__navigation {
-          position: absolute !important;
-          top: 0.85rem !important;
-          height: 28px !important;
-          width: 28px !important;
+          display: none !important;
+        }
+        .custom-calendar-header {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          padding: 4px 6px 10px !important;
+          background: #ffffff !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+        }
+        .calendar-header-title {
+          font-weight: 700 !important;
+          font-size: 0.98rem !important;
+          color: #0f172a !important;
+          text-align: center !important;
+          letter-spacing: -0.01em !important;
+        }
+        .calendar-nav-btn {
+          width: 32px !important;
+          height: 32px !important;
           border-radius: 8px !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
           background: #f8fafc !important;
           border: 1px solid #e2e8f0 !important;
+          color: #334155 !important;
           cursor: pointer !important;
-          transition: all 0.2s ease !important;
+          transition: all 0.15s ease !important;
           padding: 0 !important;
-          z-index: 2 !important;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
         }
-        .react-datepicker__navigation:hover {
+        .calendar-nav-btn:hover:not(:disabled):not(.disabled) {
           background: #f1f5f9 !important;
           border-color: #cbd5e1 !important;
+          color: #0f172a !important;
+          transform: translateY(-1px);
         }
-        .react-datepicker__navigation--previous {
-          left: 0.75rem !important;
-        }
-        .react-datepicker__navigation--next {
-          right: 0.75rem !important;
-        }
-        .react-datepicker__navigation-icon {
-          top: 0 !important;
-          left: 0 !important;
-          position: relative !important;
-          width: 0 !important;
-        }
-        .react-datepicker__navigation-icon::before {
-          border-color: #475569 !important;
-          border-width: 2px 2px 0 0 !important;
-          width: 7px !important;
-          height: 7px !important;
-          top: -4px !important;
-          position: absolute !important;
-        }
-        .react-datepicker__navigation-icon--previous::before {
-          transform: rotate(225deg) !important;
-          right: -3px !important;
-        }
-        .react-datepicker__navigation-icon--next::before {
-          transform: rotate(45deg) !important;
-          left: -4px !important;
-        }
-        .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
-          border-color: #0f172a !important;
+        .calendar-nav-btn:disabled,
+        .calendar-nav-btn.disabled {
+          opacity: 0.35 !important;
+          cursor: not-allowed !important;
+          pointer-events: none !important;
+          background: #f8fafc !important;
+          border-color: #f1f5f9 !important;
+          color: #94a3b8 !important;
         }
         .react-datepicker__month {
           margin: 0 !important;
@@ -1802,9 +1828,12 @@ const VehicleDetail = () => {
             padding: 0.75rem 0.4rem !important;
             border-radius: 14px !important;
           }
-          .react-datepicker__current-month {
-            font-size: 0.88rem !important;
-            margin-bottom: 0.5rem !important;
+          .calendar-header-title {
+            font-size: 0.92rem !important;
+          }
+          .calendar-nav-btn {
+            width: 30px !important;
+            height: 30px !important;
           }
           .react-datepicker__day-name {
             width: 32px !important;

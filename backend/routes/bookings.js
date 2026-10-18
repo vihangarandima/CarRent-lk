@@ -39,8 +39,12 @@ const verifyDispatchAccess = async (req, res, next) => {
     const booking = await Booking.findById(id);
     if (!booking) return res.status(404).json({ msg: "Booking record not found" });
 
-    // 1. Allow access if a valid, unexpired dispatch token is provided
-    const queryToken = req.query.token;
+    // 1. Allow access if a valid, unexpired dispatch token is provided (query param, header, or body)
+    const queryToken =
+      req.query.token ||
+      req.header("x-dispatch-token") ||
+      req.header("X-Dispatch-Token") ||
+      req.body?.token;
     if (
       queryToken &&
       booking.dispatchToken &&

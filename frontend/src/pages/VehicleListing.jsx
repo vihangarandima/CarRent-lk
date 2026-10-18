@@ -1925,7 +1925,7 @@ const VehicleListing = () => {
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
           min-width: 0;
           max-width: 100%;
         }
@@ -1948,7 +1948,7 @@ const VehicleListing = () => {
         }
 
         .sort-label {
-          font-size: 0.78rem;
+          font-size: 0.72rem;
           font-weight: 700;
           color: #64748b;
           text-transform: uppercase;
@@ -1959,13 +1959,13 @@ const VehicleListing = () => {
         .sort-select-input {
           border: none;
           background: transparent;
-          font-size: 0.82rem;
+          font-size: 0.74rem;
           font-weight: 600;
           color: #0f172a;
           cursor: pointer;
           outline: none;
           font-family: inherit;
-          padding-right: 0.25rem;
+          padding-right: 0.15rem;
         }
 
         .view-toggle {
@@ -2571,11 +2571,36 @@ const VehicleListing = () => {
             gap: 0.75rem;
           }
           .results-header-actions {
-            width: 100%;
-            justify-content: space-between;
+            width: 100% !important;
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 0.4rem !important;
           }
           .sort-dropdown-wrap {
-            flex: 1;
+            flex: 1 1 0% !important;
+            min-width: 0 !important;
+            padding: 0.22rem 0.42rem 0.22rem 0.55rem !important;
+            gap: 0.25rem !important;
+          }
+          .sort-label {
+            font-size: 0.65rem !important;
+            letter-spacing: 0.02em !important;
+          }
+          .sort-select-input {
+            width: 100% !important;
+            min-width: 0 !important;
+            font-size: 0.70rem !important;
+            padding: 0 !important;
+          }
+          .view-toggle {
+            flex-shrink: 0 !important;
+            padding: 2px !important;
+          }
+          .view-toggle-btn {
+            padding: 0.28rem 0.52rem !important;
+            font-size: 0.72rem !important;
           }
         }
 
@@ -2606,6 +2631,29 @@ const VehicleListing = () => {
         }
 
         @media (max-width: 480px) {
+          .results-header-actions {
+            gap: 0.3rem !important;
+          }
+          .sort-dropdown-wrap {
+            padding: 0.2rem 0.35rem 0.2rem 0.45rem !important;
+            gap: 0.2rem !important;
+          }
+          .sort-label {
+            font-size: 0.62rem !important;
+          }
+          .sort-select-input {
+            font-size: 0.66rem !important;
+            padding: 0 !important;
+          }
+          .view-toggle-btn {
+            padding: 0.25rem 0.42rem !important;
+            font-size: 0.68rem !important;
+            gap: 2px !important;
+          }
+          .view-toggle-btn svg {
+            width: 14px !important;
+            height: 14px !important;
+          }
           .vehicle-type-compact-grid {
             grid-template-columns: repeat(4, 1fr);
             gap: 0.3rem;

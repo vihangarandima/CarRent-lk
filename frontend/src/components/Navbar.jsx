@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/images/logo.png";
 import { useCurrency } from "../context/CurrencyContext";
@@ -9,6 +9,17 @@ import {
   logout,
   setBrowsingAsCustomer,
 } from "../utils/session";
+import {
+  Search,
+  Car,
+  Star,
+  HelpCircle,
+  ShieldCheck,
+  Plus,
+  LayoutDashboard,
+  Eye,
+  LogOut,
+} from "lucide-react";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -19,7 +30,9 @@ const Navbar = () => {
     JSON.parse(localStorage.getItem("user") || "null")
   );
   const [menuOpen, setMenuOpen] = useState(false);
+  const [acctMenuOpen, setAcctMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const acctMenuRef = useRef(null);
 
   useEffect(() => {
     const handleUserUpdate = () => {
@@ -42,6 +55,7 @@ const Navbar = () => {
 
   useEffect(() => {
     setMenuOpen(false);
+    setAcctMenuOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -54,6 +68,26 @@ const Navbar = () => {
     document.body.style.overflow = "";
     return undefined;
   }, [menuOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (acctMenuRef.current && !acctMenuRef.current.contains(e.target)) {
+        setAcctMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        if (menuOpen) setMenuOpen(false);
+        if (acctMenuOpen) setAcctMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen, acctMenuOpen]);
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -98,790 +132,1283 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className={`hero-nav ${scrolled ? "scrolled" : ""} ${onOrangeHeader && !scrolled ? "on-dark" : ""}`}>
-        <Link to="/" className="nav-logo">
-          <img src={logo} alt="Yamu Car Rentals" className="nav-logo-img" />
-          <span className="brand-yamu">Yamu</span>
-          <span className="brand-orange">&nbsp;Car Rentals</span>
-        </Link>
+      <nav className={`hero-nav ${scrolled ? "scrolled" : ""} ${onOrangeHeader ? "on-orange" : ""}`}>
+        <div className="nav-inner">
+          <Link to="/" className="nav-logo" aria-label="Yamu Car Rentals home">
+            <img src={logo} alt="Yamu Car Rentals" className="nav-logo-img" />
+            <span className="nav-logo-text">
+              <span className="brand-yamu">Yamu</span>
+              <span className="brand-orange">&nbsp;Car Rentals</span>
+            </span>
+          </Link>
 
-        {hostingNav ? (
-          <div className="nav-links hidden-mobile">
-            <Link to={DASHBOARD_PATH} className={location.pathname.startsWith(DASHBOARD_PATH) ? "active" : ""}>Dashboard</Link>
-            <Link to={listTarget} className={location.pathname === listTarget ? "active" : ""}>Add Vehicle</Link>
-            <button type="button" className="nav-link-btn" onClick={browseAsCustomer}>
-              View site as customer
-            </button>
-          </div>
-        ) : (
-          <div className="nav-links hidden-mobile">
-            <Link to="/vehicles" className={location.pathname.startsWith("/vehicles") ? "active" : ""}>Find Cars</Link>
-            <Link to="/companies" className={location.pathname === "/companies" || location.pathname.startsWith("/companies/") ? "active" : ""}>Fleets</Link>
-            <Link to="/reviews" className={location.pathname === "/reviews" || location.pathname === "/reviews-portal" ? "active" : ""}>Reviews</Link>
-            <Link to="/#how-it-works">How it works</Link>
-            <Link to="/why-us" className={location.pathname === "/why-us" ? "active" : ""}>Why us</Link>
-          </div>
-        )}
+          <nav className="nav-center hidden-mobile" aria-label="Main">
+            {hostingNav ? (
+              <ul className="nav-links-list">
+                <li>
+                  <Link
+                    to={DASHBOARD_PATH}
+                    className={location.pathname.startsWith(DASHBOARD_PATH) ? "active" : ""}
+                    aria-current={location.pathname.startsWith(DASHBOARD_PATH) ? "page" : undefined}
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={listTarget}
+                    className={location.pathname === listTarget ? "active" : ""}
+                    aria-current={location.pathname === listTarget ? "page" : undefined}
+                  >
+                    Add Vehicle
+                  </Link>
+                </li>
+                <li>
+                  <button type="button" className="nav-link-btn" onClick={browseAsCustomer}>
+                    View site as customer
+                  </button>
+                </li>
+              </ul>
+            ) : (
+              <ul className="nav-links-list">
+                <li>
+                  <Link
+                    to="/vehicles"
+                    className={location.pathname.startsWith("/vehicles") ? "active" : ""}
+                    aria-current={location.pathname.startsWith("/vehicles") ? "page" : undefined}
+                  >
+                    Find Cars
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/companies"
+                    className={location.pathname === "/companies" || location.pathname.startsWith("/companies/") ? "active" : ""}
+                    aria-current={location.pathname === "/companies" || location.pathname.startsWith("/companies/") ? "page" : undefined}
+                  >
+                    Fleets
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/reviews"
+                    className={location.pathname === "/reviews" || location.pathname === "/reviews-portal" ? "active" : ""}
+                    aria-current={location.pathname === "/reviews" || location.pathname === "/reviews-portal" ? "page" : undefined}
+                  >
+                    Reviews
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/#how-it-works"
+                    className={location.hash === "#how-it-works" ? "active" : ""}
+                    aria-current={location.hash === "#how-it-works" ? "page" : undefined}
+                  >
+                    How it works
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/why-us"
+                    className={location.pathname === "/why-us" ? "active" : ""}
+                    aria-current={location.pathname === "/why-us" ? "page" : undefined}
+                  >
+                    Why us
+                  </Link>
+                </li>
+              </ul>
+            )}
+          </nav>
 
-        <div className="nav-actions hidden-mobile">
-          <div className="nav-currency-picker" title="Change currency">
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="nav-currency-select"
-              aria-label="Display currency"
-            >
-              {Object.values(currencies).map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.code}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {token ? (
-            <>
-              {lister ? (
-                <button type="button" onClick={goToDashboard} className="nav-list-btn" title="Back to your dashboard">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="7" height="9" />
-                    <rect x="14" y="3" width="7" height="5" />
-                    <rect x="14" y="12" width="7" height="9" />
-                    <rect x="3" y="16" width="7" height="5" />
-                  </svg>
-                  <span>{hostingNav ? "My Dashboard" : "Back to Dashboard"}</span>
-                </button>
-              ) : user?.role !== "admin" && (
-                <Link to={listTarget} className="nav-list-btn" title="List a Vehicle">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                  <span>{listLabel}</span>
-                </Link>
-              )}
-
-              {!lister && (
-              <Link
-                to={profileTarget}
-                className="nav-profile-pill"
+          <div className="nav-actions hidden-mobile">
+            <div className="nav-cur-pill" title="Change currency">
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="nav-cur-select"
+                aria-label="Display currency"
               >
-                {user?.profileImage ? (
-                  <img src={user.profileImage} alt={user.name || "Profile"} className="nav-avatar-img" />
-                ) : (
-                  <div className="nav-avatar-circle">{user?.name?.[0]?.toUpperCase() || "P"}</div>
-                )}
-                <span>{profileLabel}</span>
-              </Link>
-              )}
+                {Object.values(currencies).map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              {/* Dedicated Logout Button */}
+            {lister ? (
               <button
                 type="button"
-                onClick={handleLogout}
-                className="nav-logout-btn"
-                title="Log Out"
+                onClick={goToDashboard}
+                className="nav-list-pill"
+                title="Back to your dashboard"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-                <span>Logout</span>
+                <LayoutDashboard size={16} strokeWidth={2.4} />
+                <span>{hostingNav ? "My Dashboard" : "Back to Dashboard"}</span>
               </button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" className="nav-signin">Sign In</Link>
-              <Link to="/register" className="nav-btn">Get Started</Link>
-            </>
-          )}
-        </div>
+            ) : user?.role !== "admin" && !token ? (
+              <Link
+                to={listTarget}
+                className="nav-list-pill"
+                title="List a vehicle"
+              >
+                <Plus size={16} strokeWidth={2.4} />
+                <span>{listLabel}</span>
+              </Link>
+            ) : null}
 
-        <div className="mobile-menu-btn">
-          <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle Menu">
-            <div className={`burger ${menuOpen ? "open" : ""}`}>
-              <span />
-              <span />
-              <span />
-            </div>
-          </button>
+            {token ? (
+              <div className="nav-acct" ref={acctMenuRef}>
+                <button
+                  type="button"
+                  id="acctBtn"
+                  className="nav-acct-btn"
+                  onClick={() => setAcctMenuOpen(!acctMenuOpen)}
+                  aria-haspopup="menu"
+                  aria-expanded={acctMenuOpen}
+                  aria-controls="acctMenu"
+                >
+                  {user?.profileImage ? (
+                    <img src={user.profileImage} alt={user.name || "Profile"} className="nav-acct-av" />
+                  ) : (
+                    <span className="nav-acct-av">
+                      {user?.name?.[0]?.toUpperCase() || "Y"}
+                    </span>
+                  )}
+                  <span>{profileLabel}</span>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                    style={{
+                      marginLeft: 2,
+                      transform: acctMenuOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 0.2s ease"
+                    }}
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+
+                {acctMenuOpen && (
+                  <div className="nav-acct-menu" id="acctMenu" role="menu">
+                    {!lister ? (
+                      <Link
+                        to={profileTarget}
+                        role="menuitem"
+                        onClick={() => setAcctMenuOpen(false)}
+                      >
+                        {profileLabel}
+                      </Link>
+                    ) : (
+                      <>
+                        <Link
+                          to={DASHBOARD_PATH}
+                          role="menuitem"
+                          onClick={() => setAcctMenuOpen(false)}
+                        >
+                          My Dashboard
+                        </Link>
+                        <Link
+                          to={listTarget}
+                          role="menuitem"
+                          onClick={() => setAcctMenuOpen(false)}
+                        >
+                          Add Vehicle
+                        </Link>
+                      </>
+                    )}
+                    <hr />
+                    <button
+                      type="button"
+                      className="nav-acct-logout"
+                      role="menuitem"
+                      onClick={() => {
+                        setAcctMenuOpen(false);
+                        handleLogout();
+                      }}
+                    >
+                      Log out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="nav-guest-btns">
+                <Link to="/login" className="nav-sign-in-btn">
+                  Sign in
+                </Link>
+                <Link to="/register" className="nav-get-started-btn">
+                  Get started
+                </Link>
+              </div>
+            )}
+          </div>
+
+          <div className="mobile-menu-btn">
+            <button
+              type="button"
+              className="mobile-icon-btn"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Open menu"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-drawer"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h10" />
+              </svg>
+            </button>
+          </div>
         </div>
       </nav>
 
-      {menuOpen && (
-        <button
-          className="mobile-backdrop"
-          type="button"
-          aria-label="Close menu backdrop"
-          onClick={closeMenu}
-        />
-      )}
+      {/* Mobile Drawer Scrim Backdrop */}
+      <div
+        className={`mobile-scrim ${menuOpen ? "open" : ""}`}
+        onClick={closeMenu}
+        aria-hidden={!menuOpen}
+      />
 
-      <div className={`mobile-menu ${menuOpen ? "open" : ""}`} id="mobile-menu">
-        {hostingNav ? (
-        <div className="mobile-menu-links">
-          <button type="button" className="mobile-nav-item mobile-nav-btn" onClick={goToDashboard}>
-            My Dashboard
-          </button>
-          <Link to={listTarget} className="mobile-nav-item" onClick={closeMenu}>
-            + Add Vehicle
+      {/* Mobile Drawer */}
+      <aside
+        className={`mobile-drawer ${menuOpen ? "open" : ""}`}
+        id="mobile-drawer"
+        aria-label="Main menu"
+        aria-hidden={!menuOpen}
+      >
+        <div className="mobile-dhead">
+          <Link to="/" className="nav-logo mobile-drawer-logo" onClick={closeMenu}>
+            <img src={logo} alt="Yamu Car Rentals" className="nav-logo-img" />
+            <span className="brand-yamu">Yamu</span>
+            <span className="brand-orange">&nbsp;Car Rentals</span>
           </Link>
-          <button type="button" className="mobile-nav-item mobile-nav-btn" onClick={browseAsCustomer}>
-            View site as customer
+          <button
+            type="button"
+            className="mobile-icon-btn"
+            onClick={closeMenu}
+            aria-label="Close menu"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
           </button>
         </div>
-        ) : (
-        <div className="mobile-menu-links">
-          {lister && (
-            <button type="button" className="mobile-nav-item mobile-nav-btn" style={{ color: "#ea580c", fontWeight: 700 }} onClick={goToDashboard}>
-              ← Back to My Dashboard
-            </button>
-          )}
-          <Link to="/vehicles" className={`mobile-nav-item ${location.pathname.startsWith("/vehicles") ? "active" : ""}`} onClick={closeMenu}>
-            Find Cars
-          </Link>
-          <Link to="/companies" className={`mobile-nav-item ${location.pathname === "/companies" || location.pathname.startsWith("/companies/") ? "active" : ""}`} onClick={closeMenu}>
-            Fleets
-          </Link>
-          <Link to="/reviews" className={`mobile-nav-item ${location.pathname === "/reviews" || location.pathname === "/reviews-portal" ? "active" : ""}`} onClick={closeMenu}>
-            Reviews & Ratings
-          </Link>
-          <Link to="/#how-it-works" className="mobile-nav-item" onClick={closeMenu}>
-            How it works
-          </Link>
-          <Link to="/why-us" className={`mobile-nav-item ${location.pathname === "/why-us" ? "active" : ""}`} onClick={closeMenu}>
-            Why us
-          </Link>
-          {user?.role !== "admin" && !lister && (
-            <Link to={listTarget} className="mobile-nav-item" style={{ color: "#ea580c", fontWeight: 700 }} onClick={closeMenu}>
-              + {listLabel}
-            </Link>
-          )}
-        </div>
-        )}
 
-        <div className="mobile-menu-actions">
-          {token ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
-              {!lister && (
-                <Link to={profileTarget} className="mobile-btn-outline" onClick={closeMenu}>
-                  {profileLabel}
+        <ul className="mobile-drawer-nav">
+          {hostingNav ? (
+            <>
+              <li>
+                <Link
+                  to={DASHBOARD_PATH}
+                  className={`mobile-nav-link ${location.pathname.startsWith(DASHBOARD_PATH) ? "active" : ""}`}
+                  onClick={closeMenu}
+                >
+                  <span className="mobile-nav-ic">
+                    <LayoutDashboard size={20} strokeWidth={2.2} />
+                  </span>
+                  <span>Dashboard</span>
                 </Link>
-              )}
-              <button
-                type="button"
-                onClick={() => { closeMenu(); handleLogout(); }}
-                className="mobile-btn-logout"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-                Log Out
-              </button>
-            </div>
+              </li>
+              <li>
+                <Link
+                  to={listTarget}
+                  className={`mobile-nav-link ${location.pathname === listTarget ? "active" : ""}`}
+                  onClick={closeMenu}
+                >
+                  <span className="mobile-nav-ic">
+                    <Plus size={20} strokeWidth={2.4} />
+                  </span>
+                  <span>Add Vehicle</span>
+                </Link>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="mobile-nav-link mobile-nav-link-btn"
+                  onClick={browseAsCustomer}
+                >
+                  <span className="mobile-nav-ic">
+                    <Eye size={20} strokeWidth={2.2} />
+                  </span>
+                  <span>View site as customer</span>
+                </button>
+              </li>
+            </>
           ) : (
             <>
-              <Link to="/login" className="mobile-btn-outline" onClick={closeMenu}>
-                Sign in
-              </Link>
-              <Link to="/register" className="mobile-btn-primary" onClick={closeMenu}>
-                Get started
-              </Link>
+              {lister && (
+                <li>
+                  <button
+                    type="button"
+                    className="mobile-nav-link mobile-nav-link-btn mobile-lister-back"
+                    onClick={goToDashboard}
+                  >
+                    <span className="mobile-nav-ic">
+                      <LayoutDashboard size={20} strokeWidth={2.2} />
+                    </span>
+                    <span>Back to Dashboard</span>
+                  </button>
+                </li>
+              )}
+              <li>
+                <Link
+                  to="/vehicles"
+                  className={`mobile-nav-link ${location.pathname.startsWith("/vehicles") ? "active" : ""}`}
+                  onClick={closeMenu}
+                >
+                  <span className="mobile-nav-ic">
+                    <Search size={20} strokeWidth={2.2} />
+                  </span>
+                  <span>Find Cars</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/companies"
+                  className={`mobile-nav-link ${location.pathname === "/companies" || location.pathname.startsWith("/companies/") ? "active" : ""}`}
+                  onClick={closeMenu}
+                >
+                  <span className="mobile-nav-ic">
+                    <Car size={20} strokeWidth={2.2} />
+                  </span>
+                  <span>Fleets</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/reviews"
+                  className={`mobile-nav-link ${location.pathname === "/reviews" || location.pathname === "/reviews-portal" ? "active" : ""}`}
+                  onClick={closeMenu}
+                >
+                  <span className="mobile-nav-ic">
+                    <Star size={20} strokeWidth={2.2} />
+                  </span>
+                  <span>Reviews &amp; Ratings</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/#how-it-works"
+                  className="mobile-nav-link"
+                  onClick={closeMenu}
+                >
+                  <span className="mobile-nav-ic">
+                    <HelpCircle size={20} strokeWidth={2.2} />
+                  </span>
+                  <span>How it works</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/why-us"
+                  className={`mobile-nav-link ${location.pathname === "/why-us" ? "active" : ""}`}
+                  onClick={closeMenu}
+                >
+                  <span className="mobile-nav-ic">
+                    <ShieldCheck size={20} strokeWidth={2.2} />
+                  </span>
+                  <span>Why us</span>
+                </Link>
+              </li>
             </>
           )}
+        </ul>
 
-          <div className="mobile-currency-row">
-            <span style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: 600 }}>Display Currency:</span>
+        {/* Footer */}
+        <div className="mobile-drawer-foot">
+          <label className="mobile-drawer-cur">
+            <span>Display currency</span>
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="mobile-currency-select"
+              aria-label="Display currency"
+              className="mobile-drawer-cur-select"
             >
               {Object.values(currencies).map((c) => (
                 <option key={c.code} value={c.code}>
-                  {c.label}
+                  {c.label || c.code}
                 </option>
               ))}
             </select>
+          </label>
+
+          <div className="mobile-drawer-btns">
+            {token ? (
+              <>
+                {!lister ? (
+                  <Link
+                    to={profileTarget}
+                    className="mobile-drawer-btn"
+                    onClick={closeMenu}
+                  >
+                    {profileLabel}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className="mobile-drawer-btn"
+                    onClick={goToDashboard}
+                  >
+                    Dashboard
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMenu();
+                    handleLogout();
+                  }}
+                  className="mobile-drawer-btn mobile-drawer-btn-logout"
+                >
+                  <LogOut size={16} strokeWidth={2.2} style={{ marginRight: 6 }} />
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="mobile-drawer-btn"
+                  onClick={closeMenu}
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/register"
+                  className="mobile-drawer-btn fill"
+                  onClick={closeMenu}
+                >
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
         </div>
-      </div>
+      </aside>
 
       <style>{`
         .hero-nav {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1.5rem 5%;
           position: fixed;
           top: 0;
           left: 0;
           width: 100%;
           z-index: 1000;
-          transition: background-color 0.3s, padding 0.3s, box-shadow 0.3s;
-          font-family: var(--font-body, 'Plus Jakarta Sans', 'Poppins', system-ui, sans-serif);
+          color: #ffffff;
+          background: transparent;
+          transition: background-color 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+          font-family: var(--font-body, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
+        }
+
+        .hero-nav:not(.on-orange):not(.scrolled) {
+          background: #ea580c;
         }
 
         .hero-nav.scrolled {
-          background-color: rgba(253, 248, 242, 0.95);
-          backdrop-filter: blur(10px);
-          padding: 1rem 5%;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+          background: rgba(255, 255, 255, 0.98);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          border-bottom: 1px solid #ECE5DD;
+          color: #1D140C;
+        }
+
+        .hero-nav.scrolled .nav-logo .brand-yamu {
+          color: #1D140C;
+        }
+
+        .hero-nav.scrolled .nav-logo .brand-orange {
+          color: #F26A0F;
+        }
+
+        .hero-nav.scrolled .nav-links-list a,
+        .hero-nav.scrolled .nav-links-list .nav-link-btn {
+          color: #374151;
+        }
+
+        .hero-nav.scrolled .nav-links-list a:hover,
+        .hero-nav.scrolled .nav-links-list .nav-link-btn:hover {
+          color: #F26A0F;
+        }
+
+        .hero-nav.scrolled .nav-links-list a.active,
+        .hero-nav.scrolled .nav-links-list a[aria-current="page"] {
+          color: #F26A0F;
+        }
+
+        .hero-nav.scrolled .nav-links-list a.active::after,
+        .hero-nav.scrolled .nav-links-list a[aria-current="page"]::after {
+          background: #F26A0F;
+        }
+
+        .hero-nav.scrolled .nav-cur-pill {
+          background: #FFFFFF;
+          border-color: #E5E7EB;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .hero-nav.scrolled .nav-cur-pill:hover {
+          background: #F9FAFB;
+          border-color: #D1D5DB;
+        }
+
+        .hero-nav.scrolled .nav-cur-select {
+          color: #1D140C;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231D140C' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+        }
+
+        .hero-nav.scrolled .nav-list-pill {
+          background: #FFF0E3;
+          border-color: #FDBA74;
+          color: #C24A00;
+        }
+
+        .hero-nav.scrolled .nav-list-pill:hover {
+          background: #FFE4CC;
+          border-color: #F97316;
+        }
+
+        .hero-nav.scrolled .nav-acct-btn {
+          background: #FFFFFF;
+          border: 1.5px solid #E5E7EB;
+          color: #1D140C;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .hero-nav.scrolled .nav-acct-btn:hover {
+          border-color: #D1D5DB;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .hero-nav.scrolled .nav-acct-btn svg {
+          stroke: #1D140C;
+        }
+
+        .hero-nav.scrolled .nav-sign-in-btn {
+          color: #1D140C;
+          border: 1.5px solid #E5E7EB;
+        }
+
+        .hero-nav.scrolled .nav-sign-in-btn:hover {
+          background: #F3F4F6;
+          border-color: #D1D5DB;
+        }
+
+        .hero-nav.scrolled .nav-get-started-btn {
+          background: linear-gradient(135deg, #FF8A00, #F26A0F);
+          color: #FFFFFF;
+          box-shadow: 0 4px 14px rgba(242, 106, 15, 0.3);
+        }
+
+        .hero-nav.scrolled .nav-get-started-btn:hover {
+          box-shadow: 0 6px 18px rgba(242, 106, 15, 0.4);
+        }
+
+        .hero-nav.scrolled .mobile-icon-btn {
+          background: #F6F2ED;
+          color: #1D140C;
+        }
+
+        .nav-inner {
+          max-width: 1440px;
+          margin: 0 auto;
+          height: 72px;
+          padding: 0 3.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .nav-logo {
-          font-size: 1.5rem;
-          font-weight: 800;
-          text-decoration: none;
-          letter-spacing: -0.02em;
           display: flex;
           align-items: center;
-        }
-
-        .nav-logo .brand-yamu {
-          color: #111827;
-        }
-
-        .nav-logo .brand-orange {
-          color: #f97316;
+          gap: 10px;
+          color: #ffffff;
+          text-decoration: none;
+          font-size: 21px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          white-space: nowrap;
+          flex-shrink: 0;
         }
 
         .nav-logo-img {
-          width: 44px;
-          height: 44px;
+          width: 34px;
+          height: 34px;
           object-fit: contain;
-          margin-right: 10px;
           display: block;
-          transition: transform 0.2s ease;
         }
 
-        .nav-logo:hover .nav-logo-img {
-          transform: scale(1.05);
-        }
-
-        .nav-links {
-          display: flex;
-          gap: 2.2rem;
-          align-items: center;
-        }
-
-        .nav-links a {
-          text-decoration: none;
-          color: #444444;
-          font-weight: 500;
-          font-size: 0.95rem;
-          transition: color 0.2s;
-          white-space: nowrap;
+        .nav-logo-text {
           display: inline-flex;
           align-items: center;
-          position: relative;
-          padding: 4px 0 6px;
         }
 
-        .nav-links a:hover {
-          color: #FF8A00;
+        .nav-logo .brand-yamu,
+        .nav-logo .brand-orange {
+          color: #ffffff;
+          transition: color 0.2s ease;
         }
 
-        .nav-links a.active {
-          color: #ea580c !important;
-          font-weight: 700 !important;
+        .nav-center {
+          margin: 0 auto;
         }
 
-        .nav-links a.active::after {
-          content: '';
-          position: absolute;
-          bottom: 0px;
-          left: 0;
-          right: 0;
-          height: 3px;
-          background: #ea580c;
-          border-radius: 999px;
-        }
-
-        .nav-link-btn {
-          background: none;
-          border: none;
+        .nav-links-list {
+          display: flex;
+          gap: 28px;
+          margin: 0;
           padding: 0;
-          cursor: pointer;
-          font: inherit;
-          color: #444444;
-          font-weight: 500;
-          font-size: 0.95rem;
-          transition: color 0.2s;
+          list-style: none;
+          align-items: center;
         }
 
-        .nav-link-btn:hover {
-          color: #FF8A00;
-        }
-
-        .mobile-nav-btn {
-          background: none;
+        .nav-links-list a,
+        .nav-links-list .nav-link-btn {
+          position: relative;
+          display: block;
+          padding: 8px 6px;
+          color: rgba(255, 255, 255, 0.95);
+          text-decoration: none;
+          font-size: 15px;
+          font-weight: 600;
+          white-space: nowrap;
+          background: transparent;
           border: none;
-          width: 100%;
-          text-align: left;
           cursor: pointer;
-          font: inherit;
+          font-family: inherit;
+          transition: color 0.15s ease;
+        }
+
+        .nav-links-list a:hover,
+        .nav-links-list .nav-link-btn:hover {
+          color: #ffffff;
+        }
+
+        .nav-links-list a.active,
+        .nav-links-list a[aria-current="page"] {
+          color: #ffffff;
+        }
+
+        .nav-links-list a.active::after,
+        .nav-links-list a[aria-current="page"]::after {
+          content: "";
+          position: absolute;
+          left: 6px;
+          right: 6px;
+          bottom: -2px;
+          height: 3px;
+          border-radius: 2px;
+          background: #ffffff;
         }
 
         .nav-actions {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 16px;
         }
 
-        .nav-signin {
-          text-decoration: none;
-          color: #111111;
-          font-weight: 600;
-          font-size: 0.95rem;
-          padding: 0.5rem 0.75rem;
-          transition: color 0.2s;
-        }
-        
-        .nav-signin:hover {
-          color: #FF8A00;
-        }
-
-        .nav-btn {
+        /* Frosted Translucent Currency Pill matching user's reference */
+        .nav-cur-pill {
           display: inline-flex;
           align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-          color: #ffffff !important;
-          padding: 0.55rem 1.4rem;
+          height: 38px;
+          background: rgba(255, 255, 255, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.35);
           border-radius: 999px;
-          font-weight: 700;
-          font-size: 0.92rem;
-          text-decoration: none;
-          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-          box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3);
-          white-space: nowrap;
-          border: none;
-        }
-
-        .nav-currency-picker {
-          display: flex;
-          align-items: center;
-        }
-
-        .nav-currency-select {
-          background: rgba(255, 255, 255, 0.9);
-          border: 1.5px solid rgba(226, 232, 240, 0.8);
-          border-radius: 999px;
-          padding: 0.35rem 0.65rem;
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: #0f172a;
-          cursor: pointer;
-          outline: none;
+          padding: 0 12px;
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           transition: all 0.2s ease;
-          font-family: inherit;
         }
 
-        .hero-nav.on-dark:not(.scrolled) .nav-currency-select {
-          background: rgba(255, 255, 255, 0.2);
-          border-color: rgba(255, 255, 255, 0.4);
+        .nav-cur-pill:hover {
+          background: rgba(255, 255, 255, 0.28);
+          border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .nav-cur-select {
+          -webkit-appearance: none;
+          appearance: none;
+          background: transparent;
+          border: 0;
           color: #ffffff;
-        }
-
-        .hero-nav.on-dark:not(.scrolled) .nav-currency-select option {
-          color: #0f172a;
-          background: #ffffff;
-        }
-
-        .nav-currency-select:hover {
-          border-color: #f97316;
-        }
-
-        .mobile-currency-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 1rem 0 0.5rem;
-          border-top: 1px solid #f1f5f9;
-          margin-top: 0.5rem;
-        }
-
-        .mobile-currency-select {
-          background: #ffffff;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 8px;
-          padding: 0.4rem 0.75rem;
-          font-size: 0.85rem;
-          font-weight: 700;
-          color: #0f172a;
+          font-weight: 800;
+          font-size: 13.5px;
           cursor: pointer;
           outline: none;
           font-family: inherit;
+          padding-right: 16px;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right center;
         }
 
-        .nav-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 22px rgba(249, 115, 22, 0.45);
-          color: #ffffff !important;
-          filter: brightness(1.05);
-        }
-
-        .hero-nav.on-dark .brand-yamu {
-          color: #ffffff;
-        }
-        .hero-nav.on-dark .brand-orange {
-          color: #ffffff;
-          opacity: 0.95;
-        }
-        .hero-nav.on-dark .nav-links a {
-          color: rgba(255, 255, 255, 0.95);
-          font-weight: 600;
-        }
-        .hero-nav.on-dark .nav-links a.active {
-          color: #ffffff !important;
-          font-weight: 700 !important;
-          background: rgba(255, 255, 255, 0.22);
-          padding: 6px 14px;
-          border-radius: 999px;
-          backdrop-filter: blur(8px);
-        }
-        .hero-nav.on-dark .nav-links a.active::after {
-          display: none;
-        }
-        .hero-nav.on-dark .nav-link-btn {
-          color: rgba(255, 255, 255, 0.95);
-          font-weight: 600;
-        }
-        .hero-nav.on-dark .nav-links a:hover {
-          color: #ffffff;
-          opacity: 1;
-        }
-        .mobile-nav-item.active {
-          color: #ea580c !important;
-          font-weight: 700 !important;
-          background: #fff7ed;
-          border-left: 3px solid #ea580c;
-        }
-        .hero-nav.on-dark .nav-signin {
-          color: #ffffff;
-          font-weight: 600;
-        }
-        .hero-nav.on-dark .nav-signin:hover {
-          color: #ffedd5;
-        }
-        .hero-nav.on-dark .burger span {
+        .nav-cur-select option {
+          color: #1D140C;
           background: #ffffff;
         }
-        .hero-nav.on-dark .nav-btn {
-          background: #ffffff !important;
-          color: #ea580c !important;
-          box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
-        }
-        .hero-nav.on-dark .nav-btn:hover {
-          background: #ffffff !important;
-          color: #c2410c !important;
-          transform: translateY(-2px);
-          box-shadow: 0 8px 26px rgba(0, 0, 0, 0.28);
-        }
-        .hero-nav.on-dark .nav-list-btn {
-          background: rgba(255, 255, 255, 0.22);
+
+        .nav-list-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          height: 38px;
+          padding: 0 16px;
           border: 1px solid rgba(255, 255, 255, 0.4);
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 999px;
           color: #ffffff;
+          text-decoration: none;
+          font-weight: 700;
+          font-size: 13.5px;
+          white-space: nowrap;
           backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          transition: all 0.2s ease;
         }
-        .hero-nav.on-dark .nav-list-btn:hover {
-          background: rgba(255, 255, 255, 0.35);
+
+        .nav-list-pill:hover {
+          background: rgba(255, 255, 255, 0.25);
           border-color: #ffffff;
         }
-        .hero-nav.on-dark .nav-profile-pill {
-          background: rgba(255, 255, 255, 0.95);
-          border-color: transparent;
+
+        .nav-acct {
+          position: relative;
         }
 
-        .nav-logout-btn {
+        .nav-acct-btn {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          background: rgba(239, 68, 68, 0.08);
-          border: 1.5px solid rgba(239, 68, 68, 0.25);
-          color: #ef4444;
-          padding: 0.4rem 0.9rem;
+          gap: 10px;
+          height: 42px;
+          padding: 0 16px 0 5px;
+          border: 0;
           border-radius: 999px;
-          font-weight: 700;
-          font-size: 0.85rem;
+          background: #ffffff;
+          color: #1D140C;
+          font-weight: 800;
+          font-size: 14px;
           cursor: pointer;
+          font-family: inherit;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
           transition: all 0.2s ease;
-          font-family: inherit;
-        }
-
-        .nav-logout-btn:hover {
-          background: #ef4444;
-          color: #ffffff;
-          border-color: #ef4444;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
-        }
-
-        .hero-nav.on-dark .nav-logout-btn {
-          background: rgba(255, 255, 255, 0.15);
-          border-color: rgba(255, 255, 255, 0.35);
-          color: #ffffff;
-          backdrop-filter: blur(8px);
-        }
-
-        .hero-nav.on-dark .nav-logout-btn:hover {
-          background: #ef4444;
-          border-color: #ef4444;
-          color: #ffffff;
-        }
-
-        /* List Vehicle Button — compact pill to the left of profile */
-        .nav-list-btn {
-          border: none;
-          cursor: pointer;
-          font-family: inherit;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-          color: white;
-          padding: 0.4rem 1rem 0.4rem 0.75rem;
-          border-radius: 999px;
-          font-weight: 700;
-          font-size: 0.85rem;
-          text-decoration: none;
-          transition: all 0.25s ease;
-          box-shadow: 0 3px 10px rgba(249, 115, 22, 0.25);
           white-space: nowrap;
         }
 
-        .nav-list-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 18px rgba(249, 115, 22, 0.35);
+        .nav-acct-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
         }
 
-        .nav-list-btn svg {
+        .nav-acct-av {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #ea580c;
+          color: #ffffff;
+          display: grid;
+          place-items: center;
+          font-weight: 800;
+          font-size: 14px;
+          object-fit: cover;
           flex-shrink: 0;
         }
 
-        .nav-profile-pill {
+        .nav-acct-menu {
+          position: absolute;
+          right: 0;
+          top: calc(100% + 10px);
+          min-width: 190px;
+          padding: 6px;
+          border-radius: 16px;
+          background: #FFFFFF;
+          color: #1D140C;
+          box-shadow: 0 16px 40px rgba(60, 20, 0, 0.3);
+          border: 1px solid #ECE5DD;
+          z-index: 1010;
+          display: flex;
+          flex-direction: column;
+          animation: navAcctMenuIn 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes navAcctMenuIn {
+          from {
+            opacity: 0;
+            transform: translateY(-8px) scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .nav-acct-menu a,
+        .nav-acct-menu .nav-acct-logout {
+          display: block;
+          padding: 12px 14px;
+          border-radius: 10px;
+          color: #1D140C;
+          text-decoration: none;
+          font-weight: 700;
+          font-size: 15px;
+          background: transparent;
+          border: none;
+          width: 100%;
+          text-align: left;
+          cursor: pointer;
+          font-family: inherit;
+          box-sizing: border-box;
+          transition: background-color 0.15s ease;
+        }
+
+        .nav-acct-menu a:hover {
+          background: #F6F2ED;
+        }
+
+        .nav-acct-menu hr {
+          border: 0;
+          border-top: 1px solid #ECE5DD;
+          margin: 6px 8px;
+        }
+
+        .nav-acct-menu .nav-acct-logout {
+          color: #EF4444;
+        }
+
+        .nav-acct-menu .nav-acct-logout:hover {
+          background: rgba(239, 68, 68, 0.08);
+        }
+
+        .nav-logout-pill {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          background: rgba(255, 255, 255, 0.9);
-          border: 1.5px solid #cbd5e1;
-          padding: 0.35rem 1.1rem 0.35rem 0.4rem;
+          gap: 6px;
+          height: 38px;
+          padding: 0 16px;
           border-radius: 999px;
-          color: #0f172a;
-          font-weight: 700;
-          font-size: 0.9rem;
-          text-decoration: none;
-          transition: all 0.25s ease;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-
-        .nav-profile-pill:hover {
-          border-color: #f97316;
-          color: #ea580c;
-          box-shadow: 0 4px 14px rgba(249, 115, 22, 0.18);
-        }
-
-        .nav-avatar-img {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          object-fit: cover;
-        }
-
-        .nav-avatar-circle {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+          background: rgba(255, 255, 255, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.35);
           color: #ffffff;
+          font-weight: 700;
+          font-size: 13.5px;
+          cursor: pointer;
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          transition: all 0.2s ease;
+          font-family: inherit;
+          white-space: nowrap;
+        }
+
+        .nav-logout-pill:hover {
+          background: rgba(239, 68, 68, 0.85);
+          border-color: transparent;
+          color: #ffffff;
+          box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+        }
+
+        .nav-guest-btns {
           display: flex;
           align-items: center;
-          justify-content: center;
-          font-size: 0.88rem;
-          font-weight: 800;
+          gap: 10px;
         }
 
-        /* Mobile Burger */
+        .nav-sign-in-btn {
+          display: inline-flex;
+          align-items: center;
+          height: 38px;
+          padding: 0 16px;
+          color: #ffffff;
+          font-weight: 800;
+          font-size: 14px;
+          text-decoration: none;
+          white-space: nowrap;
+          border-radius: 999px;
+          transition: background-color 0.15s ease;
+        }
+
+        .nav-sign-in-btn:hover {
+          background: rgba(255, 255, 255, 0.16);
+        }
+
+        .nav-get-started-btn {
+          display: inline-flex;
+          align-items: center;
+          height: 38px;
+          padding: 0 20px;
+          background: #ffffff;
+          color: #ea580c;
+          font-weight: 800;
+          font-size: 14px;
+          border-radius: 999px;
+          text-decoration: none;
+          white-space: nowrap;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .nav-get-started-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+        }
+
+        /* Mobile Navigation Trigger */
         .mobile-menu-btn {
           display: none;
         }
-        .mobile-menu-btn button {
-          background: none;
-          border: none;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0.5rem;
-        }
 
-        .burger {
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-          width: 24px;
-        }
-
-        .burger span {
-          width: 100%;
-          height: 2px;
-          background: #111;
-          transition: 0.3s;
-          border-radius: 2px;
-        }
-
-        .burger.open span:nth-child(1) {
-          transform: translateY(7px) rotate(45deg);
-        }
-
-        .burger.open span:nth-child(2) {
-          opacity: 0;
-        }
-
-        .burger.open span:nth-child(3) {
-          transform: translateY(-7px) rotate(-45deg);
-        }
-
-        /* Mobile Menu */
-        .mobile-menu {
+        .mobile-icon-btn {
+          width: 46px;
+          height: 46px;
+          border: 0;
+          border-radius: 14px;
+          background: #F6F2ED;
           display: grid;
-          gap: 1rem;
+          place-items: center;
+          cursor: pointer;
+          color: #1D140C;
+          transition: background-color 0.15s ease, transform 0.15s ease;
+          padding: 0;
+          flex-shrink: 0;
+        }
+
+        .mobile-icon-btn:hover {
+          background: #EFE8DE;
+        }
+
+        .mobile-icon-btn:active {
+          transform: scale(0.95);
+        }
+
+        /* Mobile Drawer Scrim / Backdrop */
+        .mobile-scrim {
+          position: fixed;
+          inset: 0;
+          z-index: 1001;
+          background: rgba(20, 10, 0, 0.5);
+          backdrop-filter: blur(2px);
+          -webkit-backdrop-filter: blur(2px);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.25s ease;
+        }
+
+        .mobile-scrim.open {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        /* Mobile Drawer Container */
+        .mobile-drawer {
           position: fixed;
           top: 0;
           right: 0;
-          width: min(320px, 100%);
-          height: 100vh;
-          padding: 6rem 1.5rem 2rem;
-          background: rgba(253, 248, 242, 0.98);
-          backdrop-filter: blur(24px);
-          border-left: 1px solid rgba(0,0,0,0.05);
-          box-shadow: -10px 0 30px rgba(0,0,0,0.05);
-          transform: translateX(100%);
-          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          overflow-y: auto;
-          z-index: 999;
-        }
-
-        .mobile-menu.open {
-          transform: translateX(0);
-        }
-
-        .mobile-backdrop {
-          display: block;
-          position: fixed;
-          inset: 0;
-          background: rgba(17, 17, 17, 0.4);
-          backdrop-filter: blur(4px);
-          border: none;
-          padding: 0;
-          z-index: 998;
-        }
-
-        .mobile-menu-links,
-        .mobile-menu-actions {
+          bottom: 0;
+          z-index: 1002;
+          width: min(88vw, 380px);
+          background: #FFFFFF;
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
+          transform: translateX(100%);
+          visibility: hidden;
+          transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s 0.28s;
+          box-shadow: -12px 0 40px rgba(0, 0, 0, 0.25);
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          box-sizing: border-box;
         }
 
-        .mobile-nav-item,
-        .mobile-btn-outline,
-        .mobile-btn-primary {
+        .mobile-drawer.open {
+          transform: translateX(0);
+          visibility: visible;
+          transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s;
+        }
+
+        /* Drawer Header */
+        .mobile-dhead {
           display: flex;
           align-items: center;
-          justify-content: center;
-          width: 100%;
-          min-height: 52px;
-          border-radius: 12px;
-          font-weight: 600;
-          text-align: center;
+          justify-content: space-between;
+          height: 64px;
+          min-height: 64px;
+          padding-top: env(safe-area-inset-top, 0px);
+          flex: none;
+          border-bottom: 1px solid #ECE5DD;
+          margin: 0 -16px 8px;
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+
+        .mobile-drawer-logo {
           text-decoration: none;
-          font-size: 1.05rem;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 19px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
         }
 
-        .mobile-nav-item {
-          color: #111111;
+        .mobile-drawer-logo .brand-yamu {
+          color: #1D140C;
+        }
+
+        .mobile-drawer-logo .brand-orange {
+          color: #F26A0F;
+        }
+
+        /* Drawer Nav List */
+        .mobile-drawer-nav {
+          list-style: none;
+          margin: 8px 0 0;
+          padding: 0;
+          display: grid;
+          gap: 4px;
+        }
+
+        .mobile-nav-link {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          min-height: 56px;
+          padding: 0 12px;
+          border-radius: 16px;
+          color: #1D140C;
+          text-decoration: none;
+          font-size: 17px;
+          font-weight: 700;
           background: transparent;
-          border: 1px solid transparent;
+          border: none;
+          width: 100%;
+          cursor: pointer;
+          text-align: left;
+          font-family: inherit;
+          box-sizing: border-box;
+          transition: background-color 0.15s ease, color 0.15s ease;
         }
 
-        .mobile-nav-item:hover {
-          background: rgba(255, 138, 0, 0.1);
-          color: #FF8A00;
+        .mobile-nav-link:hover {
+          background: #F8F5F1;
         }
 
-        .mobile-btn-outline {
-          border: 2px solid #111111;
-          color: #111111;
+        .mobile-nav-ic {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          background: #F6F2ED;
+          display: grid;
+          place-items: center;
+          color: #6F6359;
+          flex: none;
+          transition: background-color 0.15s ease, color 0.15s ease;
+        }
+
+        .mobile-nav-link.active {
+          background: #FFF0E3;
+          color: #C24A00;
+        }
+
+        .mobile-nav-link.active .mobile-nav-ic {
+          background: #F26A0F;
+          color: #FFFFFF;
+        }
+
+        .mobile-lister-back {
+          color: #F26A0F;
+        }
+
+        .mobile-lister-back .mobile-nav-ic {
+          background: #FFF0E3;
+          color: #F26A0F;
+        }
+
+        /* Drawer Footer */
+        .mobile-drawer-foot {
+          margin-top: auto;
+          padding-top: 24px;
+          padding-bottom: 8px;
+          display: grid;
+          gap: 14px;
+        }
+
+        .mobile-drawer-cur {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          font-size: 14px;
+          font-weight: 700;
+          color: #6F6359;
+        }
+
+        .mobile-drawer-cur-select {
+          height: 44px;
+          padding: 0 14px;
+          border: 1.5px solid #ECE5DD;
+          border-radius: 12px;
+          background: #FFFFFF;
+          font-weight: 800;
+          font-size: 15px;
+          color: #1D140C;
+          font-family: inherit;
+          cursor: pointer;
+          outline: none;
+          box-sizing: border-box;
+        }
+
+        .mobile-drawer-cur-select:focus {
+          border-color: #F26A0F;
+        }
+
+        .mobile-drawer-btns {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+
+        .mobile-drawer-btn {
+          height: 54px;
+          border-radius: 16px;
+          font-weight: 800;
+          font-size: 16px;
+          cursor: pointer;
+          border: 2px solid #1D140C;
           background: transparent;
-          margin-top: 1rem;
-        }
-
-        .mobile-btn-primary {
-          background: #FF8A00;
-          color: white;
-          box-shadow: 0 8px 20px rgba(255, 138, 0, 0.2);
-          margin-top: 0.5rem;
-        }
-
-        .mobile-btn-logout {
+          color: #1D140C;
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 100%;
-          min-height: 48px;
-          border-radius: 12px;
-          font-weight: 700;
-          font-size: 1rem;
-          background: rgba(239, 68, 68, 0.08);
-          border: 1.5px solid rgba(239, 68, 68, 0.3);
-          color: #ef4444;
-          cursor: pointer;
+          text-decoration: none;
           font-family: inherit;
-          transition: all 0.2s;
+          box-sizing: border-box;
+          transition: all 0.15s ease;
+          padding: 0 8px;
+          text-align: center;
         }
 
-        .mobile-btn-logout:hover {
-          background: #ef4444;
-          color: #ffffff;
+        .mobile-drawer-btn:active {
+          transform: scale(0.98);
+        }
+
+        .mobile-drawer-btn.fill {
+          border-color: transparent;
+          background: linear-gradient(135deg, #FF8A00, #F26A0F);
+          color: #FFFFFF;
+          box-shadow: 0 8px 18px rgba(242, 106, 15, 0.35);
+        }
+
+        .mobile-drawer-btn-logout {
+          border-color: rgba(239, 68, 68, 0.3);
+          background: rgba(239, 68, 68, 0.08);
+          color: #EF4444;
+        }
+
+        .mobile-drawer-btn-logout:hover {
+          background: #EF4444;
+          color: #FFFFFF;
         }
 
         @media (max-width: 1100px) {
-          .nav-links, .nav-actions {
+          .hidden-mobile {
             display: none !important;
           }
           .mobile-menu-btn {
-            display: block;
+            display: block !important;
+          }
+          .nav-inner {
+            justify-content: space-between !important;
+            padding: 0 16px;
+          }
+
+          .hero-nav:not(.scrolled) .mobile-icon-btn {
+            background: rgba(255, 255, 255, 0.18) !important;
+            border: 1px solid rgba(255, 255, 255, 0.35) !important;
+            color: #ffffff !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
+          }
+
+          .hero-nav.scrolled .mobile-icon-btn {
+            background: #F6F2ED !important;
+            border: none !important;
+            color: #1D140C !important;
+            backdrop-filter: none !important;
+          }
+        }
+
+        @media (min-width: 1101px) {
+          .mobile-menu-btn,
+          .mobile-scrim,
+          .mobile-drawer {
+            display: none !important;
           }
         }
 
         @media (max-width: 768px) {
           .hero-nav {
-            padding: 0.75rem 1rem !important;
+            height: 64px !important;
+            padding: 0 16px !important;
+            background: transparent !important;
+            border-bottom: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            color: #ffffff !important;
+            transition: background-color 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
           }
+
+          .hero-nav:not(.on-orange):not(.scrolled) {
+            background: #ea580c !important;
+          }
+
           .hero-nav.scrolled {
-            padding: 0.65rem 1rem !important;
+            background: rgba(255, 255, 255, 0.98) !important;
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
+            border-bottom: 1px solid #ECE5DD !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+            padding: 0 16px !important;
+            color: #1D140C !important;
           }
+
+          .nav-inner {
+            height: 64px !important;
+            padding: 0 !important;
+            gap: 0 !important;
+            justify-content: space-between !important;
+          }
+
           .nav-logo {
-            font-size: 1.25rem !important;
+            font-size: 19px !important;
+            gap: 8px !important;
           }
+
           .nav-logo-img {
-            width: 36px !important;
-            height: 36px !important;
-            margin-right: 8px !important;
+            width: 32px !important;
+            height: 32px !important;
+            margin-right: 0 !important;
+            object-fit: contain !important;
           }
-          .hero-nav.on-dark:not(.scrolled) .burger span {
-            background: #ffffff !important;
+
+          .hero-nav .nav-logo .brand-yamu,
+          .hero-nav .nav-logo .brand-orange {
+            color: #ffffff !important;
+            transition: color 0.2s ease;
           }
-          .mobile-menu {
-            height: 100vh;
-            height: 100dvh;
-            padding: 5rem 1.25rem 2rem;
-            width: min(300px, 86vw);
+
+          .hero-nav.scrolled .nav-logo .brand-yamu {
+            color: #1D140C !important;
+          }
+
+          .hero-nav.scrolled .nav-logo .brand-orange {
+            color: #F26A0F !important;
           }
         }
       `}</style>

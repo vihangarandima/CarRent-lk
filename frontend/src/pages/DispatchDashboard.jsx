@@ -83,15 +83,28 @@ export default function DispatchDashboard() {
   });
   const [savingQuickAdd, setSavingQuickAdd] = useState(false);
 
+  // Helper to ensure both admin JWT and dispatch token are included in all calls
+  const getAuthHeaders = useCallback(() => {
+    const jwtToken = localStorage.getItem("token");
+    const headers = {};
+    if (jwtToken) {
+      headers["x-auth-token"] = jwtToken;
+      headers["Authorization"] = `Bearer ${jwtToken}`;
+    }
+    if (token) {
+      headers["x-dispatch-token"] = token;
+    }
+    return headers;
+  }, [token]);
+
   // Fetch Booking Details
   const fetchBooking = useCallback(async () => {
     if (!id) return;
     try {
-      const jwt = localStorage.getItem("token");
-      const headers = jwt ? { "x-auth-token": jwt } : {};
-      const res = await axios.get(`${API_URL}/api/bookings/dispatch/${id}?token=${token}`, {
-        headers,
-      });
+      const res = await axios.get(
+        `${API_URL}/api/bookings/dispatch/${id}?token=${encodeURIComponent(token)}`,
+        { headers: getAuthHeaders() }
+      );
       if (res.data?.booking) {
         setBooking(res.data.booking);
         setAdminNotes(res.data.booking.adminNotes || "");
@@ -106,7 +119,7 @@ export default function DispatchDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [id, token]);
+  }, [id, token, getAuthHeaders]);
 
   useEffect(() => {
     fetchBooking();
@@ -117,11 +130,9 @@ export default function DispatchDashboard() {
     if (!id) return;
     setLoadingAlternatives(true);
     try {
-      const jwt = localStorage.getItem("token");
-      const headers = jwt ? { "x-auth-token": jwt } : {};
       const res = await axios.get(
-        `${API_URL}/api/bookings/dispatch/${id}/alternatives?token=${token}`,
-        { headers }
+        `${API_URL}/api/bookings/dispatch/${id}/alternatives?token=${encodeURIComponent(token)}`,
+        { headers: getAuthHeaders() }
       );
       if (res.data?.alternatives) {
         setAlternatives(res.data.alternatives);
@@ -131,7 +142,7 @@ export default function DispatchDashboard() {
     } finally {
       setLoadingAlternatives(false);
     }
-  }, [id, token]);
+  }, [id, token, getAuthHeaders]);
 
   useEffect(() => {
     if (booking?.status === "finding_alternative") {
@@ -143,12 +154,10 @@ export default function DispatchDashboard() {
   const handleSaveNotes = async () => {
     setIsSavingNotes(true);
     try {
-      const jwt = localStorage.getItem("token");
-      const headers = jwt ? { "x-auth-token": jwt } : {};
       await axios.patch(
-        `${API_URL}/api/bookings/dispatch/${id}/status?token=${token}`,
-        { adminNotes },
-        { headers }
+        `${API_URL}/api/bookings/dispatch/${id}/status?token=${encodeURIComponent(token)}`,
+        { adminNotes, token },
+        { headers: getAuthHeaders() }
       );
       toast.success("Admin notes saved!");
     } catch (err) {
@@ -161,15 +170,14 @@ export default function DispatchDashboard() {
   // Mark Host Contacted
   const handleToggleHostContacted = async (statusVal) => {
     try {
-      const jwt = localStorage.getItem("token");
-      const headers = jwt ? { "x-auth-token": jwt } : {};
       const res = await axios.patch(
-        `${API_URL}/api/bookings/dispatch/${id}/status?token=${token}`,
+        `${API_URL}/api/bookings/dispatch/${id}/status?token=${encodeURIComponent(token)}`,
         {
           hostContacted: true,
           hostAvailabilityStatus: statusVal,
+          token,
         },
-        { headers }
+        { headers: getAuthHeaders() }
       );
       if (res.data?.booking) {
         setBooking(res.data.booking);
@@ -184,12 +192,10 @@ export default function DispatchDashboard() {
   const handleUpdateStatus = async (newStatus, extraData = {}) => {
     setSavingAction(true);
     try {
-      const jwt = localStorage.getItem("token");
-      const headers = jwt ? { "x-auth-token": jwt } : {};
       const res = await axios.patch(
-        `${API_URL}/api/bookings/dispatch/${id}/status?token=${token}`,
-        { status: newStatus, ...extraData },
-        { headers }
+        `${API_URL}/api/bookings/dispatch/${id}/status?token=${encodeURIComponent(token)}`,
+        { status: newStatus, token, ...extraData },
+        { headers: getAuthHeaders() }
       );
       if (res.data?.booking) {
         setBooking(res.data.booking);
@@ -216,16 +222,15 @@ export default function DispatchDashboard() {
     }
     setSavingAction(true);
     try {
-      const jwt = localStorage.getItem("token");
-      const headers = jwt ? { "x-auth-token": jwt } : {};
       const res = await axios.patch(
-        `${API_URL}/api/bookings/dispatch/${id}/status?token=${token}`,
+        `${API_URL}/api/bookings/dispatch/${id}/status?token=${encodeURIComponent(token)}`,
         {
           assignedVehicleId: altVehicle._id,
           status: "confirmed",
           note: `Assigned alternative vehicle: ${altVehicle.brand} ${altVehicle.model}`,
+          token,
         },
-        { headers }
+        { headers: getAuthHeaders() }
       );
       if (res.data?.booking) {
         setBooking(res.data.booking);
@@ -247,18 +252,17 @@ export default function DispatchDashboard() {
     }
     setSavingQuickAdd(true);
     try {
-      const jwt = localStorage.getItem("token");
-      const headers = jwt ? { "x-auth-token": jwt } : {};
       const imagesArr = quickAddForm.images
         ? quickAddForm.images.split(",").map((s) => s.trim()).filter(Boolean)
         : [];
       const res = await axios.post(
-        `${API_URL}/api/bookings/dispatch/${id}/quick-add-vehicle?token=${token}`,
+        `${API_URL}/api/bookings/dispatch/${id}/quick-add-vehicle?token=${encodeURIComponent(token)}`,
         {
           ...quickAddForm,
           images: imagesArr,
+          token,
         },
-        { headers }
+        { headers: getAuthHeaders() }
       );
       if (res.data?.booking) {
         setBooking(res.data.booking);

@@ -534,8 +534,8 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Deals Banner */}
-      <section className="section deals-section">
+      {/* Deals Banner (Hidden without deleting) */}
+      <section className="section deals-section" style={{ display: "none" }}>
         <div className="container">
           <div className="deals-grid">
             <div className="deal-card deal-weekly">
@@ -1345,7 +1345,11 @@ const LandingPage = () => {
           box-shadow: 0 6px 18px rgba(249, 115, 22, 0.25);
         }
 
-        /* Deals */
+        /* Deals (Hidden without deleting) */
+        .deals-section {
+          display: none !important;
+        }
+
         .deals-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
