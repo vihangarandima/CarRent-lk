@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, MotionConfig } from "framer-motion";
-import { Search, ChevronDown, MapPin, Car, PlusCircle, ArrowRight } from "lucide-react";
-import fleetCutoutImg from "../assets/images/yamu_fleet_cutout_tight.png";
+import { motion } from "framer-motion";
+import { Search, ChevronDown, MapPin, Car, PlusCircle } from "lucide-react";
+import fleetCutoutImg from "../assets/images/yamu_fleet_cutout.png";
 import { useSiteConfig } from "../context/SiteConfigContext";
 import { FestivalHeroDecorations } from "./festivals/FestivalAccessoriesManager";
 
@@ -62,7 +62,6 @@ const Hero = () => {
   };
 
   return (
-    <MotionConfig reducedMotion="user">
     <section className="yamu-exact-hero">
       <FestivalHeroDecorations />
       {/* Radiant Orange Gradient Background with Atmospheric Light Source */}
@@ -117,11 +116,8 @@ const Hero = () => {
                 navigate("/vehicles");
               }}
             >
-              <span className="hero-btn-badge">
-                <Car size={18} strokeWidth={2.4} className="hero-btn-icon" />
-              </span>
-              <span><span className="hero-btn-long">I Want to </span>Rent a Car</span>
-              <ArrowRight size={16} strokeWidth={2.6} className="hero-btn-arrow" />
+              <Car size={18} strokeWidth={2.4} className="hero-btn-icon" />
+              <span>I Want to Rent a Car</span>
             </button>
             <button
               type="button"
@@ -139,13 +135,17 @@ const Hero = () => {
                 }
               }}
             >
-              <span className="hero-btn-badge">
-                <PlusCircle size={18} strokeWidth={2.4} className="hero-btn-icon" />
-              </span>
-              <span><span className="hero-btn-long">I Want to </span>List a Car</span>
-              <ArrowRight size={16} strokeWidth={2.6} className="hero-btn-arrow" />
+              <PlusCircle size={18} strokeWidth={2.4} className="hero-btn-icon" />
+              <span>I Want to List a Car</span>
             </button>
           </div>
+
+          <p className="hero-sub-top">
+            <span className="tag-sparkle">✦</span> {hero?.taglineTop || "Make The Right Choice"} <span className="tag-sparkle">✦</span>
+          </p>
+          <h2 className="hero-sub-bottom">
+            {hero?.taglineBottom || "Find Your Dream Car, Which will Give You Wings"}
+          </h2>
         </motion.div>
       </div>
 
@@ -184,7 +184,6 @@ const Hero = () => {
               value={vehicleType}
               onChange={(e) => setVehicleType(e.target.value)}
               className="search-select"
-              aria-label="Vehicle type"
             >
               <option value="">Vehicle Type</option>
               {VEHICLE_TYPES.map((t) => (
@@ -206,9 +205,6 @@ const Hero = () => {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               className="location-input"
-              aria-label="Pickup location"
-              enterKeyHint="search"
-              autoComplete="off"
             />
             <datalist id="popular-locations-list">
               {POPULAR_LOCATIONS.map((loc) => (
@@ -230,8 +226,6 @@ const Hero = () => {
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
                   className="price-input"
-                  inputMode="numeric"
-                  aria-label="Minimum price per day in LKR"
                 />
               </div>
             </div>
@@ -247,8 +241,6 @@ const Hero = () => {
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
                   className="price-input"
-                  inputMode="numeric"
-                  aria-label="Maximum price per day in LKR"
                 />
               </div>
             </div>
@@ -260,7 +252,7 @@ const Hero = () => {
             className="hero-search-submit-btn"
             onClick={handleSearch}
           >
-            <Search size={16} strokeWidth={2.5} aria-hidden="true" />
+            <Search size={16} strokeWidth={2.5} />
             <span>Search</span>
           </button>
         </div>
@@ -338,83 +330,85 @@ const Hero = () => {
           text-align: center;
         }
 
-        /* Unified stage — fixed proportions so YAMU + fleet scale together.
-           All sizes are in cqw (percent of the stage width). */
+        /* Unified stage — text towers high behind, cars sit neatly in front */
         .heroic-fleet-stage {
           position: relative;
           width: 100%;
-          max-width: 920px;
+          max-width: 900px;
           margin: 0 auto;
-          aspect-ratio: 918 / 425;
-          container-type: inline-size;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+          padding-top: 5rem;
           overflow: visible;
         }
 
-        /* YAMU — huge white wordmark behind the vehicles */
+        /* YAMU text — bold, towering high above cars with clear visibility */
         .watermark-yamu-text {
           position: absolute;
-          top: 3cqw;
+          top: 0;
           left: 0;
           right: 0;
-          font-family: 'Archivo Black', 'Poppins', 'Arial Black', sans-serif;
-          font-size: 27cqw;
+          font-family: 'Changa One', 'Anton', 'Oswald', cursive, sans-serif;
+          font-size: clamp(9.5rem, 17vw, 15.5rem);
           font-weight: 400;
-          letter-spacing: -0.01em;
+          letter-spacing: -0.02em;
           text-transform: uppercase;
           color: #ffffff;
-          line-height: 1;
+          line-height: 0.82;
           margin: 0;
           padding: 0;
           user-select: none;
           pointer-events: none;
-          text-shadow: 0 1.2cqw 3cqw rgba(124, 45, 18, 0.18);
+          text-shadow: 0 16px 36px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.2);
+          opacity: 1;
           z-index: 1;
           text-align: center;
         }
 
-        /* Fleet — covers the lower part of the wordmark */
+        /* Fleet image — sits at the bottom, overlapping only lower portion of YAMU */
         .fleet-image-wrap {
-          position: absolute;
-          left: 8%;
-          width: 86%;
-          bottom: 2.5cqw;
+          position: relative;
           z-index: 2;
+          width: 100%;
+          margin-top: -4.5rem;
           display: flex;
           justify-content: center;
           align-items: flex-end;
         }
 
+        /* Clean cutout image with no shadow */
         .fleet-cutout-img {
           width: 100%;
           height: auto;
+          max-height: 380px;
           object-fit: contain;
+          filter: none;
+          box-shadow: none;
           user-select: none;
           pointer-events: none;
-          filter: drop-shadow(0 2.2cqw 2cqw rgba(124, 45, 18, 0.35));
+          position: relative;
+          z-index: 2;
         }
 
-        /* Action buttons below the fleet */
+        /* Taglines Below Vehicles */
         .hero-taglines {
-          margin-top: 1rem;
-          margin-bottom: 2rem;
+          margin-top: 0.6rem;
+          margin-bottom: 1.75rem;
           z-index: 15;
           display: flex;
           flex-direction: column;
           align-items: center;
         }
 
+        /* Highly Recognizable Action Buttons Above the Sentence */
         .hero-buttons-container {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 16px;
-          padding: 6px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.12);
-          border: 1px solid rgba(255, 255, 255, 0.22);
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
-          box-shadow: 0 10px 34px rgba(124, 45, 18, 0.22);
+          gap: 18px;
+          margin-bottom: 1.5rem;
           z-index: 20;
         }
 
@@ -424,11 +418,10 @@ const Hero = () => {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          padding: 8px 22px 8px 8px;
-          font-size: 1rem;
+          gap: 9px;
+          padding: 12px 28px;
+          font-size: 0.95rem;
           font-weight: 700;
-          letter-spacing: -0.005em;
           cursor: pointer;
           border-radius: 999px;
           transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -439,73 +432,87 @@ const Hero = () => {
           position: relative;
         }
 
-        .hero-action-btn:focus-visible {
-          outline: 3px solid rgba(255, 255, 255, 0.85);
-          outline-offset: 3px;
-        }
-
-        .hero-btn-badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 38px;
-          height: 38px;
-          border-radius: 50%;
-          flex-shrink: 0;
-          transition: background 0.25s ease, transform 0.25s ease;
-        }
-
         .hero-action-btn .hero-btn-icon {
           flex-shrink: 0;
+          transition: transform 0.2s ease;
         }
 
-        .hero-btn-arrow {
-          flex-shrink: 0;
-          margin-left: -4px;
-          opacity: 0.55;
-          transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
-        }
-
-        .hero-action-btn:hover .hero-btn-arrow {
-          opacity: 1;
-          transform: translateX(4px);
-        }
-
-        .hero-action-btn:hover .hero-btn-badge {
-          transform: rotate(-8deg) scale(1.06);
-        }
-
-        /* Active: solid white pill, orange badge */
+        /* Active Tab: Solid White Pill with Vibrant Orange Text & Elevation */
         .hero-action-btn.active {
-          background: #ffffff;
-          color: #c2410c;
-          box-shadow: 0 8px 22px rgba(124, 45, 18, 0.25);
+          background: #ffffff !important;
+          color: #ea580c !important;
+          font-weight: 800;
+          border: 2px solid #ffffff;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
         }
 
-        .hero-action-btn.active .hero-btn-badge {
-          background: linear-gradient(135deg, #ff8800 0%, #ea580c 100%);
-          color: #ffffff;
-          box-shadow: 0 4px 10px -2px rgba(234, 88, 12, 0.55);
+        .hero-action-btn.active .hero-btn-icon {
+          color: #ea580c !important;
         }
 
         .hero-action-btn.active:hover {
           transform: translateY(-2px);
-          box-shadow: 0 12px 28px rgba(124, 45, 18, 0.3);
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+          background: #fffaf5 !important;
         }
 
-        /* Inactive: transparent inside the glass track */
+        /* Inactive Tab - Distinct Frosted Glass Pill */
         .hero-action-btn:not(.active) {
-          background: transparent;
-          color: #ffffff;
+          background: rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          color: #ffffff !important;
+          border: 1.5px solid rgba(255, 255, 255, 0.6);
+          font-weight: 600;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
         }
 
-        .hero-action-btn:not(.active) .hero-btn-badge {
-          background: rgba(255, 255, 255, 0.2);
-          color: #ffffff;
+        .hero-action-btn:not(.active) .hero-btn-icon {
+          color: #ffffff !important;
         }
 
         .hero-action-btn:not(.active):hover {
-          background: rgba(255, 255, 255, 0.14);
+          background: rgba(255, 255, 255, 0.32);
+          border-color: #ffffff;
+          color: #ffffff !important;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+        }
+
+        .hero-action-btn:hover .hero-btn-icon {
+          transform: scale(1.15);
+        }
+
+        .hero-sub-top {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: rgba(255, 255, 255, 0.95);
+          margin: 0 0 6px 0;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          background: rgba(255, 255, 255, 0.12);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          padding: 4px 16px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .tag-sparkle {
+          color: #fde047;
+          font-size: 0.78rem;
+        }
+
+        .hero-sub-bottom {
+          font-size: clamp(1.1rem, 2vw, 1.4rem);
+          font-weight: 700;
+          color: #ffffff;
+          margin: 0;
+          letter-spacing: -0.01em;
+          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
         /* Search Card Container */
@@ -735,9 +742,28 @@ const Hero = () => {
 
 
 
+          .heroic-fleet-stage {
+            max-width: 700px;
+            padding-top: 3.8rem;
+          }
 
+          .watermark-yamu-text {
+            font-size: clamp(6.8rem, 14vw, 10rem);
+            letter-spacing: -0.02em;
+            line-height: 0.84;
+          }
 
+          .fleet-image-wrap {
+            margin-top: -3.2rem;
+          }
 
+          .fleet-cutout-img {
+            max-height: 280px;
+          }
+
+          .hero-sub-bottom {
+            font-size: 1.2rem;
+          }
 
           .hero-search-card-container {
             max-width: 760px;
@@ -771,184 +797,212 @@ const Hero = () => {
           }
         }
 
-        @media (prefers-reduced-motion: reduce) {
-          .hero-action-btn, .hero-btn-badge, .hero-btn-arrow,
-          .hero-search-submit-btn, .search-mode-btn { transition: none !important; }
-          .hero-action-btn:hover, .hero-search-submit-btn:hover { transform: none !important; }
-        }
-
         /* =========================================================
-           3. MOBILE MODE (width <= 768px) — priorities: search visible
-           above the fold, 44pt+ touch targets, 16px inputs (no iOS zoom)
+           3. MOBILE MODE (width <= 768px)
            ========================================================= */
         @media (max-width: 768px) {
           .yamu-exact-hero {
-            min-height: 0;
+            padding: 72px 1rem 1.5rem;
+            min-height: auto;
+            min-height: 100dvh;
             justify-content: flex-start;
-            padding: calc(80px + env(safe-area-inset-top, 0px)) 16px
-                     calc(20px + env(safe-area-inset-bottom, 0px));
-            gap: 0;
+            gap: 0.75rem;
           }
 
+
+
           .hero-center-stage {
-            margin: 0;
-            padding-top: 4px;
+            margin: auto 0 0.5rem;
+            padding-top: 0.25rem;
             width: 100%;
           }
 
-          /* Let the wordmark + fleet use nearly the full phone width */
           .heroic-fleet-stage {
-            width: calc(100% + 16px);
-            max-width: none;
-            margin: 0 -8px;
+            max-width: 100%;
+            width: 100%;
+            padding-top: 2.8rem;
+          }
+
+          .watermark-yamu-text {
+            font-size: clamp(4.6rem, 19vw, 6.8rem);
+            letter-spacing: -0.02em;
+            line-height: 0.85;
+            text-shadow: 0 10px 24px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.18);
+          }
+
+          .fleet-image-wrap {
+            margin-top: -2.2rem;
+          }
+
+          .fleet-cutout-img {
+            max-height: 200px;
+            width: 100%;
           }
 
           .hero-taglines {
-            width: 100%;
-            margin: 14px 0 12px;
-            padding: 0;
+            margin-top: 0.5rem;
+            margin-bottom: 1.5rem;
+            padding: 0 0.5rem;
           }
 
-          /* Rent / List: full-width segmented control */
+          .hero-sub-top {
+            font-size: 0.76rem;
+            padding: 3px 12px;
+            margin-bottom: 4px;
+          }
+
+          .hero-sub-bottom {
+            font-size: 1.05rem;
+            line-height: 1.35;
+          }
+
+          /* Attached Tabs on Mobile */
+          .hero-search-card-container {
+            width: 100%;
+            max-width: 100%;
+            margin-top: auto;
+          }
+
           .hero-buttons-container {
             width: 100%;
-            max-width: 480px;
-            gap: 4px;
-            padding: 4px;
+            max-width: 440px;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1.15rem;
+            padding: 0 0.5rem;
             box-sizing: border-box;
           }
 
           .hero-action-btn {
-            flex: 1 1 0;
-            min-width: 0;
-            min-height: 48px;
-            padding: 4px 12px 4px 5px;
-            font-size: 0.94rem;
-            gap: 8px;
-            justify-content: flex-start;
+            flex: 1;
+            justify-content: center;
+            text-align: center;
+            padding: 10px 12px;
+            font-size: 0.82rem;
+            gap: 6px;
+            border-radius: 999px;
+            white-space: nowrap;
           }
 
-          /* Phones read "Rent a Car" / "List a Car" */
-          .hero-btn-long { display: none; }
-
-          .hero-btn-badge { width: 38px; height: 38px; }
-          .hero-action-btn .hero-btn-icon { width: 18px; height: 18px; }
-          .hero-btn-arrow { display: none; }
-
-          /* Search card sits right under the CTAs, no dead gap */
-          .hero-search-card-container {
-            width: 100%;
-            max-width: 480px;
-            margin-top: 0;
+          .hero-action-btn .hero-btn-icon {
+            width: 16px;
+            height: 16px;
           }
 
+          /* Search Bar on Mobile */
           .hero-search-bar {
             flex-direction: column;
             align-items: stretch;
-            border-radius: 22px;
-            padding: 12px;
+            border-radius: 18px;
+            padding: 14px;
             gap: 10px;
-            box-shadow: 0 18px 40px -12px rgba(124, 45, 18, 0.45), 0 2px 6px rgba(0, 0, 0, 0.06);
           }
 
-          .search-mode { width: 100%; box-sizing: border-box; }
-          .search-mode-btn {
-            flex: 1;
-            min-height: 44px;
-            font-size: 0.875rem;
-            padding: 0 6px;
+          .search-lead-label {
+            font-size: 0.82rem;
+            margin-bottom: -2px;
           }
 
-          /* flex-basis 0 collapsed these to 18px in the column layout */
-          .search-field-pill,
-          .search-price-row,
-          .search-price-group {
-            flex: none;
-          }
-
+          /* Column layout: flex-basis 0 would collapse the pills, so size them explicitly */
           .search-field-pill {
+            flex: none;
             width: 100%;
             min-width: 0;
-            height: 50px;
-            border-radius: 14px;
-            padding: 0 14px;
-            box-sizing: border-box;
+            height: 48px;
+            border-radius: 12px;
           }
 
-          .search-price-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            width: 100%;
-          }
-
-          .search-price-group {
-            width: 100%;
-            min-width: 0;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0;
-            position: relative;
-          }
-
-          /* Label sits inside the field, like an iOS inset field */
-          .price-label {
-            position: absolute;
-            top: 7px;
-            left: 14px;
-            font-size: 0.6875rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            text-transform: uppercase;
-            color: #64748b;
-            pointer-events: none;
-            z-index: 1;
-          }
-
-          .search-input-pill {
-            height: 54px;
-            border-radius: 14px;
-            padding: 16px 14px 0;
-            box-sizing: border-box;
-          }
-
-          .currency-symbol { font-size: 0.75rem; }
-
+          /* 16px stops iOS Safari zooming the page when a field is focused */
           .search-select,
           .location-input,
           .price-input {
             font-size: 16px;
+          }
+
+          .search-mode-btn {
+            min-height: 40px;
+            font-size: 0.85rem;
+          }
+
+          .search-price-row {
+            flex: none;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            width: 100%;
+          }
+
+          .search-price-group {
+            width: 100%;
             min-width: 0;
-            height: 100%;
-            align-self: stretch;
+          }
+
+          .price-label {
+            font-size: 0.75rem;
+          }
+
+          .search-input-pill {
+            height: 48px;
+            border-radius: 12px;
           }
 
           .hero-search-submit-btn {
             width: 100%;
             height: 52px;
-            border-radius: 14px;
             justify-content: center;
-            font-size: 1rem;
             margin-top: 2px;
+            border-radius: 14px;
+            font-size: 1rem;
           }
 
-          .hero-search-submit-btn:hover { transform: none; }
-          .hero-search-submit-btn:active { transform: scale(0.98); }
-          .hero-action-btn:active { transform: scale(0.97); }
+          /* Touch feedback instead of hover lifts */
+          .hero-search-submit-btn:active,
+          .hero-action-btn:active {
+            transform: scale(0.97);
+          }
         }
 
         /* =========================================================
-           4. SMALL PHONES (width <= 360px)
+           4. EXTRA SMALL PHONES (width <= 420px)
            ========================================================= */
-        @media (max-width: 360px) {
-          .yamu-exact-hero { padding-left: 12px; padding-right: 12px; }
-          .hero-action-btn { font-size: 0.875rem; gap: 6px; padding-right: 8px; }
-          .hero-btn-badge { width: 34px; height: 34px; }
-          .search-mode-btn { font-size: 0.8125rem; }
+        @media (max-width: 420px) {
+          .yamu-exact-hero {
+            padding: 68px 0.75rem 1.25rem;
+          }
+
+          .heroic-fleet-stage {
+            padding-top: 2.4rem;
+          }
+
+          .watermark-yamu-text {
+            font-size: clamp(3.8rem, 18vw, 5.2rem);
+          }
+
+          .fleet-image-wrap {
+            margin-top: -1.8rem;
+          }
+
+          .fleet-cutout-img {
+            max-height: 165px;
+          }
+
+          .hero-sub-bottom {
+            font-size: 0.95rem;
+          }
+
+          .hero-action-btn {
+            font-size: 0.74rem;
+            padding: 9px 6px;
+            gap: 5px;
+          }
+
+          .hero-action-btn .hero-btn-icon {
+            width: 14px;
+            height: 14px;
+          }
         }
       `}</style>
     </section>
-    </MotionConfig>
   );
 };
 

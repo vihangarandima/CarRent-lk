@@ -11,6 +11,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import AnnouncementBar from "./components/AnnouncementBar";
 import WhatsAppFloat from "./components/WhatsAppFloat";
+import MobileTabBar, { showsMobileTabBar } from "./components/MobileTabBar";
 import FestivalAccessoriesManager from "./components/festivals/FestivalAccessoriesManager";
 import { SiteConfigProvider } from "./context/SiteConfigContext";
 import { ToastProvider } from "./context/ToastContext";
@@ -95,6 +96,7 @@ function AppContent() {
     "/company-dashboard",
     DASHBOARD_PATH,
   ].includes(location.pathname) || isDispatch;
+  const showTabBar = !hideNavAndFooter && showsMobileTabBar(location.pathname);
 
   useLayoutEffect(() => {
     const targetId = location.hash.replace("#", "");
@@ -137,7 +139,7 @@ function AppContent() {
   }, [location.pathname, location.hash]);
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${showTabBar ? "has-tab-bar" : ""}`}>
       <div className="app-bg-orbs" aria-hidden="true">
         <div className="orb orb-1" />
         <div className="orb orb-2" />
@@ -203,6 +205,20 @@ function AppContent() {
           z-index: 1;
           flex: 1;
         }
+
+        /* Keep the footer and floating buttons clear of the bottom tab bar */
+        @media (max-width: 768px) {
+          .app-container.has-tab-bar .site-footer {
+            padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+          }
+          .app-container.has-tab-bar .yamu-exact-hero {
+            padding-bottom: calc(1.25rem + 84px + env(safe-area-inset-bottom, 0px));
+          }
+          .app-container.has-tab-bar .wa-float-btn {
+            bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+            right: 16px;
+          }
+        }
       `}</style>
 
       <main>
@@ -243,6 +259,7 @@ function AppContent() {
       {!hideFloatingWidgets && !isDispatch && <WhatsAppFloat />}
       {!hideFloatingWidgets && !isDispatch && <FestivalAccessoriesManager />}
       {!hideNavAndFooter && <Footer />}
+      {showTabBar && <MobileTabBar />}
     </div>
   );
 }
