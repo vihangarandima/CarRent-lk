@@ -1410,6 +1410,48 @@ const Navbar = () => {
           .hero-nav.scrolled .nav-logo .brand-orange {
             color: #F26A0F !important;
           }
+
+          /* Logo sits on a white tile so it stays readable on the orange hero */
+          .nav-logo-img {
+            width: 36px !important;
+            height: 36px !important;
+            padding: 5px !important;
+            border-radius: 11px !important;
+            background: #ffffff !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+            box-sizing: border-box !important;
+          }
+
+          .nav-logo {
+            font-size: 18px !important;
+            letter-spacing: -0.01em;
+          }
+
+          /* Plain menu icon: same weight as the title, no floating box */
+          .hero-nav .mobile-icon-btn,
+          .hero-nav:not(.scrolled) .mobile-icon-btn,
+          .hero-nav.scrolled .mobile-icon-btn {
+            width: 44px !important;
+            height: 44px !important;
+            margin-right: -10px !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+          }
+
+          .hero-nav:not(.scrolled) .mobile-icon-btn {
+            color: #ffffff !important;
+          }
+
+          .hero-nav .mobile-icon-btn:active {
+            background: rgba(255, 255, 255, 0.18) !important;
+          }
+
+          .hero-nav.scrolled .mobile-icon-btn:active {
+            background: #F6F2ED !important;
+          }
         }
       `}</style>
     </>

@@ -1735,7 +1735,7 @@ const Hero = () => {
            ========================================================= */
         @media (max-width: 768px) {
           .yamu-exact-hero {
-            padding: 72px 1rem 1.5rem;
+            padding: 76px 1rem 1.5rem;
             gap: 0;
           }
 
@@ -1745,21 +1745,26 @@ const Hero = () => {
             justify-content: flex-start;
           }
 
+          /* YAMU reads in full; the vehicles tuck under only its baseline */
           .heroic-fleet-stage {
-            padding-top: 1.5rem;
+            padding-top: 0.5rem;
           }
 
           .watermark-yamu-text {
-            font-size: clamp(4.5rem, 21vw, 6.5rem) !important;
-            line-height: 0.85 !important;
+            position: relative !important;
+            font-size: clamp(4.25rem, 20vw, 6rem) !important;
+            line-height: 0.9 !important;
+            letter-spacing: 0.01em !important;
+            text-shadow: 0 6px 18px rgba(120, 40, 0, 0.28) !important;
           }
 
           .fleet-image-wrap {
-            margin-top: -2rem;
+            margin-top: -2.4rem;
           }
 
           .fleet-cutout-img {
-            max-height: 170px;
+            width: 92%;
+            max-height: 150px;
           }
 
           .hero-buttons-container,
@@ -1770,16 +1775,19 @@ const Hero = () => {
           }
 
           .hero-taglines {
-            margin: 0.75rem 0 1.1rem;
-            padding: 0 0.75rem;
+            margin: 0.9rem 0 1.25rem;
+            padding: 0 0.5rem;
           }
 
           .hero-sub-bottom {
-            font-size: 1.2rem;
-            line-height: 1.3;
+            font-size: 1.15rem;
+            line-height: 1.35;
             text-align: center;
+            max-width: 20em;
+            text-wrap: balance;
           }
 
+          /* ---- Search card: one rhythm, one primary button ---- */
           .hero-search-card-container {
             max-width: 480px;
             margin: 0 auto;
@@ -1787,22 +1795,87 @@ const Hero = () => {
           }
 
           .hero-search-bar {
-            padding: 14px;
-            gap: 10px;
-            border-radius: 22px;
+            padding: 16px !important;
+            gap: 10px !important;
+            border-radius: 22px !important;
           }
 
+          /* Quiet segmented control so Search stays the only orange block */
           .search-mode {
-            height: 48px !important;
-            min-height: 48px !important;
+            height: 46px !important;
+            min-height: 46px !important;
+            padding: 4px !important;
+            border-radius: 14px !important;
+            border: none !important;
+            background: #F4F0EB !important;
           }
 
+          .search-mode-btn {
+            min-height: 0 !important;
+            border-radius: 10px !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            color: #78716C !important;
+          }
+
+          .search-mode-btn.active {
+            background: #ffffff !important;
+            color: #EA580C !important;
+            font-weight: 800 !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+          }
+
+          /* Fields share one look: icon, text, same height and padding */
           .search-location-pill,
-          .search-vehicle-pill,
-          .hero-search-submit-btn {
+          .search-vehicle-pill {
             height: 52px !important;
             min-height: 52px !important;
             max-height: 52px !important;
+            padding: 0 16px !important;
+            border-radius: 14px !important;
+            border: 1.5px solid #EDE7E0 !important;
+            background: #FAF8F6 !important;
+          }
+
+          .location-field-icon,
+          .vehicle-type-field-icon {
+            display: block !important;
+            flex-shrink: 0;
+            width: 18px !important;
+            height: 18px !important;
+            margin: 0 12px 0 0 !important;
+            color: #EA580C !important;
+          }
+
+          .vehicle-dropdown-trigger {
+            justify-content: flex-start !important;
+            padding: 0 !important;
+          }
+
+          .selected-vehicle-text {
+            flex: 1;
+            text-align: left;
+          }
+
+          .location-input,
+          .selected-vehicle-text {
+            font-size: 16px !important;
+            font-weight: 500 !important;
+            color: #1C1917 !important;
+          }
+
+          .location-input::placeholder {
+            color: #A8A29E !important;
+            font-weight: 500 !important;
+          }
+
+          .hero-search-submit-btn {
+            height: 54px !important;
+            min-height: 54px !important;
+            max-height: 54px !important;
+            margin-top: 4px !important;
+            border-radius: 14px !important;
+            font-size: 16px !important;
           }
         }
       `}</style>
