@@ -55,6 +55,8 @@ import {
   Filter,
   LogOut,
   MoreHorizontal,
+  Sun,
+  Moon,
 } from "lucide-react";
 import {
   BarChart,
@@ -103,6 +105,22 @@ const AdminDashboard = () => {
 
   // Active module tab
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const [adminTheme, setAdminTheme] = useState(() => {
+    try {
+      return localStorage.getItem("adminTheme") === "light" ? "light" : "dark";
+    } catch {
+      return "dark";
+    }
+  });
+  const toggleAdminTheme = () => {
+    const next = adminTheme === "light" ? "dark" : "light";
+    setAdminTheme(next);
+    try {
+      localStorage.setItem("adminTheme", next);
+    } catch {
+      // Private mode: the choice just won't be remembered
+    }
+  };
   const [activeTab, setActiveTab] = useState("analytics"); // analytics | approvals | cms | fleet | companies | rentals | users | reviews | rollback
   const [cmsSection, setCmsSection] = useState("theme"); // theme | global | hero | categories | stats | testimonials | filters | companies | faqs | footer
   const [previewDevice, setPreviewDevice] = useState("desktop"); // desktop | tablet | mobile
@@ -923,7 +941,7 @@ const AdminDashboard = () => {
   ).length;
 
   return (
-    <div className="admin-portal">
+    <div className={`admin-portal ${adminTheme === "light" ? "admin-light" : ""}`}>
       {/* Top Navbar */}
       <header className="admin-header">
         <div className="admin-header-left">
@@ -961,6 +979,16 @@ const AdminDashboard = () => {
               <span>{pendingCount}<span className="admin-btn-label"> Pending Approvals</span></span>
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={toggleAdminTheme}
+            className="admin-theme-btn"
+            title={adminTheme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+            aria-label={adminTheme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+          >
+            {adminTheme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
 
           <a
             href="/"
@@ -1281,10 +1309,10 @@ const AdminDashboard = () => {
                           <YAxis stroke="#94a3b8" />
                           <Tooltip
                             contentStyle={{
-                              background: "#0f172a",
+                              background: "var(--a-surface)",
                               border: "none",
                               borderRadius: "8px",
-                              color: "#fff",
+                              color: "var(--a-text-strong)",
                             }}
                           />
                           <Bar dataKey="count" fill="var(--primary)" radius={[6, 6, 0, 0]} />
@@ -1323,10 +1351,10 @@ const AdminDashboard = () => {
                           </Pie>
                           <Tooltip
                             contentStyle={{
-                              background: "#0f172a",
+                              background: "var(--a-surface)",
                               border: "none",
                               borderRadius: "8px",
-                              color: "#fff",
+                              color: "var(--a-text-strong)",
                             }}
                           />
                         </PieChart>
@@ -3816,36 +3844,36 @@ const AdminDashboard = () => {
 
                 return (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
-                    <div style={{ background: "#111827", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 12, padding: "14px 16px" }}>
-                      <span style={{ fontSize: "0.74rem", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase" }}>Total Requests</span>
-                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#ffffff", marginTop: 2 }}>{totalInquiries}</div>
-                      <span style={{ fontSize: "0.72rem", color: "#64748b" }}>Across platform</span>
+                    <div style={{ background: "var(--a-surface)", border: "1px solid rgba(var(--a-ink), 0.08)", borderRadius: 12, padding: "14px 16px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "var(--a-text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Requests</span>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--a-text-strong)", marginTop: 2 }}>{totalInquiries}</div>
+                      <span style={{ fontSize: "0.72rem", color: "var(--a-text-faint)" }}>Across platform</span>
                     </div>
 
                     <div style={{ background: "rgba(249, 115, 22, 0.08)", border: "1px solid rgba(249, 115, 22, 0.2)", borderRadius: 12, padding: "14px 16px" }}>
-                      <span style={{ fontSize: "0.74rem", color: "#fb923c", fontWeight: 700, textTransform: "uppercase" }}>Awaiting Action</span>
-                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#f97316", marginTop: 2 }}>{pendingCnt}</div>
+                      <span style={{ fontSize: "0.74rem", color: "var(--a-orange-text)", fontWeight: 700, textTransform: "uppercase" }}>Awaiting Action</span>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--a-accent-text)", marginTop: 2 }}>{pendingCnt}</div>
                       <span style={{ fontSize: "0.72rem", color: "#ea580c" }}>Pending verification</span>
                     </div>
 
                     <div style={{ background: "rgba(234, 179, 8, 0.08)", border: "1px solid rgba(234, 179, 8, 0.2)", borderRadius: 12, padding: "14px 16px" }}>
-                      <span style={{ fontSize: "0.74rem", color: "#facc15", fontWeight: 700, textTransform: "uppercase" }}>Alternative Needed</span>
-                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#eab308", marginTop: 2 }}>{altCnt}</div>
-                      <span style={{ fontSize: "0.72rem", color: "#ca8a04" }}>Car unavailable</span>
+                      <span style={{ fontSize: "0.74rem", color: "var(--a-yellow-text)", fontWeight: 700, textTransform: "uppercase" }}>Alternative Needed</span>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--a-warning-text)", marginTop: 2 }}>{altCnt}</div>
+                      <span style={{ fontSize: "0.72rem", color: "var(--a-warning-text)" }}>Car unavailable</span>
                     </div>
 
                     <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 12, padding: "14px 16px" }}>
-                      <span style={{ fontSize: "0.74rem", color: "#34d399", fontWeight: 700, textTransform: "uppercase" }}>Confirmed</span>
-                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#10b981", marginTop: 2 }}>{confCnt}</div>
-                      <span style={{ fontSize: "0.72rem", color: "#34d399" }}>Synced to Rentals</span>
+                      <span style={{ fontSize: "0.74rem", color: "var(--a-green-text)", fontWeight: 700, textTransform: "uppercase" }}>Confirmed</span>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--a-success-text)", marginTop: 2 }}>{confCnt}</div>
+                      <span style={{ fontSize: "0.72rem", color: "var(--a-green-text)" }}>Synced to Rentals</span>
                     </div>
 
-                    <div style={{ background: "#111827", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 12, padding: "14px 16px" }}>
-                      <span style={{ fontSize: "0.74rem", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase" }}>Pipeline Value</span>
-                      <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#ffffff", marginTop: 2 }}>
+                    <div style={{ background: "var(--a-surface)", border: "1px solid rgba(var(--a-ink), 0.08)", borderRadius: 12, padding: "14px 16px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "var(--a-text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Pipeline Value</span>
+                      <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "var(--a-text-strong)", marginTop: 2 }}>
                         LKR {totalPipeline.toLocaleString()}
                       </div>
-                      <span style={{ fontSize: "0.72rem", color: "#10b981" }}>Gross rental requests</span>
+                      <span style={{ fontSize: "0.72rem", color: "var(--a-success-text)" }}>Gross rental requests</span>
                     </div>
                   </div>
                 );
@@ -3876,9 +3904,9 @@ const AdminDashboard = () => {
                           fontSize: "0.8rem",
                           fontWeight: bookingStatusFilter === filter.id ? 750 : 600,
                           border: "1px solid",
-                          borderColor: bookingStatusFilter === filter.id ? "#f97316" : "rgba(255, 255, 255, 0.12)",
+                          borderColor: bookingStatusFilter === filter.id ? "#f97316" : "rgba(var(--a-ink), 0.12)",
                           background: bookingStatusFilter === filter.id ? "rgba(249, 115, 22, 0.18)" : "rgba(255, 255, 255, 0.04)",
-                          color: bookingStatusFilter === filter.id ? "#fb923c" : "#94a3b8",
+                          color: bookingStatusFilter === filter.id ? "var(--a-orange-text)" : "var(--a-text-muted)",
                           cursor: "pointer",
                           display: "inline-flex",
                           alignItems: "center",
@@ -3887,7 +3915,7 @@ const AdminDashboard = () => {
                         }}
                       >
                         <span>{filter.label}</span>
-                        <span style={{ background: bookingStatusFilter === filter.id ? "rgba(249, 115, 22, 0.3)" : "rgba(255, 255, 255, 0.08)", color: bookingStatusFilter === filter.id ? "#ffffff" : "#94a3b8", padding: "1px 6px", borderRadius: 999, fontSize: "0.7rem" }}>
+                        <span style={{ background: bookingStatusFilter === filter.id ? "rgba(249, 115, 22, 0.3)" : "rgba(var(--a-ink), 0.08)", color: bookingStatusFilter === filter.id ? "var(--a-text-strong)" : "var(--a-text-muted)", padding: "1px 6px", borderRadius: 999, fontSize: "0.7rem" }}>
                           {count}
                         </span>
                       </button>
@@ -3905,13 +3933,13 @@ const AdminDashboard = () => {
                       width: "100%",
                       padding: "7px 12px 7px 32px",
                       borderRadius: 8,
-                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                      border: "1px solid rgba(var(--a-ink), 0.12)",
                       fontSize: "0.82rem",
-                      background: "#111827",
-                      color: "#ffffff",
+                      background: "var(--a-surface)",
+                      color: "var(--a-text-strong)",
                     }}
                   />
-                  <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                  <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--a-text-muted)" }} />
                 </div>
               </div>
 
@@ -3942,7 +3970,7 @@ const AdminDashboard = () => {
                       <div className="empty-state" style={{ padding: 48, textAlign: "center" }}>
                         <CalendarCheck size={32} style={{ color: "#f97316", margin: "0 auto 12px" }} />
                         <h3>No booking inquiries found</h3>
-                        <p style={{ color: "#64748b", fontSize: "0.88rem" }}>
+                        <p style={{ color: "var(--a-text-faint)", fontSize: "0.88rem" }}>
                           {bookingSearch ? "No results match your search term." : "No bookings recorded under this status filter."}
                         </p>
                       </div>
@@ -3950,11 +3978,11 @@ const AdminDashboard = () => {
                   }
 
                   const statusBadges = {
-                    pending: { label: "Pending", bg: "rgba(249, 115, 22, 0.16)", color: "#fb923c" },
-                    reviewing: { label: "In Review", bg: "rgba(59, 130, 246, 0.16)", color: "#60a5fa" },
-                    finding_alternative: { label: "Alternative Needed", bg: "rgba(234, 179, 8, 0.16)", color: "#facc15" },
-                    confirmed: { label: "Confirmed", bg: "rgba(16, 185, 129, 0.16)", color: "#34d399" },
-                    cancelled: { label: "Cancelled", bg: "rgba(148, 163, 184, 0.14)", color: "#94a3b8" },
+                    pending: { label: "Pending", bg: "rgba(249, 115, 22, 0.16)", color: "var(--a-orange-text)" },
+                    reviewing: { label: "In Review", bg: "rgba(59, 130, 246, 0.16)", color: "var(--a-blue-text)" },
+                    finding_alternative: { label: "Alternative Needed", bg: "rgba(234, 179, 8, 0.16)", color: "var(--a-yellow-text)" },
+                    confirmed: { label: "Confirmed", bg: "rgba(16, 185, 129, 0.16)", color: "var(--a-green-text)" },
+                    cancelled: { label: "Cancelled", bg: "rgba(148, 163, 184, 0.14)", color: "var(--a-text-muted)" },
                   };
 
                   return (
@@ -3975,7 +4003,7 @@ const AdminDashboard = () => {
                         <tbody>
                           {filtered.map((b) => {
                             const veh = b.assignedVehicle || b.vehicle;
-                            const badge = statusBadges[b.status] || { label: b.status, bg: "rgba(148, 163, 184, 0.14)", color: "#94a3b8" };
+                            const badge = statusBadges[b.status] || { label: b.status, bg: "rgba(148, 163, 184, 0.14)", color: "var(--a-text-muted)" };
                             const hostName = b.company?.companyName || b.host?.name || "Host";
                             const hostStatus = b.hostAvailabilityStatus;
 
@@ -3983,10 +4011,10 @@ const AdminDashboard = () => {
                               <tr key={b._id}>
                                 <td>
                                   <div>
-                                    <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: "0.85rem", color: "#f8fafc" }}>
+                                    <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: "0.85rem", color: "var(--a-text)" }}>
                                       {b.bookingNumber}
                                     </span>
-                                    <span style={{ display: "block", fontSize: "0.72rem", color: "#94a3b8" }}>
+                                    <span style={{ display: "block", fontSize: "0.72rem", color: "var(--a-text-muted)" }}>
                                       {new Date(b.createdAt).toLocaleDateString()} · {new Date(b.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                   </div>
@@ -3997,14 +4025,14 @@ const AdminDashboard = () => {
                                     <img
                                       src={formatVehicleImageUrl(veh?.images?.[0])}
                                       alt={veh?.brand}
-                                      style={{ width: 44, height: 32, objectFit: "cover", borderRadius: 6, border: "1px solid rgba(255, 255, 255, 0.12)" }}
+                                      style={{ width: 44, height: 32, objectFit: "cover", borderRadius: 6, border: "1px solid rgba(var(--a-ink), 0.12)" }}
                                       onError={handleImageError}
                                     />
                                     <div>
-                                      <span style={{ fontWeight: 700, fontSize: "0.84rem", display: "block", color: "#ffffff" }}>
+                                      <span style={{ fontWeight: 700, fontSize: "0.84rem", display: "block", color: "var(--a-text-strong)" }}>
                                         {veh?.brand || "Vehicle"} {veh?.model || ""}
                                       </span>
-                                      <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                                      <span style={{ fontSize: "0.72rem", color: "var(--a-text-muted)" }}>
                                         {veh?.year || ""} · {veh?.location || "Sri Lanka"}
                                       </span>
                                     </div>
@@ -4013,7 +4041,7 @@ const AdminDashboard = () => {
 
                                 <td>
                                   <div>
-                                    <span style={{ fontWeight: 700, fontSize: "0.84rem", display: "block", color: "#ffffff" }}>
+                                    <span style={{ fontWeight: 700, fontSize: "0.84rem", display: "block", color: "var(--a-text-strong)" }}>
                                       {b.customerName || "Customer"}
                                     </span>
                                     {b.customerPhone ? (
@@ -4026,19 +4054,19 @@ const AdminDashboard = () => {
                                         <Phone size={10} /> {b.customerPhone}
                                       </a>
                                     ) : (
-                                      <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>No phone</span>
+                                      <span style={{ fontSize: "0.72rem", color: "var(--a-text-muted)" }}>No phone</span>
                                     )}
                                     {b.customerMessage && (
                                       <div
                                         style={{
                                           marginTop: 5,
-                                          background: "rgba(255, 255, 255, 0.04)",
-                                          border: "1px solid rgba(255, 255, 255, 0.08)",
+                                          background: "rgba(var(--a-ink), 0.04)",
+                                          border: "1px solid rgba(var(--a-ink), 0.08)",
                                           borderLeft: "3px solid #f97316",
                                           borderRadius: 4,
                                           padding: "3px 6px",
                                           fontSize: "0.73rem",
-                                          color: "#cbd5e1",
+                                          color: "var(--a-text-3)",
                                           maxWidth: 220,
                                           wordBreak: "break-word",
                                           lineHeight: 1.3,
@@ -4054,7 +4082,7 @@ const AdminDashboard = () => {
 
                                 <td>
                                   <div>
-                                    <span style={{ fontSize: "0.82rem", fontWeight: 650, color: "#e2e8f0", display: "block" }}>
+                                    <span style={{ fontSize: "0.82rem", fontWeight: 650, color: "var(--a-text-2)", display: "block" }}>
                                       {hostName}
                                     </span>
                                     {hostStatus === "available" ? (
@@ -4075,7 +4103,7 @@ const AdminDashboard = () => {
 
                                 <td>
                                   <div>
-                                    <span style={{ fontSize: "0.8rem", color: "#ffffff", fontWeight: 600, display: "block" }}>
+                                    <span style={{ fontSize: "0.8rem", color: "var(--a-text-strong)", fontWeight: 600, display: "block" }}>
                                       {new Date(b.startDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} → {new Date(b.endDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                                     </span>
                                     <span style={{ fontSize: "0.72rem", color: "#ea580c", fontWeight: 700 }}>
@@ -4086,10 +4114,10 @@ const AdminDashboard = () => {
 
                                 <td>
                                   <div>
-                                    <span style={{ fontWeight: 800, fontSize: "0.88rem", color: "#ffffff", display: "block" }}>
+                                    <span style={{ fontWeight: 800, fontSize: "0.88rem", color: "var(--a-text-strong)", display: "block" }}>
                                       LKR {(b.totalPrice || 0).toLocaleString()}
                                     </span>
-                                    <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>
+                                    <span style={{ fontSize: "0.7rem", color: "var(--a-text-muted)" }}>
                                       {(b.dailyRate || 0).toLocaleString()} / day
                                     </span>
                                   </div>
@@ -5387,6 +5415,13 @@ const AdminDashboard = () => {
                 </button>
               ))}
             </div>
+            <button type="button" className="amn-theme-row" onClick={toggleAdminTheme}>
+              <span>
+                {adminTheme === "light" ? <Sun size={18} /> : <Moon size={18} />}
+                {adminTheme === "light" ? "Light mode" : "Dark mode"}
+              </span>
+              <span className={`amn-switch ${adminTheme === "light" ? "on" : ""}`} aria-hidden="true" />
+            </button>
             <div className="amn-sheet-actions">
               <a href="/" target="_blank" rel="noopener noreferrer" className="amn-sheet-btn">
                 <ExternalLink size={16} /> View live site
@@ -5408,10 +5443,102 @@ const AdminDashboard = () => {
       )}
 
       <style>{`
+        /* Theme tokens: dark is the default, .admin-light swaps the neutrals */
+        .admin-portal {
+          --a-bg: #090d16;
+          --a-bg-2: #0c121e;
+          --a-bg-3: #0d1322;
+          --a-surface: #111827;
+          --a-surface-2: #1e293b;
+          --a-surface-3: #334155;
+          --a-ink: 255, 255, 255;
+          --a-text-strong: #ffffff;
+          --a-text: #f1f5f9;
+          --a-text-2: #e2e8f0;
+          --a-text-3: #cbd5e1;
+          --a-text-muted: #94a3b8;
+          --a-text-faint: #64748b;
+          --a-red-text: #f87171;
+          --a-red-text-2: #fecdd3;
+          --a-orange-text: #fdba74;
+          --a-blue-text: #60a5fa;
+          --a-green-text: #34d399;
+          --a-yellow-text: #facc15;
+          --a-accent-text: var(--primary, #f97316);
+          --a-success-text: #10b981;
+          --a-warning-text: #eab308;
+          --a-nav-bg: rgba(13, 19, 34, 0.96);
+          color-scheme: dark;
+        }
+
+        .admin-portal.admin-light {
+          --a-bg: #f4f6fa;
+          --a-bg-2: #ffffff;
+          --a-bg-3: #ffffff;
+          --a-surface: #ffffff;
+          --a-surface-2: #f1f5f9;
+          --a-surface-3: #e2e8f0;
+          --a-ink: 15, 23, 42;
+          --a-text-strong: #0f172a;
+          --a-text: #1e293b;
+          --a-text-2: #334155;
+          --a-text-3: #475569;
+          --a-text-muted: #64748b;
+          --a-text-faint: #6b7a90;
+          --a-red-text: #dc2626;
+          --a-red-text-2: #b91c1c;
+          --a-orange-text: #c2410c;
+          --a-blue-text: #2563eb;
+          --a-green-text: #059669;
+          --a-yellow-text: #a16207;
+          --a-accent-text: #c2410c;
+          --a-success-text: #047857;
+          --a-warning-text: #a16207;
+          --a-nav-bg: rgba(255, 255, 255, 0.96);
+          color-scheme: light;
+        }
+
+        /* Light mode: give white cards a soft edge against the pale page */
+        .admin-light .kpi-card,
+        .admin-light .chart-card,
+        .admin-light .recent-activity-card,
+        .admin-light .table-card,
+        .admin-light .admin-table tr {
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 14px rgba(15, 23, 42, 0.04);
+        }
+
+        .admin-light .admin-header,
+        .admin-light .admin-mobile-nav {
+          box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+        }
+
+        .admin-theme-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: 1px solid rgba(var(--a-ink), 0.12);
+          background: rgba(var(--a-ink), 0.05);
+          color: var(--a-text);
+          cursor: pointer;
+          transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .admin-theme-btn:hover {
+          background: rgba(var(--a-ink), 0.1);
+          color: var(--a-accent-text);
+        }
+
+        .amn-theme-row {
+          display: none;
+        }
+
         .admin-portal {
           min-height: 100vh;
-          background: #090d16;
-          color: #f1f5f9;
+          background: var(--a-bg);
+          color: var(--a-text);
           font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
           display: flex;
           flex-direction: column;
@@ -5423,8 +5550,8 @@ const AdminDashboard = () => {
           align-items: center;
           justify-content: space-between;
           padding: 14px 28px;
-          background: #0d1322;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--a-bg-3);
+          border-bottom: 1px solid rgba(var(--a-ink), 0.08);
           position: sticky;
           top: 0;
           z-index: 50;
@@ -5453,13 +5580,13 @@ const AdminDashboard = () => {
         .admin-brand-name {
           font-size: 1.15rem;
           font-weight: 800;
-          color: #ffffff;
+          color: var(--a-text-strong);
           line-height: 1.1;
         }
 
         .admin-brand-tag {
           font-size: 0.75rem;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           font-weight: 600;
         }
 
@@ -5468,7 +5595,7 @@ const AdminDashboard = () => {
           align-items: center;
           gap: 6px;
           background: rgba(249, 115, 22, 0.15);
-          color: var(--primary);
+          color: var(--a-accent-text);
           border: 1px solid rgba(249, 115, 22, 0.3);
           padding: 4px 10px;
           border-radius: 100px;
@@ -5499,8 +5626,8 @@ const AdminDashboard = () => {
           display: flex;
           align-items: center;
           gap: 6px;
-          background: rgba(255, 255, 255, 0.08);
-          color: #f1f5f9;
+          background: rgba(var(--a-ink), 0.08);
+          color: var(--a-text);
           padding: 8px 14px;
           border-radius: 8px;
           text-decoration: none;
@@ -5510,13 +5637,13 @@ const AdminDashboard = () => {
         }
 
         .admin-live-btn:hover {
-          background: rgba(255, 255, 255, 0.14);
+          background: rgba(var(--a-ink), 0.14);
         }
 
         .admin-logout-btn {
           background: transparent;
           border: 1px solid rgba(239, 68, 68, 0.4);
-          color: #f87171;
+          color: var(--a-red-text);
           padding: 7px 14px;
           border-radius: 8px;
           font-size: 0.84rem;
@@ -5539,8 +5666,8 @@ const AdminDashboard = () => {
 
         /* Sidebar */
         .admin-sidebar {
-          background: #0c121e;
-          border-right: 1px solid rgba(255, 255, 255, 0.06);
+          background: var(--a-bg-2);
+          border-right: 1px solid rgba(var(--a-ink), 0.06);
           padding: 20px 14px;
           display: flex;
           flex-direction: column;
@@ -5551,7 +5678,7 @@ const AdminDashboard = () => {
           font-size: 0.68rem;
           font-weight: 800;
           letter-spacing: 0.08em;
-          color: #64748b;
+          color: var(--a-text-faint);
           padding: 12px 10px 4px;
         }
 
@@ -5564,7 +5691,7 @@ const AdminDashboard = () => {
           background: transparent;
           border: none;
           border-radius: 10px;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           font-size: 0.9rem;
           font-weight: 600;
           text-align: left;
@@ -5573,13 +5700,13 @@ const AdminDashboard = () => {
         }
 
         .admin-nav-item:hover {
-          background: rgba(255, 255, 255, 0.05);
-          color: #ffffff;
+          background: rgba(var(--a-ink), 0.05);
+          color: var(--a-text-strong);
         }
 
         .admin-nav-item.active {
           background: rgba(249, 115, 22, 0.15);
-          color: var(--primary);
+          color: var(--a-accent-text);
           font-weight: 700;
         }
 
@@ -5592,7 +5719,7 @@ const AdminDashboard = () => {
 
         .cms-badge {
           background: var(--primary);
-          color: #ffffff;
+          color: var(--a-text-strong);
           padding: 2px 6px;
           border-radius: 6px;
           font-size: 0.68rem;
@@ -5604,7 +5731,7 @@ const AdminDashboard = () => {
         .admin-main {
           padding: 28px 32px;
           overflow-y: auto;
-          background: #090d16;
+          background: var(--a-bg);
         }
 
         .pane-header {
@@ -5619,12 +5746,12 @@ const AdminDashboard = () => {
         .pane-header h2 {
           font-size: 1.45rem;
           font-weight: 800;
-          color: #ffffff;
+          color: var(--a-text-strong);
           margin-bottom: 4px;
         }
 
         .pane-header p {
-          color: #94a3b8;
+          color: var(--a-text-muted);
           font-size: 0.88rem;
         }
 
@@ -5637,8 +5764,8 @@ const AdminDashboard = () => {
         }
 
         .kpi-card {
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.07);
+          background: var(--a-surface);
+          border: 1px solid rgba(var(--a-ink), 0.07);
           border-radius: 14px;
           padding: 20px;
           display: flex;
@@ -5656,32 +5783,32 @@ const AdminDashboard = () => {
           flex-shrink: 0;
         }
 
-        .kpi-orange { background: rgba(249, 115, 22, 0.15); color: #f97316; }
+        .kpi-orange { background: rgba(249, 115, 22, 0.15); color: var(--a-accent-text); }
         .kpi-blue { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-        .kpi-green { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .kpi-green { background: rgba(16, 185, 129, 0.15); color: var(--a-success-text); }
         .kpi-purple { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
 
         .kpi-num {
           font-size: 1.6rem;
           font-weight: 800;
-          color: #ffffff;
+          color: var(--a-text-strong);
           line-height: 1.1;
         }
 
         .kpi-label {
           font-size: 0.82rem;
           font-weight: 600;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           margin-top: 4px;
         }
 
         .kpi-sub {
           font-size: 0.75rem;
-          color: #64748b;
+          color: var(--a-text-faint);
           margin-top: 4px;
         }
 
-        .text-green { color: #10b981; font-weight: 600; }
+        .text-green { color: var(--a-success-text); font-weight: 600; }
 
         /* Charts Grid */
         .admin-charts-grid {
@@ -5692,8 +5819,8 @@ const AdminDashboard = () => {
         }
 
         .chart-card, .recent-activity-card {
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.07);
+          background: var(--a-surface);
+          border: 1px solid rgba(var(--a-ink), 0.07);
           border-radius: 14px;
           padding: 22px;
         }
@@ -5701,7 +5828,7 @@ const AdminDashboard = () => {
         .chart-title {
           font-size: 1rem;
           font-weight: 700;
-          color: #ffffff;
+          color: var(--a-text-strong);
           margin-bottom: 16px;
         }
 
@@ -5710,14 +5837,14 @@ const AdminDashboard = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #64748b;
+          color: var(--a-text-faint);
           font-size: 0.88rem;
         }
 
         /* Tables */
         .table-card {
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.07);
+          background: var(--a-surface);
+          border: 1px solid rgba(var(--a-ink), 0.07);
           border-radius: 14px;
           overflow: hidden;
         }
@@ -5729,25 +5856,25 @@ const AdminDashboard = () => {
         }
 
         .admin-table th {
-          background: #0e1422;
+          background: var(--a-bg-3);
           padding: 12px 16px;
           text-align: left;
           font-weight: 700;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           font-size: 0.78rem;
           text-transform: uppercase;
           letter-spacing: 0.04em;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+          border-bottom: 1px solid rgba(var(--a-ink), 0.06);
         }
 
         .admin-table td {
           padding: 14px 16px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+          border-bottom: 1px solid rgba(var(--a-ink), 0.04);
           vertical-align: middle;
         }
 
         .admin-table tr:hover td {
-          background: rgba(255, 255, 255, 0.02);
+          background: rgba(var(--a-ink), 0.02);
         }
 
         .role-tag {
@@ -5757,10 +5884,10 @@ const AdminDashboard = () => {
           font-weight: 700;
           text-transform: uppercase;
         }
-        .role-renter { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-        .role-owner { background: rgba(249, 115, 22, 0.15); color: #fb923c; }
-        .role-company { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-        .role-admin { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .role-renter { background: rgba(59, 130, 246, 0.15); color: var(--a-blue-text); }
+        .role-owner { background: rgba(249, 115, 22, 0.15); color: var(--a-orange-text); }
+        .role-company { background: rgba(16, 185, 129, 0.15); color: var(--a-green-text); }
+        .role-admin { background: rgba(239, 68, 68, 0.15); color: var(--a-red-text); }
 
         .status-badge {
           padding: 4px 10px;
@@ -5768,7 +5895,7 @@ const AdminDashboard = () => {
           font-size: 0.78rem;
           font-weight: 700;
         }
-        .status-verified { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .status-verified { background: rgba(16, 185, 129, 0.15); color: var(--a-success-text); }
         .status-pending { background: rgba(234, 179, 8, 0.15); color: #eab308; }
 
         .btn-verify-toggle {
@@ -5781,29 +5908,29 @@ const AdminDashboard = () => {
           transition: all 0.2s;
         }
         .btn-approve { background: #059669; color: #ffffff; }
-        .btn-revoke { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .btn-revoke { background: rgba(239, 68, 68, 0.2); color: var(--a-red-text); border: 1px solid rgba(239, 68, 68, 0.4); }
 
         .btn-feature-toggle {
           padding: 5px 10px;
           border-radius: 8px;
           font-size: 0.78rem;
           font-weight: 700;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.05);
-          color: #94a3b8;
+          border: 1px solid rgba(var(--a-ink), 0.1);
+          background: rgba(var(--a-ink), 0.05);
+          color: var(--a-text-muted);
           cursor: pointer;
           transition: all 0.2s;
         }
         .btn-feature-toggle.featured {
           background: rgba(249, 115, 22, 0.2);
-          color: #f97316;
+          color: var(--a-accent-text);
           border-color: rgba(249, 115, 22, 0.4);
         }
 
         .role-changer-select {
-          background: #1e293b;
-          color: #ffffff;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: var(--a-surface-2);
+          color: var(--a-text-strong);
+          border: 1px solid rgba(var(--a-ink), 0.1);
           padding: 6px 10px;
           border-radius: 6px;
           font-size: 0.82rem;
@@ -5821,23 +5948,23 @@ const AdminDashboard = () => {
           height: 44px;
           border-radius: 8px;
           object-fit: cover;
-          background: #1e293b;
+          background: var(--a-surface-2);
         }
 
         .c-logo-placeholder {
           width: 44px;
           height: 44px;
           border-radius: 8px;
-          background: #1e293b;
+          background: var(--a-surface-2);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #94a3b8;
+          color: var(--a-text-muted);
         }
 
         .type-badge {
-          background: rgba(255, 255, 255, 0.08);
-          color: #f1f5f9;
+          background: rgba(var(--a-ink), 0.08);
+          color: var(--a-text);
           padding: 3px 8px;
           border-radius: 6px;
           font-size: 0.75rem;
@@ -5862,8 +5989,8 @@ const AdminDashboard = () => {
           transition: all 0.2s;
           text-decoration: none;
         }
-        .btn-action-view { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-        .btn-action-del { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .btn-action-view { background: rgba(59, 130, 246, 0.15); color: var(--a-blue-text); }
+        .btn-action-del { background: rgba(239, 68, 68, 0.15); color: var(--a-red-text); }
         .btn-action-del:hover { background: #ef4444; color: #ffffff; }
 
         /* CMS Customizer Specific */
@@ -5871,8 +5998,8 @@ const AdminDashboard = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.07);
+          background: var(--a-surface);
+          border: 1px solid rgba(var(--a-ink), 0.07);
           border-radius: 14px;
           padding: 10px 16px;
           margin-bottom: 20px;
@@ -5891,7 +6018,7 @@ const AdminDashboard = () => {
         .cms-sub-tab {
           background: transparent;
           border: none;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           padding: 8px 12px;
           border-radius: 8px;
           font-size: 0.82rem;
@@ -5902,13 +6029,13 @@ const AdminDashboard = () => {
         }
 
         .cms-sub-tab:hover {
-          background: rgba(255, 255, 255, 0.05);
-          color: #ffffff;
+          background: rgba(var(--a-ink), 0.05);
+          color: var(--a-text-strong);
         }
 
         .cms-sub-tab.active {
           background: var(--primary);
-          color: #ffffff;
+          color: var(--a-text-strong);
         }
 
         .cms-actions-bar {
@@ -5919,7 +6046,7 @@ const AdminDashboard = () => {
 
         .btn-save-cms {
           background: var(--primary);
-          color: #ffffff;
+          color: var(--a-text-strong);
           border: none;
           padding: 9px 18px;
           border-radius: 8px;
@@ -5938,9 +6065,9 @@ const AdminDashboard = () => {
         }
 
         .btn-icon-cms {
-          background: rgba(255, 255, 255, 0.08);
+          background: rgba(var(--a-ink), 0.08);
           border: none;
-          color: #f1f5f9;
+          color: var(--a-text);
           width: 36px;
           height: 36px;
           border-radius: 8px;
@@ -5961,8 +6088,8 @@ const AdminDashboard = () => {
           font-size: 0.88rem;
         }
 
-        .cms-alert-success { background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #34d399; }
-        .cms-alert-error { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; }
+        .cms-alert-success { background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: var(--a-green-text); }
+        .cms-alert-error { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: var(--a-red-text); }
 
         /* Split-Screen Layout */
         .cms-split-container {
@@ -5973,8 +6100,8 @@ const AdminDashboard = () => {
         }
 
         .cms-editor-column {
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.07);
+          background: var(--a-surface);
+          border: 1px solid rgba(var(--a-ink), 0.07);
           border-radius: 14px;
           padding: 24px;
         }
@@ -5986,18 +6113,18 @@ const AdminDashboard = () => {
         .section-intro h3 {
           font-size: 1.15rem;
           font-weight: 800;
-          color: #ffffff;
+          color: var(--a-text-strong);
           margin-bottom: 4px;
         }
 
         .section-intro p {
-          color: #94a3b8;
+          color: var(--a-text-muted);
           font-size: 0.84rem;
         }
 
         .cms-divider {
           height: 1px;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--a-ink), 0.06);
           margin: 24px 0;
         }
 
@@ -6021,15 +6148,15 @@ const AdminDashboard = () => {
         .form-group label {
           font-size: 0.78rem;
           font-weight: 700;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           text-transform: uppercase;
           letter-spacing: 0.03em;
         }
 
         .form-group input, .form-group select, .form-group textarea {
-          background: #0c121e;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #f1f5f9;
+          background: var(--a-bg-2);
+          border: 1px solid rgba(var(--a-ink), 0.1);
+          color: var(--a-text);
           padding: 10px 14px;
           border-radius: 8px;
           font-size: 0.88rem;
@@ -6065,8 +6192,8 @@ const AdminDashboard = () => {
         }
 
         .theme-preset-card {
-          background: #0c121e;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--a-bg-2);
+          border: 1px solid rgba(var(--a-ink), 0.08);
           border-radius: 12px;
           padding: 14px;
           cursor: pointer;
@@ -6093,7 +6220,7 @@ const AdminDashboard = () => {
 
         .preset-active-tag {
           background: var(--primary);
-          color: #ffffff;
+          color: var(--a-text-strong);
           padding: 2px 6px;
           border-radius: 4px;
           font-size: 0.65rem;
@@ -6114,7 +6241,7 @@ const AdminDashboard = () => {
 
         .preset-ticker-sample {
           font-size: 0.72rem;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -6125,8 +6252,8 @@ const AdminDashboard = () => {
           display: flex;
           align-items: center;
           gap: 14px;
-          background: #0c121e;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--a-bg-2);
+          border: 1px solid rgba(var(--a-ink), 0.08);
           border-radius: 10px;
           padding: 12px 16px;
         }
@@ -6145,7 +6272,7 @@ const AdminDashboard = () => {
           position: absolute;
           cursor: pointer;
           top: 0; left: 0; right: 0; bottom: 0;
-          background-color: #334155;
+          background-color: var(--a-surface-3);
           transition: .3s;
           border-radius: 24px;
         }
@@ -6180,9 +6307,9 @@ const AdminDashboard = () => {
 
         .chip-row input {
           flex: 1;
-          background: #0c121e;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #f1f5f9;
+          background: var(--a-bg-2);
+          border: 1px solid rgba(var(--a-ink), 0.1);
+          color: var(--a-text);
           padding: 8px 12px;
           border-radius: 8px;
           font-size: 0.85rem;
@@ -6190,7 +6317,7 @@ const AdminDashboard = () => {
 
         .btn-trash {
           background: rgba(239, 68, 68, 0.15);
-          color: #f87171;
+          color: var(--a-red-text);
           border: none;
           padding: 8px 10px;
           border-radius: 8px;
@@ -6202,9 +6329,9 @@ const AdminDashboard = () => {
           align-items: center;
           justify-content: center;
           gap: 6px;
-          background: rgba(255, 255, 255, 0.06);
-          color: #f1f5f9;
-          border: 1px dashed rgba(255, 255, 255, 0.2);
+          background: rgba(var(--a-ink), 0.06);
+          color: var(--a-text);
+          border: 1px dashed rgba(var(--a-ink), 0.2);
           padding: 10px;
           border-radius: 8px;
           font-weight: 700;
@@ -6219,15 +6346,15 @@ const AdminDashboard = () => {
         }
 
         .category-slot-card, .testimonial-edit-card, .stat-edit-box, .filter-thumb-card, .faq-edit-card {
-          background: #0c121e;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--a-bg-2);
+          border: 1px solid rgba(var(--a-ink), 0.08);
           border-radius: 12px;
           padding: 16px;
         }
 
         .slot-badge {
           background: rgba(249, 115, 22, 0.15);
-          color: var(--primary);
+          color: var(--a-accent-text);
           padding: 3px 8px;
           border-radius: 6px;
           font-size: 0.72rem;
@@ -6240,7 +6367,7 @@ const AdminDashboard = () => {
           height: 60px;
           border-radius: 8px;
           overflow: hidden;
-          background: #1e293b;
+          background: var(--a-surface-2);
         }
 
         .cat-img-preview img, .filter-img-preview img {
@@ -6262,14 +6389,14 @@ const AdminDashboard = () => {
         }
 
         .star-icon.filled { color: #f59e0b; fill: #f59e0b; }
-        .star-icon.empty { color: #475569; }
+        .star-icon.empty { color: var(--a-text-faint); }
 
         /* Right Column: Virtual Preview Frame */
         .cms-preview-column {
           position: sticky;
           top: 80px;
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.07);
+          background: var(--a-surface);
+          border: 1px solid rgba(var(--a-ink), 0.07);
           border-radius: 14px;
           padding: 18px;
           display: flex;
@@ -6289,13 +6416,13 @@ const AdminDashboard = () => {
           gap: 6px;
           font-weight: 700;
           font-size: 0.85rem;
-          color: #94a3b8;
+          color: var(--a-text-muted);
         }
 
         .device-switcher {
           display: flex;
           gap: 4px;
-          background: #0c121e;
+          background: var(--a-bg-2);
           padding: 4px;
           border-radius: 8px;
         }
@@ -6303,7 +6430,7 @@ const AdminDashboard = () => {
         .device-btn {
           background: transparent;
           border: none;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           width: 30px;
           height: 28px;
           border-radius: 6px;
@@ -6316,7 +6443,7 @@ const AdminDashboard = () => {
 
         .device-btn.active {
           background: var(--primary);
-          color: #ffffff;
+          color: var(--a-text-strong);
         }
 
         .virtual-viewport {
@@ -6337,7 +6464,7 @@ const AdminDashboard = () => {
 
         .virtual-announcement {
           padding: 4px 10px;
-          color: #ffffff;
+          color: var(--a-text-strong);
           font-size: 0.68rem;
           font-weight: 700;
           text-align: center;
@@ -6358,12 +6485,12 @@ const AdminDashboard = () => {
 
         .v-brand { display: flex; align-items: center; gap: 6px; }
         .v-logo { height: 18px; }
-        .v-links { display: flex; gap: 8px; font-size: 0.65rem; color: #64748b; font-weight: 600; }
+        .v-links { display: flex; gap: 8px; font-size: 0.65rem; color: var(--a-text-faint); font-weight: 600; }
 
         .virtual-hero {
           padding: 24px 14px;
           text-align: center;
-          color: #ffffff;
+          color: var(--a-text-strong);
         }
 
         .v-watermark {
@@ -6382,7 +6509,7 @@ const AdminDashboard = () => {
           border-bottom: 1px solid #f1f5f9;
         }
 
-        .v-cat-title { font-size: 0.68rem; font-weight: 700; color: #475569; margin-bottom: 6px; }
+        .v-cat-title { font-size: 0.68rem; font-weight: 700; color: var(--a-text-faint); margin-bottom: 6px; }
         .v-cat-scroll { display: flex; gap: 6px; overflow-x: auto; }
         .v-cat-pill {
           display: flex;
@@ -6407,7 +6534,7 @@ const AdminDashboard = () => {
           gap: 4px;
         }
         .v-stat-num { font-size: 0.85rem; font-weight: 900; line-height: 1; }
-        .v-stat-lbl { font-size: 0.55rem; color: #64748b; font-weight: 600; }
+        .v-stat-lbl { font-size: 0.55rem; color: var(--a-text-faint); font-weight: 600; }
 
         .virtual-testimonials-section {
           padding: 12px;
@@ -6418,16 +6545,16 @@ const AdminDashboard = () => {
         .v-test-card { background: #f8fafc; padding: 6px 8px; border-radius: 6px; font-size: 0.62rem; }
         .v-test-stars { color: #f59e0b; font-size: 0.6rem; }
         .v-test-quote { color: #334155; font-style: italic; margin: 2px 0; }
-        .v-test-author { color: #64748b; font-size: 0.58rem; }
+        .v-test-author { color: var(--a-text-faint); font-size: 0.58rem; }
 
         .virtual-footer {
           padding: 10px;
-          background: #0f172a;
-          color: #94a3b8;
+          background: var(--a-surface);
+          color: var(--a-text-muted);
           font-size: 0.58rem;
           text-align: center;
         }
-        .v-foot-copy { font-size: 0.52rem; color: #64748b; margin-top: 2px; }
+        .v-foot-copy { font-size: 0.52rem; color: var(--a-text-faint); margin-top: 2px; }
 
         /* Snapshots List */
         .snapshots-list {
@@ -6437,8 +6564,8 @@ const AdminDashboard = () => {
         }
 
         .snapshot-card {
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--a-surface);
+          border: 1px solid rgba(var(--a-ink), 0.08);
           border-radius: 12px;
           padding: 18px 20px;
           display: flex;
@@ -6452,12 +6579,12 @@ const AdminDashboard = () => {
           align-items: center;
           gap: 8px;
           font-size: 1rem;
-          color: #ffffff;
+          color: var(--a-text-strong);
         }
 
         .snapshot-meta {
           font-size: 0.8rem;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           margin-top: 4px;
         }
 
@@ -6468,7 +6595,7 @@ const AdminDashboard = () => {
 
         .btn-restore-snap {
           background: rgba(59, 130, 246, 0.15);
-          color: #60a5fa;
+          color: var(--a-blue-text);
           border: 1px solid rgba(59, 130, 246, 0.3);
           padding: 8px 16px;
           border-radius: 8px;
@@ -6487,17 +6614,17 @@ const AdminDashboard = () => {
         }
 
         .empty-snapshots-box {
-          background: #111827;
+          background: var(--a-surface);
           border-radius: 14px;
           padding: 48px;
           text-align: center;
-          color: #94a3b8;
+          color: var(--a-text-muted);
         }
 
         .btn-secondary-sm {
-          background: rgba(255, 255, 255, 0.08);
+          background: rgba(var(--a-ink), 0.08);
           border: none;
-          color: #f1f5f9;
+          color: var(--a-text);
           padding: 8px 14px;
           border-radius: 8px;
           font-size: 0.82rem;
@@ -6511,7 +6638,7 @@ const AdminDashboard = () => {
         .btn-danger-sm {
           background: rgba(239, 68, 68, 0.15);
           border: 1px solid rgba(239, 68, 68, 0.3);
-          color: #f87171;
+          color: var(--a-red-text);
           padding: 8px 14px;
           border-radius: 8px;
           font-size: 0.82rem;
@@ -6526,26 +6653,26 @@ const AdminDashboard = () => {
           display: flex;
           align-items: center;
           gap: 8px;
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: var(--a-surface);
+          border: 1px solid rgba(var(--a-ink), 0.1);
           padding: 6px 12px;
           border-radius: 8px;
-          color: #94a3b8;
+          color: var(--a-text-muted);
         }
 
         .search-box input {
           background: transparent;
           border: none;
-          color: #f1f5f9;
+          color: var(--a-text);
           font-size: 0.84rem;
           outline: none;
           width: 200px;
         }
 
         .select-role-filter {
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #f1f5f9;
+          background: var(--a-surface);
+          border: 1px solid rgba(var(--a-ink), 0.1);
+          color: var(--a-text);
           padding: 6px 12px;
           border-radius: 8px;
           font-size: 0.84rem;
@@ -6570,7 +6697,7 @@ const AdminDashboard = () => {
           align-items: center;
           gap: 12px;
           font-size: 0.88rem;
-          color: #fecdd3;
+          color: var(--a-red-text-2);
         }
 
         .urgent-icon {
@@ -6578,7 +6705,7 @@ const AdminDashboard = () => {
           height: 32px;
           border-radius: 8px;
           background: rgba(239, 68, 68, 0.3);
-          color: #f87171;
+          color: var(--a-red-text);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -6586,7 +6713,7 @@ const AdminDashboard = () => {
         }
 
         .urgent-highlight {
-          color: #ffffff;
+          color: var(--a-text-strong);
           font-weight: 800;
           text-decoration: underline;
         }
@@ -6615,7 +6742,7 @@ const AdminDashboard = () => {
           gap: 8px;
           background: rgba(239, 68, 68, 0.2);
           border: 1px solid rgba(239, 68, 68, 0.4);
-          color: #fecdd3;
+          color: var(--a-red-text-2);
           padding: 6px 12px;
           border-radius: 8px;
           font-size: 0.82rem;
@@ -6657,7 +6784,7 @@ const AdminDashboard = () => {
 
         .pending-pill-sm {
           background: rgba(234, 179, 8, 0.2);
-          color: #facc15;
+          color: var(--a-yellow-text);
           padding: 2px 6px;
           border-radius: 100px;
           font-size: 0.7rem;
@@ -6665,11 +6792,11 @@ const AdminDashboard = () => {
         }
 
         .kpi-amber { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-        .kpi-emerald { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .kpi-emerald { background: rgba(16, 185, 129, 0.15); color: var(--a-success-text); }
 
         .kpi-card-urgent {
           border-color: rgba(245, 158, 11, 0.4);
-          background: linear-gradient(135deg, #111827 0%, rgba(245, 158, 11, 0.08) 100%);
+          background: linear-gradient(135deg, var(--a-surface) 0%, rgba(245, 158, 11, 0.08) 100%);
         }
 
         .kpi-link-btn {
@@ -6688,16 +6815,16 @@ const AdminDashboard = () => {
           display: flex;
           align-items: center;
           gap: 6px;
-          background: #111827;
+          background: var(--a-surface);
           padding: 4px;
           border-radius: 10px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(var(--a-ink), 0.08);
         }
 
         .pill-btn {
           background: transparent;
           border: none;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           padding: 6px 12px;
           border-radius: 8px;
           font-size: 0.8rem;
@@ -6707,26 +6834,26 @@ const AdminDashboard = () => {
         }
 
         .pill-btn:hover {
-          color: #ffffff;
+          color: var(--a-text-strong);
         }
 
         .pill-btn.active {
           background: var(--primary);
-          color: #ffffff;
+          color: var(--a-text-strong);
         }
 
         .empty-approvals-box {
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.07);
+          background: var(--a-surface);
+          border: 1px solid rgba(var(--a-ink), 0.07);
           border-radius: 16px;
           padding: 60px 24px;
           text-align: center;
-          color: #94a3b8;
+          color: var(--a-text-muted);
         }
 
         .empty-approvals-box h3 {
           font-size: 1.25rem;
-          color: #ffffff;
+          color: var(--a-text-strong);
           font-weight: 700;
           margin-bottom: 6px;
         }
@@ -6738,8 +6865,8 @@ const AdminDashboard = () => {
         }
 
         .approval-card {
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--a-surface);
+          border: 1px solid rgba(var(--a-ink), 0.08);
           border-radius: 16px;
           padding: 20px;
           transition: border-color 0.2s;
@@ -6761,7 +6888,7 @@ const AdminDashboard = () => {
           height: 175px;
           border-radius: 12px;
           overflow: hidden;
-          background: #0c121e;
+          background: var(--a-bg-2);
         }
 
         .approval-card-thumb {
@@ -6824,7 +6951,7 @@ const AdminDashboard = () => {
         .approval-vehicle-title {
           font-size: 1.25rem;
           font-weight: 800;
-          color: #ffffff;
+          color: var(--a-text-strong);
           margin-bottom: 4px;
         }
 
@@ -6833,7 +6960,7 @@ const AdminDashboard = () => {
           align-items: center;
           gap: 8px;
           font-size: 0.8rem;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           flex-wrap: wrap;
         }
 
@@ -6844,19 +6971,19 @@ const AdminDashboard = () => {
         .approval-price-val {
           font-size: 1.35rem;
           font-weight: 800;
-          color: var(--primary);
+          color: var(--a-accent-text);
         }
 
         .approval-price-lbl {
           font-size: 0.75rem;
-          color: #94a3b8;
+          color: var(--a-text-muted);
         }
 
         .approval-specs-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
           gap: 10px;
-          background: #0c121e;
+          background: var(--a-bg-2);
           padding: 12px 16px;
           border-radius: 10px;
         }
@@ -6869,7 +6996,7 @@ const AdminDashboard = () => {
 
         .spec-lbl {
           font-size: 0.7rem;
-          color: #64748b;
+          color: var(--a-text-faint);
           font-weight: 700;
           text-transform: uppercase;
         }
@@ -6877,13 +7004,13 @@ const AdminDashboard = () => {
         .spec-val {
           font-size: 0.88rem;
           font-weight: 700;
-          color: #f1f5f9;
+          color: var(--a-text);
         }
 
         .rejection-reason-box {
           background: rgba(239, 68, 68, 0.12);
           border: 1px solid rgba(239, 68, 68, 0.3);
-          color: #fecdd3;
+          color: var(--a-red-text-2);
           padding: 10px 14px;
           border-radius: 8px;
           font-size: 0.84rem;
@@ -6896,9 +7023,9 @@ const AdminDashboard = () => {
         }
 
         .approval-feature-chip {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #94a3b8;
+          background: rgba(var(--a-ink), 0.05);
+          border: 1px solid rgba(var(--a-ink), 0.1);
+          color: var(--a-text-muted);
           padding: 2px 8px;
           border-radius: 6px;
           font-size: 0.75rem;
@@ -6909,7 +7036,7 @@ const AdminDashboard = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          border-top: 1px solid rgba(var(--a-ink), 0.06);
           padding-top: 12px;
           gap: 14px;
           flex-wrap: wrap;
@@ -6925,8 +7052,8 @@ const AdminDashboard = () => {
           width: 38px;
           height: 38px;
           border-radius: 10px;
-          background: #1e293b;
-          color: #94a3b8;
+          background: var(--a-surface-2);
+          color: var(--a-text-muted);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -6936,7 +7063,7 @@ const AdminDashboard = () => {
         .lister-name {
           font-size: 0.88rem;
           font-weight: 700;
-          color: #ffffff;
+          color: var(--a-text-strong);
           display: flex;
           align-items: center;
           gap: 6px;
@@ -6959,14 +7086,14 @@ const AdminDashboard = () => {
           font-size: 0.68rem;
           padding: 1px 6px;
           border-radius: 4px;
-          background: rgba(255, 255, 255, 0.08);
-          color: #94a3b8;
+          background: rgba(var(--a-ink), 0.08);
+          color: var(--a-text-muted);
           font-weight: 600;
         }
 
         .lister-contact-line {
           font-size: 0.75rem;
-          color: #64748b;
+          color: var(--a-text-faint);
           display: flex;
           gap: 10px;
           margin-top: 2px;
@@ -6998,9 +7125,9 @@ const AdminDashboard = () => {
         }
 
         .btn-lister-call {
-          background: rgba(255, 255, 255, 0.08);
-          color: #f1f5f9;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(var(--a-ink), 0.08);
+          color: var(--a-text);
+          border: 1px solid rgba(var(--a-ink), 0.1);
           padding: 6px 12px;
           border-radius: 8px;
           font-size: 0.78rem;
@@ -7013,7 +7140,7 @@ const AdminDashboard = () => {
         }
 
         .btn-lister-call:hover {
-          background: rgba(255, 255, 255, 0.15);
+          background: rgba(var(--a-ink), 0.15);
         }
 
         .approval-actions-bar {
@@ -7047,7 +7174,7 @@ const AdminDashboard = () => {
 
         .btn-admin-edit {
           background: rgba(59, 130, 246, 0.15);
-          color: #60a5fa;
+          color: var(--a-blue-text);
           border: 1px solid rgba(59, 130, 246, 0.3);
           padding: 8px 14px;
           border-radius: 8px;
@@ -7067,7 +7194,7 @@ const AdminDashboard = () => {
 
         .btn-admin-reject {
           background: rgba(239, 68, 68, 0.15);
-          color: #f87171;
+          color: var(--a-red-text);
           border: 1px solid rgba(239, 68, 68, 0.3);
           padding: 8px 14px;
           border-radius: 8px;
@@ -7087,8 +7214,8 @@ const AdminDashboard = () => {
 
         .btn-admin-delete {
           background: transparent;
-          color: #64748b;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: var(--a-text-faint);
+          border: 1px solid rgba(var(--a-ink), 0.1);
           padding: 8px 12px;
           border-radius: 8px;
           font-size: 0.84rem;
@@ -7112,17 +7239,17 @@ const AdminDashboard = () => {
           border-radius: 6px;
           font-size: 0.78rem;
           font-weight: 700;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: #1e293b;
-          color: #f1f5f9;
+          border: 1px solid rgba(var(--a-ink), 0.1);
+          background: var(--a-surface-2);
+          color: var(--a-text);
           cursor: pointer;
         }
 
-        .status-changer-select.status-active { color: #34d399; }
-        .status-changer-select.status-pending { color: #facc15; }
-        .status-changer-select.status-rejected { color: #f87171; }
-        .status-changer-select.status-rented { color: #60a5fa; }
-        .status-changer-select.status-hidden { color: #94a3b8; }
+        .status-changer-select.status-active { color: var(--a-green-text); }
+        .status-changer-select.status-pending { color: var(--a-yellow-text); }
+        .status-changer-select.status-rejected { color: var(--a-red-text); }
+        .status-changer-select.status-rented { color: var(--a-blue-text); }
+        .status-changer-select.status-hidden { color: var(--a-text-muted); }
 
         .btn-action-edit {
           width: 32px;
@@ -7134,18 +7261,18 @@ const AdminDashboard = () => {
           border: none;
           cursor: pointer;
           background: rgba(249, 115, 22, 0.15);
-          color: #fb923c;
+          color: var(--a-orange-text);
           transition: all 0.2s;
         }
 
         .btn-action-edit:hover {
           background: var(--primary);
-          color: #ffffff;
+          color: var(--a-text-strong);
         }
 
         .badge-count-sm {
-          background: rgba(255, 255, 255, 0.08);
-          color: #cbd5e1;
+          background: rgba(var(--a-ink), 0.08);
+          color: var(--a-text-3);
           padding: 2px 8px;
           border-radius: 6px;
           font-size: 0.75rem;
@@ -7170,8 +7297,8 @@ const AdminDashboard = () => {
         }
 
         .admin-modal {
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: var(--a-surface);
+          border: 1px solid rgba(var(--a-ink), 0.12);
           border-radius: 18px;
           width: 100%;
           max-width: 540px;
@@ -7191,26 +7318,26 @@ const AdminDashboard = () => {
           align-items: flex-start;
           justify-content: space-between;
           padding: 20px 24px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          background: #0d1322;
+          border-bottom: 1px solid rgba(var(--a-ink), 0.08);
+          background: var(--a-bg-3);
         }
 
         .admin-modal-header h3 {
           font-size: 1.15rem;
           font-weight: 800;
-          color: #ffffff;
+          color: var(--a-text-strong);
           margin-bottom: 2px;
         }
 
         .admin-modal-header p {
           font-size: 0.8rem;
-          color: #94a3b8;
+          color: var(--a-text-muted);
         }
 
         .btn-close-modal {
           background: transparent;
           border: none;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           cursor: pointer;
           padding: 4px;
           border-radius: 6px;
@@ -7218,7 +7345,7 @@ const AdminDashboard = () => {
         }
 
         .btn-close-modal:hover {
-          color: #ffffff;
+          color: var(--a-text-strong);
         }
 
         .admin-modal-body {
@@ -7234,8 +7361,8 @@ const AdminDashboard = () => {
           align-items: center;
           justify-content: space-between;
           padding: 16px 24px;
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
-          background: #0d1322;
+          border-top: 1px solid rgba(var(--a-ink), 0.08);
+          background: var(--a-bg-3);
         }
 
         .form-grid-3 {
@@ -7245,16 +7372,16 @@ const AdminDashboard = () => {
         }
 
         .reject-presets {
-          background: #0c121e;
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          background: var(--a-bg-2);
+          border: 1px solid rgba(var(--a-ink), 0.06);
           border-radius: 10px;
           padding: 12px;
         }
 
         .preset-pill-btn {
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #cbd5e1;
+          background: rgba(var(--a-ink), 0.06);
+          border: 1px solid rgba(var(--a-ink), 0.1);
+          color: var(--a-text-3);
           padding: 4px 8px;
           border-radius: 6px;
           font-size: 0.72rem;
@@ -7266,7 +7393,7 @@ const AdminDashboard = () => {
         .preset-pill-btn:hover {
           background: rgba(249, 115, 22, 0.2);
           border-color: rgba(249, 115, 22, 0.4);
-          color: #ffffff;
+          color: var(--a-text-strong);
         }
 
         .images-editor-grid {
@@ -7282,7 +7409,7 @@ const AdminDashboard = () => {
           height: 52px;
           border-radius: 8px;
           overflow: hidden;
-          background: #0c121e;
+          background: var(--a-bg-2);
         }
 
         .img-editor-thumb {
@@ -7309,7 +7436,7 @@ const AdminDashboard = () => {
 
         .btn-primary {
           background: var(--primary);
-          color: #ffffff;
+          color: var(--a-text-strong);
           border: none;
           padding: 9px 18px;
           border-radius: 8px;
@@ -7324,8 +7451,8 @@ const AdminDashboard = () => {
         }
 
         .btn-secondary {
-          background: rgba(255, 255, 255, 0.08);
-          color: #f1f5f9;
+          background: rgba(var(--a-ink), 0.08);
+          color: var(--a-text);
           border: none;
           padding: 9px 16px;
           border-radius: 8px;
@@ -7353,7 +7480,7 @@ const AdminDashboard = () => {
             flex-direction: row;
             overflow-x: auto;
             border-right: none;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid rgba(var(--a-ink), 0.06);
           }
           .sidebar-group-title {
             display: none;
@@ -7404,8 +7531,8 @@ const AdminDashboard = () => {
           gap: 10px;
         }
         :is(.dark, [data-theme="dark"]) .festival-card {
-          background: #1e293b;
-          border-color: #334155;
+          background: var(--a-surface-2);
+          border-color: var(--a-surface-3);
         }
         .festival-card:hover:not(.disabled) {
           border-color: #10b981;
@@ -7423,7 +7550,7 @@ const AdminDashboard = () => {
           background: #f8fafc;
         }
         :is(.dark, [data-theme="dark"]) .festival-card.disabled {
-          background: #0f172a;
+          background: var(--a-surface);
         }
         .festival-card-header {
           display: flex;
@@ -7441,11 +7568,11 @@ const AdminDashboard = () => {
           color: #0f172a;
         }
         :is(.dark, [data-theme="dark"]) .festival-card-header h4 {
-          color: #f8fafc;
+          color: var(--a-text);
         }
         .festival-card-header p {
           font-size: 0.75rem;
-          color: #64748b;
+          color: var(--a-text-faint);
           margin: 0;
           line-height: 1.3;
         }
@@ -7465,11 +7592,11 @@ const AdminDashboard = () => {
           padding: 2px 8px;
           border-radius: 6px;
           background: #e2e8f0;
-          color: #64748b;
+          color: var(--a-text-faint);
         }
         :is(.dark, [data-theme="dark"]) .festival-badge-soon {
-          background: #334155;
-          color: #94a3b8;
+          background: var(--a-surface-3);
+          color: var(--a-text-muted);
         }
         .btn-select-festival {
           align-self: flex-start;
@@ -7494,8 +7621,8 @@ const AdminDashboard = () => {
           margin-top: 12px;
         }
         :is(.dark, [data-theme="dark"]) .festival-customization-panel {
-          background: #1e293b;
-          border-color: #334155;
+          background: var(--a-surface-2);
+          border-color: var(--a-surface-3);
         }
         .accessory-toggles-list {
           display: flex;
@@ -7510,8 +7637,8 @@ const AdminDashboard = () => {
           transition: border-color 0.2s;
         }
         :is(.dark, [data-theme="dark"]) .accessory-toggle-card {
-          background: #0f172a;
-          border-color: #334155;
+          background: var(--a-surface);
+          border-color: var(--a-surface-3);
         }
         .accessory-toggle-card:hover {
           border-color: #cbd5e1;
@@ -7528,9 +7655,9 @@ const AdminDashboard = () => {
           outline: none;
         }
         :is(.dark, [data-theme="dark"]) .festival-select {
-          background: #1e293b;
+          background: var(--a-surface-2);
           border-color: #475569;
-          color: #f8fafc;
+          color: var(--a-text);
         }
         .btn-text-danger {
           background: none;
@@ -7549,11 +7676,11 @@ const AdminDashboard = () => {
           text-align: center;
           border: 2px dashed #cbd5e1;
           border-radius: 12px;
-          color: #64748b;
+          color: var(--a-text-faint);
         }
         :is(.dark, [data-theme="dark"]) .festival-empty-notice {
-          border-color: #334155;
-          color: #94a3b8;
+          border-color: var(--a-surface-3);
+          color: var(--a-text-muted);
         }
 
         /* ========================================================= */
@@ -7570,7 +7697,7 @@ const AdminDashboard = () => {
           align-items: center;
           gap: 6px;
           background: rgba(249, 115, 22, 0.12);
-          color: #f97316;
+          color: var(--a-accent-text);
           border: 1px solid rgba(249, 115, 22, 0.3);
           padding: 4px 10px;
           border-radius: 9999px;
@@ -7592,7 +7719,7 @@ const AdminDashboard = () => {
           align-items: center;
           gap: 6px;
           background: rgba(59, 130, 246, 0.12);
-          color: #60a5fa;
+          color: var(--a-blue-text);
           border: 1px solid rgba(59, 130, 246, 0.25);
           padding: 5px 10px;
           border-radius: 6px;
@@ -7616,8 +7743,8 @@ const AdminDashboard = () => {
           gap: 8px;
           margin-top: 10px;
           padding: 8px 12px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          background: rgba(var(--a-ink), 0.03);
+          border: 1px solid rgba(var(--a-ink), 0.06);
           border-radius: 8px;
         }
 
@@ -7626,7 +7753,7 @@ const AdminDashboard = () => {
           align-items: center;
           gap: 6px;
           background: rgba(249, 115, 22, 0.15);
-          color: #fdba74;
+          color: var(--a-orange-text);
           border: 1px solid rgba(249, 115, 22, 0.3);
           padding: 3px 8px;
           border-radius: 6px;
@@ -7636,7 +7763,7 @@ const AdminDashboard = () => {
         .btn-clear-filter-chip {
           background: transparent;
           border: none;
-          color: #fdba74;
+          color: var(--a-orange-text);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -7647,7 +7774,7 @@ const AdminDashboard = () => {
 
         .btn-clear-filter-chip:hover {
           opacity: 0.8;
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(var(--a-ink), 0.1);
         }
 
         .company-fleet-modal-header {
@@ -7655,8 +7782,8 @@ const AdminDashboard = () => {
           align-items: center;
           justify-content: space-between;
           padding: 18px 24px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          background: #0d1322;
+          border-bottom: 1px solid rgba(var(--a-ink), 0.08);
+          background: var(--a-bg-3);
         }
 
         .c-modal-logo {
@@ -7664,7 +7791,7 @@ const AdminDashboard = () => {
           height: 48px;
           border-radius: 10px;
           object-fit: cover;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(var(--a-ink), 0.1);
         }
 
         .c-modal-logo-placeholder {
@@ -7672,7 +7799,7 @@ const AdminDashboard = () => {
           height: 48px;
           border-radius: 10px;
           background: rgba(249, 115, 22, 0.1);
-          color: #f97316;
+          color: var(--a-accent-text);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -7697,8 +7824,8 @@ const AdminDashboard = () => {
         .cf-stat-pill {
           display: flex;
           flex-direction: column;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(var(--a-ink), 0.03);
+          border: 1px solid rgba(var(--a-ink), 0.08);
           border-radius: 8px;
           padding: 6px 14px;
           min-width: 90px;
@@ -7707,18 +7834,18 @@ const AdminDashboard = () => {
         .cf-stat-val {
           font-size: 1.15rem;
           font-weight: 800;
-          color: #ffffff;
+          color: var(--a-text-strong);
         }
 
-        .cf-stat-pill.text-emerald .cf-stat-val { color: #10b981; }
+        .cf-stat-pill.text-emerald .cf-stat-val { color: var(--a-success-text); }
         .cf-stat-pill.text-amber .cf-stat-val { color: #f59e0b; }
         .cf-stat-pill.text-purple .cf-stat-val { color: #a855f7; }
         .cf-stat-pill.text-rose .cf-stat-val { color: #f43f5e; }
-        .cf-stat-pill.text-muted .cf-stat-val { color: #94a3b8; }
+        .cf-stat-pill.text-muted .cf-stat-val { color: var(--a-text-muted); }
 
         .cf-stat-lbl {
           font-size: 0.7rem;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.04em;
@@ -7731,7 +7858,7 @@ const AdminDashboard = () => {
           flex-wrap: wrap;
           gap: 12px;
           background: #090e18;
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(var(--a-ink), 0.06);
           border-radius: 10px;
           padding: 10px 14px;
         }
@@ -7747,9 +7874,9 @@ const AdminDashboard = () => {
         }
 
         .cf-filter-pill-btn {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          color: #94a3b8;
+          background: rgba(var(--a-ink), 0.05);
+          border: 1px solid rgba(var(--a-ink), 0.08);
+          color: var(--a-text-muted);
           padding: 5px 10px;
           border-radius: 6px;
           font-size: 0.74rem;
@@ -7759,14 +7886,14 @@ const AdminDashboard = () => {
         }
 
         .cf-filter-pill-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
-          color: #ffffff;
+          background: rgba(var(--a-ink), 0.1);
+          color: var(--a-text-strong);
         }
 
         .cf-filter-pill-btn.active {
           background: rgba(249, 115, 22, 0.18);
           border-color: #f97316;
-          color: #fdba74;
+          color: var(--a-orange-text);
         }
 
         .company-vehicles-grid {
@@ -7776,8 +7903,8 @@ const AdminDashboard = () => {
         }
 
         .company-vehicle-card {
-          background: #0d1322;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--a-bg-3);
+          border: 1px solid rgba(var(--a-ink), 0.08);
           border-radius: 12px;
           overflow: hidden;
           display: flex;
@@ -7872,7 +7999,7 @@ const AdminDashboard = () => {
         .cv-title {
           font-size: 0.95rem;
           font-weight: 700;
-          color: #ffffff;
+          color: var(--a-text-strong);
           margin: 0;
           white-space: nowrap;
           overflow: hidden;
@@ -7881,7 +8008,7 @@ const AdminDashboard = () => {
 
         .cv-year {
           font-weight: 400;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           font-size: 0.85rem;
         }
 
@@ -7894,17 +8021,17 @@ const AdminDashboard = () => {
         .cv-rate {
           font-size: 1.05rem;
           font-weight: 800;
-          color: var(--primary, #f97316);
+          color: var(--primary, var(--a-accent-text));
         }
 
         .cv-per-day {
           font-size: 0.72rem;
-          color: #94a3b8;
+          color: var(--a-text-muted);
         }
 
         .cv-free-km {
           font-size: 0.72rem;
-          color: #64748b;
+          color: var(--a-text-faint);
           margin-left: auto;
         }
 
@@ -7912,7 +8039,7 @@ const AdminDashboard = () => {
           display: flex;
           align-items: center;
           gap: 6px;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           font-size: 0.76rem;
         }
 
@@ -7920,7 +8047,7 @@ const AdminDashboard = () => {
           display: flex;
           align-items: center;
           gap: 4px;
-          color: #94a3b8;
+          color: var(--a-text-muted);
           font-size: 0.76rem;
         }
 
@@ -7940,7 +8067,7 @@ const AdminDashboard = () => {
           gap: 8px;
           margin-top: auto;
           padding-top: 10px;
-          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          border-top: 1px solid rgba(var(--a-ink), 0.06);
         }
 
         .cv-status-select-wrapper {
@@ -8228,8 +8355,8 @@ const AdminDashboard = () => {
 
           .admin-table tr {
             display: block;
-            background: #111827;
-            border: 1px solid rgba(255, 255, 255, 0.07);
+            background: var(--a-surface);
+            border: 1px solid rgba(var(--a-ink), 0.07);
             border-radius: 14px;
             padding: 12px 14px;
             margin-bottom: 10px;
@@ -8260,7 +8387,7 @@ const AdminDashboard = () => {
             font-weight: 700;
             letter-spacing: 0.04em;
             text-transform: uppercase;
-            color: #64748b;
+            color: var(--a-text-faint);
           }
 
           /* First column is the row's title: full width, no label */
@@ -8269,7 +8396,7 @@ const AdminDashboard = () => {
             text-align: left;
             padding: 0 0 10px;
             margin-bottom: 4px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid rgba(var(--a-ink), 0.06);
           }
 
           .admin-table td:first-child::before {
@@ -8302,10 +8429,10 @@ const AdminDashboard = () => {
             grid-template-columns: repeat(5, 1fr);
             height: calc(64px + env(safe-area-inset-bottom, 0px));
             padding-bottom: env(safe-area-inset-bottom, 0px);
-            background: rgba(13, 19, 34, 0.96);
+            background: var(--a-nav-bg);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(var(--a-ink), 0.08);
           }
 
           .amn-item {
@@ -8316,14 +8443,14 @@ const AdminDashboard = () => {
             gap: 4px;
             background: none;
             border: none;
-            color: #94a3b8;
+            color: var(--a-text-muted);
             font-family: inherit;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
           }
 
           .amn-item.active {
-            color: #f97316;
+            color: var(--a-accent-text);
           }
 
           .amn-icon {
@@ -8360,7 +8487,7 @@ const AdminDashboard = () => {
             font-weight: 800;
             line-height: 17px;
             text-align: center;
-            box-shadow: 0 0 0 2px #0d1322;
+            box-shadow: 0 0 0 2px var(--a-bg-3);
           }
 
           /* ---- "More" sheet ---- */
@@ -8379,8 +8506,8 @@ const AdminDashboard = () => {
             bottom: calc(64px + env(safe-area-inset-bottom, 0px));
             z-index: 65;
             padding: 8px 14px 16px;
-            background: #111827;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            background: var(--a-surface);
+            border-top: 1px solid rgba(var(--a-ink), 0.08);
             border-radius: 20px 20px 0 0;
             box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
             animation: amnSheetUp 0.22s ease;
@@ -8396,7 +8523,7 @@ const AdminDashboard = () => {
             height: 4px;
             margin: 0 auto 14px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.18);
+            background: rgba(var(--a-ink), 0.18);
           }
 
           .amn-sheet-grid {
@@ -8411,10 +8538,10 @@ const AdminDashboard = () => {
             align-items: center;
             gap: 8px;
             padding: 14px 6px;
-            background: #0d1322;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: var(--a-bg-3);
+            border: 1px solid rgba(var(--a-ink), 0.06);
             border-radius: 14px;
-            color: #e2e8f0;
+            color: var(--a-text-2);
             font-family: inherit;
             font-size: 0.8rem;
             font-weight: 600;
@@ -8423,17 +8550,79 @@ const AdminDashboard = () => {
 
           .amn-tile.active {
             border-color: rgba(249, 115, 22, 0.6);
-            color: #f97316;
+            color: var(--a-accent-text);
           }
 
           .amn-tile-icon {
             position: relative;
-            color: #f97316;
+            color: var(--a-accent-text);
           }
 
           .amn-tile-icon .amn-badge {
             top: -8px;
             right: -14px;
+          }
+
+          .amn-theme-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(var(--a-ink), 0.08);
+            background: var(--a-bg-3);
+            color: var(--a-text-2);
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+          }
+
+          .amn-theme-row > span:first-child {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+          }
+
+          .amn-theme-row svg {
+            color: var(--a-accent-text);
+          }
+
+          .amn-switch {
+            position: relative;
+            width: 42px;
+            height: 24px;
+            border-radius: 999px;
+            background: rgba(var(--a-ink), 0.18);
+            transition: background 0.2s ease;
+          }
+
+          .amn-switch::after {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+            transition: transform 0.2s ease;
+          }
+
+          .amn-switch.on {
+            background: #f97316;
+          }
+
+          .amn-switch.on::after {
+            transform: translateX(18px);
+          }
+
+          .admin-theme-btn {
+            width: 34px;
+            height: 34px;
           }
 
           .amn-sheet-actions {
@@ -8450,9 +8639,9 @@ const AdminDashboard = () => {
             gap: 8px;
             height: 44px;
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(var(--a-ink), 0.1);
             background: transparent;
-            color: #e2e8f0;
+            color: var(--a-text-2);
             font-family: inherit;
             font-size: 0.85rem;
             font-weight: 600;
@@ -8462,7 +8651,7 @@ const AdminDashboard = () => {
 
           .amn-sheet-btn.danger {
             border-color: rgba(239, 68, 68, 0.4);
-            color: #f87171;
+            color: var(--a-red-text);
           }
         }
       `}</style>
