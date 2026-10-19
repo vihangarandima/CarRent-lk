@@ -181,8 +181,8 @@ router.post("/", auth, async (req, res) => {
     if (returnD < pickup) {
       return res.status(400).json({ msg: "Return date must be on or after the pickup date." });
     }
-    const diffMs = returnD - pickup;
-    const totalDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    const diffMs = Math.abs(new Date(returnD).setHours(0, 0, 0, 0) - new Date(pickup).setHours(0, 0, 0, 0));
+    const totalDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
     const isBlockingMode = Boolean(isBlocked || rentalType === "maintenance" || rentalType === "personal" || rentalType === "other");
     const rate = isBlockingMode ? (Number(dailyRate) || 0) : (Number(dailyRate) || vehicle.pricePerDay || 0);
     if (!isBlockingMode && !(rate > 0)) {

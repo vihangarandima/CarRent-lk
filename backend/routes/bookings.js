@@ -39,7 +39,24 @@ const verifyDispatchAccess = async (req, res, next) => {
     const booking = await Booking.findById(id);
     if (!booking) return res.status(404).json({ msg: "Booking record not found" });
 
-    // Enforce Admin Authentication
+    // 1. Allow access if a valid, unexpired dispatch token is provided (query param, header, or body)
+    const queryToken =
+      req.query.token ||
+      req.header("x-dispatch-token") ||
+      req.header("X-Dispatch-Token") ||
+      req.body?.token;
+    if (
+      queryToken &&
+      booking.dispatchToken &&
+      queryToken === booking.dispatchToken &&
+      (!booking.dispatchTokenExpires || new Date() < new Date(booking.dispatchTokenExpires))
+    ) {
+      req.booking = booking;
+      req.isDispatchTokenAuth = true;
+      return next();
+    }
+
+    // 2. Fall back to Admin JWT Authentication
     const jwtToken =
       req.header("x-auth-token") || req.header("Authorization")?.replace("Bearer ", "");
 
@@ -80,7 +97,7 @@ const verifyDispatchAccess = async (req, res, next) => {
 
 // @route   POST /api/bookings
 // @desc    Customer initiates a booking via WhatsApp on Vehicle Details page
-router.post("/", optionalAuth, async (req, res) => {
+router.post("/", auth, async (req, res) => {
   try {
     const {
       vehicleId,
@@ -106,12 +123,12 @@ router.post("/", optionalAuth, async (req, res) => {
 
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found." });
 
-    const hasDates = Boolean(startDate && endDate);
+    const hasDates = Boolean(startDate);
     let start, end, totalDays;
 
     if (hasDates) {
       start = new Date(startDate);
-      end = new Date(endDate);
+      end = endDate ? new Date(endDate) : new Date(startDate);
       if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
         return res.status(400).json({ msg: "Invalid booking dates provided." });
       }
@@ -119,7 +136,8 @@ router.post("/", optionalAuth, async (req, res) => {
         return res.status(400).json({ msg: "Return date must be on or after pickup date." });
       }
       const diffMs = Math.abs(new Date(end).setHours(0, 0, 0, 0) - new Date(start).setHours(0, 0, 0, 0));
-      totalDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+      // Inclusive calendar rental days: same day = 1 day, next day = 2 days, etc.
+      totalDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
       if (vehicle.minRentalDays && totalDays < vehicle.minRentalDays) {
         return res.status(400).json({
           msg: `This vehicle requires a minimum rental period of ${vehicle.minRentalDays} day(s).`,
@@ -129,13 +147,22 @@ router.post("/", optionalAuth, async (req, res) => {
       // Default to tomorrow for minRentalDays if customer inquired without selecting specific calendar dates
       start = new Date(Date.now() + 24 * 60 * 60 * 1000);
       const minDays = vehicle.minRentalDays || 1;
-      end = new Date(start.getTime() + minDays * 24 * 60 * 60 * 1000);
+      end = new Date(start.getTime() + (minDays - 1) * 24 * 60 * 60 * 1000);
       totalDays = minDays;
     }
 
-    // Determine customer info
-    const resolvedCustomerName = customerName || (req.user ? req.user.name : "Guest Customer");
-    const resolvedCustomerPhone = customerPhone || (req.user ? req.user.phone : "");
+    // Determine customer info from authenticated user
+    const user = await User.findById(req.user.id).select("name email phone");
+    if (!user) return res.status(401).json({ msg: "User account not found. Please log in again." });
+
+    const resolvedCustomerName = (customerName || user.name || "Customer").trim();
+    let resolvedCustomerPhone = (customerPhone || user.phone || "").trim();
+
+    // If phone was provided in the booking but missing on profile, save it
+    if (customerPhone && !user.phone) {
+      user.phone = customerPhone.trim();
+      await user.save().catch(() => {});
+    }
 
     const dailyRate = vehicle.pricePerDay || 0;
     const totalPrice = totalDays * dailyRate;
@@ -151,10 +178,10 @@ router.post("/", optionalAuth, async (req, res) => {
       assignedVehicle: vehicle._id,
       host: vehicle.owner?._id || vehicle.owner,
       company: vehicle.company?._id || vehicle.company || null,
-      customer: req.user ? req.user.id : null,
+      customer: req.user.id,
       customerName: resolvedCustomerName,
       customerPhone: resolvedCustomerPhone,
-      customerEmail: customerEmail || (req.user ? req.user.email : ""),
+      customerEmail: user.email || customerEmail || "",
       customerNIC: customerNIC || "",
       customerMessage: customerMessage ? String(customerMessage).trim() : "",
       startDate: start,
@@ -184,8 +211,11 @@ router.post("/", optionalAuth, async (req, res) => {
     const dispatchUrl = `${cleanBaseUrl}/dispatch/${savedBooking._id}?token=${dispatchToken}`;
 
     // Construct pre-formatted WhatsApp message
+    const isSingleDay = start.toDateString() === end.toDateString();
     const dateRangeStr = hasDates
-      ? `${start.toLocaleDateString("en-GB")} to ${end.toLocaleDateString("en-GB")}`
+      ? isSingleDay
+        ? `${start.toLocaleDateString("en-GB")} (1 Day)`
+        : `${start.toLocaleDateString("en-GB")} to ${end.toLocaleDateString("en-GB")} (${totalDays} Days)`
       : "Flexible / To be confirmed with host";
     const rentModeStr = rentMode === "with-driver" ? "With Driver" : "Self-Drive";
 
@@ -195,13 +225,11 @@ router.post("/", optionalAuth, async (req, res) => {
       `\u{1F697} *New Booking Request - Yamu Car Rentals*\n` +
       `\u2022 *Ref:* ${bookingNumber}\n` +
       `\u2022 *Vehicle:* ${vehicle.brand} ${vehicle.model} (${vehicle.year})\n` +
-      `\u2022 *Dates:* ${dateRangeStr} (${totalDays} day${totalDays > 1 ? "s" : ""})\n` +
+      `\u2022 *Dates:* ${dateRangeStr}\n` +
       `\u2022 *Mode:* ${rentModeStr}\n` +
       `\u2022 *Customer:* ${customerDisplay}\n` +
       (trimmedMsg ? `\u2022 *Customer Note:* "${trimmedMsg}"\n` : "") +
-      `\u2022 *Est. Total:* Rs. ${totalPrice.toLocaleString()}\n\n` +
-      `\u{1F511} *Admin Concierge Dispatch Portal:*\n` +
-      `${dispatchUrl}`;
+      `\u2022 *Est. Total:* Rs. ${totalPrice.toLocaleString()}`;
 
     // Fire background automated email alert to all platform administrators
     (async () => {

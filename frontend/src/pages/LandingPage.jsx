@@ -534,8 +534,8 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Deals Banner */}
-      <section className="section deals-section">
+      {/* Deals Banner (Hidden without deleting) */}
+      <section className="section deals-section" style={{ display: "none" }}>
         <div className="container">
           <div className="deals-grid">
             <div className="deal-card deal-weekly">
@@ -1345,7 +1345,11 @@ const LandingPage = () => {
           box-shadow: 0 6px 18px rgba(249, 115, 22, 0.25);
         }
 
-        /* Deals */
+        /* Deals (Hidden without deleting) */
+        .deals-section {
+          display: none !important;
+        }
+
         .deals-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -1456,6 +1460,84 @@ const LandingPage = () => {
           -webkit-mask-image: linear-gradient(to right, transparent, black 30%);
         }
 
+<<<<<<< HEAD
+=======
+        .benefits-list h4 {
+          font-family: var(--font-body);
+          font-size: 1.05rem;
+          font-weight: 800;
+          margin-bottom: 0.25rem;
+        }
+
+        .benefits-list p {
+          font-size: 0.9rem;
+        }
+
+        .why-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          color: var(--primary);
+          font-weight: 700;
+          transition: gap 0.25s ease;
+        }
+
+        .why-link:hover {
+          gap: 0.65rem;
+        }
+
+        .why-visual {
+          position: relative;
+        }
+
+        .why-img {
+          width: 100%;
+          height: 420px;
+          object-fit: cover;
+          border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-card);
+        }
+
+        .trust-card {
+          position: absolute;
+          bottom: -2rem;
+          left: 50%;
+          transform: translateX(-50%);
+          background: white;
+          border-radius: var(--radius-lg);
+          padding: 1.5rem 2rem;
+          display: flex;
+          gap: 2rem;
+          box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+          border: 1px solid var(--border);
+          white-space: nowrap;
+        }
+
+        .trust-stat {
+          text-align: center;
+        }
+
+        .stat-number {
+          display: block;
+          font-family: var(--font-display);
+          font-size: 1.75rem;
+          font-weight: 800;
+          color: var(--primary);
+          line-height: 1;
+        }
+
+        .stat-label {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+          font-weight: 600;
+        }
+
+        .trust-divider {
+          width: 1px;
+          background: var(--border);
+        }
+
+>>>>>>> afd3b61174c807f983c62e48cd59c8beb9d31a77
         @media (max-width: 1024px) {
           .category-layout,
           .why-layout {
@@ -1470,6 +1552,7 @@ const LandingPage = () => {
         }
 
         @media (max-width: 768px) {
+<<<<<<< HEAD
           .section {
             padding: 3.5rem 0;
           }
@@ -1530,9 +1613,14 @@ const LandingPage = () => {
         @media (max-width: 640px) {
           .section {
             padding: 3rem 0;
+=======
+          .section {
+            padding: 2.75rem 0 !important;
+>>>>>>> afd3b61174c807f983c62e48cd59c8beb9d31a77
           }
 
           .section-header-row {
+<<<<<<< HEAD
             gap: 1rem;
             margin-bottom: 1.5rem;
           }
@@ -1722,6 +1810,117 @@ const LandingPage = () => {
           .deal-btn:active,
           .btn-view-all-reviews:active {
             transform: scale(0.97);
+=======
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+          }
+          .section-title {
+            font-size: clamp(1.6rem, 6vw, 2.1rem);
+            line-height: 1.2;
+          }
+          .section-subtitle {
+            font-size: 0.9rem;
+            line-height: 1.5;
+          }
+          .vehicle-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.65rem !important;
+          }
+          .category-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
+          }
+          .steps-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+          .deals-grid {
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+          }
+          .deal-card {
+            flex-direction: column;
+            min-height: auto;
+            border-radius: 16px;
+          }
+          .deal-card img {
+            position: relative;
+            width: 100%;
+            height: 160px;
+            mask-image: none;
+            -webkit-mask-image: none;
+          }
+          .deal-content {
+            padding: 1.25rem;
+          }
+          .deal-btn {
+            width: 100%;
+            justify-content: center;
+          }
+          .why-layout {
+            gap: 2rem;
+          }
+          .why-img {
+            height: 260px;
+            border-radius: 18px;
+          }
+          .trust-card {
+            position: relative;
+            bottom: auto;
+            left: auto;
+            transform: none;
+            margin-top: -1.5rem;
+            padding: 1rem 0.75rem;
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            border-radius: 14px;
+            text-align: center;
+          }
+          .stat-number {
+            font-size: 1.35rem;
+          }
+          .stat-label {
+            font-size: 0.7rem;
+          }
+          .trust-divider {
+            display: none;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .vehicle-grid {
+            gap: 0.5rem !important;
+          }
+          .hiw-mockups {
+            height: 220px;
+          }
+          .hiw-laptop-mockup {
+            width: 200px;
+            transform: translateX(-56%);
+          }
+          .hiw-laptop-screen {
+            height: 130px;
+          }
+          .hiw-phone-mockup {
+            width: 95px;
+            height: 190px;
+            bottom: 12px;
+            right: 12px;
+            border-radius: 20px;
+            padding: 4px 4px 6px 4px;
+          }
+          .hiw-step-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+          }
+          .hiw-step-title {
+            font-size: 1rem;
+>>>>>>> afd3b61174c807f983c62e48cd59c8beb9d31a77
           }
         }
       `}</style>

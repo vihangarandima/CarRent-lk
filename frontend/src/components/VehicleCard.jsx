@@ -68,7 +68,10 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         <div className="v-card-badges">
           {year && <span className="v-year-badge">{year}</span>}
           {(vehicle.hasBookings || vehicle.status === "rented") && (
-            <span className="v-booked-dates-badge">📅 Booked for Some Dates</span>
+            <span className="v-booked-dates-badge">
+              <span className="badge-text-desktop">📅 Booked for Some Dates</span>
+              <span className="badge-text-mobile">📅 Booked</span>
+            </span>
           )}
           {isRecent(vehicle.createdAt) && !vehicle.hasBookings && vehicle.status !== "rented" && <span className="v-new-badge">New</span>}
           {vehicle.distanceFromCenter !== null &&
@@ -158,7 +161,13 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         </div>
 
         <Link to={`/vehicle/${vehicle._id}`} className={`v-cta ${vehicle.hasBookings || vehicle.status === "rented" ? "v-cta-check-dates" : ""}`}>
-          {vehicle.hasBookings || vehicle.status === "rented" ? "Check Available Dates" : "View Details"} <ArrowRight size={16} />
+          <span className="v-cta-text-desktop">
+            {vehicle.hasBookings || vehicle.status === "rented" ? "Check Available Dates" : "View Details"}
+          </span>
+          <span className="v-cta-text-mobile">
+            {vehicle.hasBookings || vehicle.status === "rented" ? "Check Dates" : "Details"}
+          </span>
+          <ArrowRight size={14} className="v-cta-arrow" />
         </Link>
       </div>
 
@@ -457,12 +466,167 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           letter-spacing: 0.01em;
         }
 
-        .v-cta:hover {
-          background: linear-gradient(135deg, #ff9500 0%, #ea580c 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 12px 28px -4px rgba(234, 88, 12, 0.58);
-          gap: 0.75rem;
-          color: #ffffff;
+        .badge-text-desktop { display: inline; }
+        .badge-text-mobile { display: none; }
+        .v-cta-text-desktop { display: inline; }
+        .v-cta-text-mobile { display: none; }
+
+        @media (max-width: 640px) {
+          .badge-text-desktop { display: none; }
+          .badge-text-mobile { display: inline; }
+          .v-cta-text-desktop { display: none; }
+          .v-cta-text-mobile { display: inline; }
+
+          .v-card {
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+          }
+          .v-card-image-area {
+            height: 125px;
+          }
+          .v-card-badges {
+            top: 0.4rem;
+            left: 0.4rem;
+            right: 0.4rem;
+            gap: 4px;
+          }
+          .v-year-badge {
+            padding: 0.15rem 0.45rem;
+            font-size: 0.62rem;
+            border-radius: 5px;
+          }
+          .v-booked-dates-badge {
+            padding: 0.15rem 0.45rem;
+            font-size: 0.62rem;
+          }
+          .v-new-badge {
+            padding: 0.15rem 0.45rem;
+            font-size: 0.62rem;
+          }
+          .v-dist-badge {
+            padding: 0.15rem 0.45rem;
+            font-size: 0.62rem;
+            border-radius: 5px;
+          }
+          .v-type-badge {
+            bottom: 0.4rem;
+            left: 0.4rem;
+            padding: 0.15rem 0.45rem;
+            font-size: 0.6rem;
+            letter-spacing: 0.03em;
+          }
+          .v-card-body {
+            padding: 0.65rem 0.6rem 0.7rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          }
+          .v-card-header {
+            margin-bottom: 0.35rem;
+          }
+          .v-card-header h3 {
+            font-size: 0.88rem;
+            font-weight: 750;
+            margin: 0 0 2px;
+            line-height: 1.25;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .v-company-link {
+            font-size: 0.66rem;
+            gap: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+          }
+          .v-specs {
+            gap: 0.25rem;
+            margin-bottom: 0.35rem;
+            padding-bottom: 0.35rem;
+          }
+          .v-specs span {
+            font-size: 0.62rem;
+            gap: 3px;
+            padding: 1px 4px;
+            background: #f8fafc;
+            border-radius: 4px;
+            white-space: nowrap;
+          }
+          .v-specs span svg {
+            width: 10px;
+            height: 10px;
+          }
+          .v-specs .v-mode-chip {
+            padding: 2px 5px;
+            font-size: 0.62rem;
+          }
+          .v-km-line {
+            font-size: 0.62rem;
+            margin-bottom: 0.35rem;
+            gap: 3px;
+            line-height: 1.2;
+          }
+          .v-km-line svg {
+            width: 10px;
+            height: 10px;
+          }
+          .v-booked-notice-line {
+            font-size: 0.6rem;
+            padding: 3px 5px;
+            margin-bottom: 0.35rem;
+            border-radius: 5px;
+            line-height: 1.2;
+          }
+          .v-card-footer {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.2rem;
+            margin-bottom: 0.45rem;
+          }
+          .v-location {
+            font-size: 0.66rem;
+            gap: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+          }
+          .v-location svg {
+            width: 10px;
+            height: 10px;
+          }
+          .v-pricing {
+            text-align: left;
+            display: flex;
+            align-items: baseline;
+            gap: 3px;
+            flex-wrap: wrap;
+          }
+          .v-price-main {
+            font-size: 0.98rem;
+            font-weight: 850;
+          }
+          .v-price-main small {
+            font-size: 0.65rem;
+          }
+          .v-price-extra {
+            font-size: 0.58rem;
+            padding: 1px 4px;
+            margin-top: 0;
+          }
+          .v-cta {
+            padding: 0.5rem 0.6rem;
+            min-height: 38px;
+            font-size: 0.78rem;
+            font-weight: 750;
+            border-radius: 9px;
+            gap: 0.25rem;
+            box-shadow: 0 4px 12px -2px rgba(249, 115, 22, 0.35);
+          }
         }
       `}</style>
     </motion.div>

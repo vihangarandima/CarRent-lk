@@ -157,6 +157,7 @@ const styles = `
   }
   @keyframes cdp-spin { to { transform: rotate(360deg); } }
   @media (max-width: 640px) {
+    .cdp-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.65rem !important; }
     .cdp-logo { width: 80px; height: 80px; border-radius: 18px; }
     .cdp-actions { width: 100%; }
     .cdp-actions .y-btn { flex: 1 1 auto; }
