@@ -53,6 +53,8 @@ import {
   FileText,
   X,
   Filter,
+  LogOut,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   BarChart,
@@ -88,6 +90,9 @@ const VEHICLE_TYPES = [
 
 const COLORS = ["#f97316", "#3b82f6", "#10b981", "#8b5cf6", "#ec4899", "#eab308"];
 
+// Sections reached from the phone "More" sheet (the bottom bar holds the main four)
+const MORE_TABS = ["cms", "companies", "rentals", "users", "reviews", "rollback"];
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast, confirm } = useToast();
@@ -97,6 +102,7 @@ const AdminDashboard = () => {
     useSiteConfig();
 
   // Active module tab
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("analytics"); // analytics | approvals | cms | fleet | companies | rentals | users | reviews | rollback
   const [cmsSection, setCmsSection] = useState("theme"); // theme | global | hero | categories | stats | testimonials | filters | companies | faqs | footer
   const [previewDevice, setPreviewDevice] = useState("desktop"); // desktop | tablet | mobile
@@ -257,6 +263,19 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchStats();
   }, [token]);
+
+  // Phones show table rows as cards: label each cell with its column header
+  useEffect(() => {
+    document.querySelectorAll(".admin-portal .admin-table").forEach((table) => {
+      const heads = [...table.querySelectorAll("thead th")].map((th) => th.textContent.trim());
+      table.querySelectorAll("tbody tr").forEach((tr) => {
+        [...tr.children].forEach((td, i) => {
+          if (td.colSpan > 1 || !heads[i]) return;
+          if (td.getAttribute("data-label") !== heads[i]) td.setAttribute("data-label", heads[i]);
+        });
+      });
+    });
+  });
 
   useEffect(() => {
     if (["bookings", "users", "companies", "fleet", "approvals", "rentals", "reviews", "rollback"].includes(activeTab)) {
@@ -939,7 +958,7 @@ const AdminDashboard = () => {
               title={`${pendingCount} listing requests need your approval`}
             >
               <Bell size={15} className="bell-ring" />
-              <span>{pendingCount} Pending Approvals</span>
+              <span>{pendingCount}<span className="admin-btn-label"> Pending Approvals</span></span>
             </button>
           )}
 
@@ -950,7 +969,7 @@ const AdminDashboard = () => {
             className="admin-live-btn"
             title="Open live website in new tab"
           >
-            <ExternalLink size={15} /> View Live Website
+            <ExternalLink size={15} /> <span className="admin-btn-label">View Live Website</span>
           </a>
 
           <button
@@ -961,8 +980,10 @@ const AdminDashboard = () => {
               window.location.href = "/login";
             }}
             className="admin-logout-btn"
+            aria-label="Sign out"
           >
-            Sign Out
+            <LogOut size={15} className="admin-logout-icon" />
+            <span className="admin-btn-label">Sign Out</span>
           </button>
         </div>
       </header>
@@ -975,9 +996,14 @@ const AdminDashboard = () => {
               <Bell size={18} />
             </div>
             <div>
-              <strong>Super Admin Action Required:</strong> You have{" "}
-              <span className="urgent-highlight">{stats.pendingApprovals.vehicles} vehicle listing request(s)</span>{" "}
-              submitted by listers awaiting your verification & approval before they go live on Yamu.
+              <span className="urgent-text-full">
+                <strong>Super Admin Action Required:</strong> You have{" "}
+                <span className="urgent-highlight">{stats.pendingApprovals.vehicles} vehicle listing request(s)</span>{" "}
+                submitted by listers awaiting your verification & approval before they go live on Yamu.
+              </span>
+              <span className="urgent-text-short">
+                <strong>{stats.pendingApprovals.vehicles} listing(s)</strong> waiting for approval
+              </span>
             </div>
           </div>
           <button
@@ -988,7 +1014,8 @@ const AdminDashboard = () => {
               setApprovalFilter("pending");
             }}
           >
-            Review & Approve Now →
+            <span className="admin-btn-label">Review & Approve Now →</span>
+            <span className="urgent-btn-short">Review</span>
           </button>
         </div>
       )}
@@ -5284,6 +5311,102 @@ const AdminDashboard = () => {
         </main>
       </div>
 
+      {/* Phone navigation: four main sections in a bottom bar, the rest in a sheet */}
+      <nav className="admin-mobile-nav" aria-label="Admin sections">
+        {[
+          { id: "analytics", label: "Overview", icon: LayoutDashboard },
+          { id: "approvals", label: "Approvals", icon: CheckCircle2, badge: pendingCount },
+          { id: "bookings", label: "Bookings", icon: CalendarCheck, badge: pendingBookingsCount },
+          { id: "fleet", label: "Fleet", icon: Car },
+        ].map(({ id, label, icon: Icon, badge }) => (
+          <button
+            key={id}
+            type="button"
+            className={`amn-item ${activeTab === id && !mobileMoreOpen ? "active" : ""}`}
+            onClick={() => {
+              setActiveTab(id);
+              setMobileMoreOpen(false);
+              window.scrollTo(0, 0);
+            }}
+          >
+            <span className="amn-icon">
+              <Icon size={20} />
+              {badge > 0 && <span className="amn-badge">{badge}</span>}
+            </span>
+            <span className="amn-label">{label}</span>
+          </button>
+        ))}
+        <button
+          type="button"
+          className={`amn-item ${MORE_TABS.includes(activeTab) || mobileMoreOpen ? "active" : ""}`}
+          onClick={() => setMobileMoreOpen((open) => !open)}
+          aria-expanded={mobileMoreOpen}
+        >
+          <span className="amn-icon">
+            <MoreHorizontal size={20} />
+            {stats?.companies?.pending > 0 && <span className="amn-badge">{stats.companies.pending}</span>}
+          </span>
+          <span className="amn-label">More</span>
+        </button>
+      </nav>
+
+      {mobileMoreOpen && (
+        <>
+          <button
+            type="button"
+            className="amn-scrim"
+            aria-label="Close menu"
+            onClick={() => setMobileMoreOpen(false)}
+          />
+          <div className="amn-sheet" role="dialog" aria-label="More sections">
+            <div className="amn-sheet-handle" />
+            <div className="amn-sheet-grid">
+              {[
+                { id: "cms", label: "Page CMS", icon: Palette },
+                { id: "companies", label: "Companies", icon: Building2, badge: stats?.companies?.pending },
+                { id: "rentals", label: "Rentals", icon: KeyRound },
+                { id: "users", label: "Users", icon: Users },
+                { id: "reviews", label: "Reviews", icon: Star },
+                { id: "rollback", label: "Rollback", icon: History },
+              ].map(({ id, label, icon: Icon, badge }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`amn-tile ${activeTab === id ? "active" : ""}`}
+                  onClick={() => {
+                    setActiveTab(id);
+                    setMobileMoreOpen(false);
+                    window.scrollTo(0, 0);
+                  }}
+                >
+                  <span className="amn-tile-icon">
+                    <Icon size={20} />
+                    {badge > 0 && <span className="amn-badge">{badge}</span>}
+                  </span>
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="amn-sheet-actions">
+              <a href="/" target="_blank" rel="noopener noreferrer" className="amn-sheet-btn">
+                <ExternalLink size={16} /> View live site
+              </a>
+              <button
+                type="button"
+                className="amn-sheet-btn danger"
+                onClick={() => {
+                  localStorage.removeItem("token");
+                  localStorage.removeItem("user");
+                  window.location.href = "/login";
+                }}
+              >
+                <LogOut size={16} /> Sign out
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       <style>{`
         .admin-portal {
           min-height: 100vh;
@@ -7831,6 +7954,516 @@ const AdminDashboard = () => {
           display: flex;
           align-items: center;
           gap: 4px;
+        }
+
+        .admin-logout-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .urgent-text-short,
+        .urgent-btn-short,
+        .admin-mobile-nav {
+          display: none;
+        }
+
+        /* =========================================================
+           PHONE DASHBOARD — app-style layout, not a squeezed desktop
+           ========================================================= */
+        @media (max-width: 768px) {
+          .admin-portal {
+            padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+          }
+
+          /* One-row header: brand + pending alert. Live site & sign out live in "More" */
+          .admin-header {
+            padding: 10px 14px;
+            gap: 10px;
+          }
+
+          .admin-header-left {
+            gap: 10px;
+            min-width: 0;
+          }
+
+          .admin-brand {
+            gap: 10px;
+            min-width: 0;
+          }
+
+          .admin-logo-img {
+            width: 32px;
+            height: 32px;
+          }
+
+          .admin-brand-name {
+            font-size: 1rem;
+            white-space: nowrap;
+          }
+
+          .admin-brand-tag,
+          .admin-badge-pill,
+          .admin-live-btn,
+          .admin-logout-btn,
+          .admin-btn-label {
+            display: none !important;
+          }
+
+          .admin-header-right {
+            gap: 8px;
+            flex-shrink: 0;
+          }
+
+          .admin-header-alert-btn {
+            padding: 7px 10px;
+            gap: 6px;
+            font-size: 0.82rem;
+          }
+
+          .admin-toast-badge {
+            position: fixed;
+            top: 62px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 80;
+            white-space: nowrap;
+          }
+
+          /* Urgent banner: one short line + compact button */
+          .admin-urgent-banner {
+            padding: 9px 14px;
+            gap: 10px;
+            flex-wrap: nowrap;
+          }
+
+          .urgent-banner-content {
+            gap: 10px;
+            font-size: 0.84rem;
+            min-width: 0;
+          }
+
+          .urgent-icon {
+            width: 30px;
+            height: 30px;
+            flex-shrink: 0;
+          }
+
+          .urgent-text-full {
+            display: none;
+          }
+
+          .urgent-text-short,
+          .urgent-btn-short {
+            display: inline;
+          }
+
+          .btn-urgent-action {
+            padding: 7px 14px;
+            flex-shrink: 0;
+          }
+
+          /* Sidebar is replaced by the bottom bar */
+          .admin-layout {
+            display: block;
+            min-height: 0;
+          }
+
+          .admin-sidebar {
+            display: none !important;
+          }
+
+          .admin-main {
+            padding: 16px 14px 20px;
+            overflow: visible;
+          }
+
+          .admin-main input,
+          .admin-main select,
+          .admin-main textarea {
+            font-size: 16px;
+          }
+
+          /* Title + a lone button share the first row; filter groups get their own full-width rows */
+          .pane-header {
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 14px;
+          }
+
+          .pane-header > div:first-child {
+            flex: 1 1 0;
+            min-width: 0;
+          }
+
+          .pane-header > div:not(:first-child) {
+            flex: 1 1 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .pane-header > div:not(:first-child) > * {
+            width: 100%;
+            max-width: none;
+            min-width: 0;
+          }
+
+          .pane-header h2 {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+          }
+
+          .pane-header p {
+            font-size: 0.8rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+
+          .pane-header > button,
+          .pane-header .btn-secondary-sm {
+            flex-shrink: 0;
+            padding: 8px 10px;
+            font-size: 0.78rem;
+          }
+
+          /* KPI tiles: two per row, icon on top */
+          .admin-kpi-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 18px;
+          }
+
+          .kpi-card {
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 14px;
+            min-width: 0;
+          }
+
+          .kpi-icon-wrap {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+          }
+
+          .kpi-icon-wrap svg {
+            width: 18px;
+            height: 18px;
+          }
+
+          .kpi-num {
+            font-size: 1.4rem;
+          }
+
+          .kpi-label {
+            font-size: 0.74rem;
+            margin-top: 2px;
+            line-height: 1.3;
+          }
+
+          .kpi-sub {
+            font-size: 0.7rem;
+            margin-top: 2px;
+          }
+
+          .admin-charts-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 18px;
+          }
+
+          /* CMS: keep the editor and preview inside the screen width */
+          .cms-split-container {
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 14px;
+          }
+
+          .cms-editor-column,
+          .cms-preview-column {
+            min-width: 0;
+          }
+
+          .form-grid-2,
+          .form-grid-3,
+          .category-slots-grid {
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 12px;
+          }
+
+          .chart-card,
+          .recent-activity-card {
+            min-width: 0;
+            padding: 14px !important;
+            border-radius: 14px;
+          }
+
+          .chart-empty {
+            height: 160px;
+          }
+
+          /* Tables become a stack of labelled cards */
+          .table-card,
+          .activity-table-wrap {
+            background: transparent !important;
+            border: none !important;
+            border-radius: 0 !important;
+            overflow: visible !important;
+          }
+
+          .admin-table,
+          .admin-table tbody {
+            display: block;
+            width: 100%;
+          }
+
+          .admin-table thead {
+            display: none;
+          }
+
+          .admin-table tr {
+            display: block;
+            background: #111827;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+          }
+
+          .admin-table tr:hover td {
+            background: transparent;
+          }
+
+          .admin-table td {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 7px 0;
+            border: none;
+            text-align: right;
+            min-width: 0;
+            word-break: break-word;
+          }
+
+          .admin-table td[data-label]::before {
+            content: attr(data-label);
+            flex-shrink: 0;
+            max-width: 42%;
+            text-align: left;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #64748b;
+          }
+
+          /* First column is the row's title: full width, no label */
+          .admin-table td:first-child {
+            display: block;
+            text-align: left;
+            padding: 0 0 10px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+          }
+
+          .admin-table td:first-child::before {
+            display: none;
+          }
+
+          .admin-table td[colspan] {
+            display: block;
+            text-align: center;
+            border: none;
+            padding: 12px 0;
+          }
+
+          .admin-table td > *:not(:first-child) {
+            justify-content: flex-end;
+          }
+
+          .admin-table select {
+            max-width: 58%;
+          }
+
+          /* ---- Bottom bar ---- */
+          .admin-mobile-nav {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 70;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            height: calc(64px + env(safe-area-inset-bottom, 0px));
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            background: rgba(13, 19, 34, 0.96);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+          }
+
+          .amn-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-family: inherit;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+          }
+
+          .amn-item.active {
+            color: #f97316;
+          }
+
+          .amn-icon {
+            position: relative;
+            display: grid;
+            place-items: center;
+            width: 46px;
+            height: 28px;
+            border-radius: 999px;
+            transition: background 0.2s ease;
+          }
+
+          .amn-item.active .amn-icon {
+            background: rgba(249, 115, 22, 0.15);
+          }
+
+          .amn-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            line-height: 1;
+          }
+
+          .amn-badge {
+            position: absolute;
+            top: -5px;
+            right: 2px;
+            min-width: 17px;
+            height: 17px;
+            padding: 0 4px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 0.65rem;
+            font-weight: 800;
+            line-height: 17px;
+            text-align: center;
+            box-shadow: 0 0 0 2px #0d1322;
+          }
+
+          /* ---- "More" sheet ---- */
+          .amn-scrim {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            border: none;
+            background: rgba(0, 0, 0, 0.55);
+          }
+
+          .amn-sheet {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+            z-index: 65;
+            padding: 8px 14px 16px;
+            background: #111827;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+            animation: amnSheetUp 0.22s ease;
+          }
+
+          @keyframes amnSheetUp {
+            from { transform: translateY(24px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+
+          .amn-sheet-handle {
+            width: 40px;
+            height: 4px;
+            margin: 0 auto 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.18);
+          }
+
+          .amn-sheet-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+          }
+
+          .amn-tile {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 6px;
+            background: #0d1322;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            color: #e2e8f0;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+          }
+
+          .amn-tile.active {
+            border-color: rgba(249, 115, 22, 0.6);
+            color: #f97316;
+          }
+
+          .amn-tile-icon {
+            position: relative;
+            color: #f97316;
+          }
+
+          .amn-tile-icon .amn-badge {
+            top: -8px;
+            right: -14px;
+          }
+
+          .amn-sheet-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+          }
+
+          .amn-sheet-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: transparent;
+            color: #e2e8f0;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+          }
+
+          .amn-sheet-btn.danger {
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+          }
         }
       `}</style>
     </div>
