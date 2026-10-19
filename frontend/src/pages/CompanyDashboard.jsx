@@ -42,6 +42,7 @@ import {
   UserCheck,
   Users,
   Wallet,
+  Wrench,
   X,
   MessageSquare,
 } from "lucide-react";
@@ -69,7 +70,6 @@ const navItems = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Fleet", icon: CarFront },
   { label: "Bookings", icon: CalendarCheck },
-  { label: "Inquiries & Bids", icon: MessageSquare },
 ];
 
 const greeting = () => {
@@ -108,7 +108,42 @@ export default function CompanyDashboard() {
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [activeTab, setActiveTab] = useState("Overview");
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab");
+    if (tabParam) {
+      const match = navItems.find((n) => n.label.toLowerCase() === tabParam.toLowerCase());
+      if (match) return match.label;
+    }
+    const hash = window.location.hash.replace("#", "").toLowerCase();
+    if (hash) {
+      const match = navItems.find((n) => n.label.toLowerCase() === hash);
+      if (match) return match.label;
+    }
+    return "Overview";
+  });
+
+  const [hostBookings, setHostBookings] = useState([]);
+  const [bookingsSubTab, setBookingsSubTab] = useState("incoming");
+  const [rentalModalMode, setRentalModalMode] = useState("rental");
+  const [respondingBookingId, setRespondingBookingId] = useState(null);
+
+  const pendingBookingsCount = hostBookings.filter(
+    (b) => b.hostAvailabilityStatus === "pending_check" || !b.hostAvailabilityStatus
+  ).length;
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get("tab");
+    if (tabParam) {
+      const match = navItems.find((n) => n.label.toLowerCase() === tabParam.toLowerCase());
+      if (match) setActiveTab(match.label);
+    } else if (location.hash) {
+      const hash = location.hash.replace("#", "").toLowerCase();
+      const match = navItems.find((n) => n.label.toLowerCase() === hash);
+      if (match) setActiveTab(match.label);
+    }
+  }, [location.search, location.hash]);
 
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [vehicleEditData, setVehicleEditData] = useState({});
@@ -164,7 +199,7 @@ export default function CompanyDashboard() {
                 if (err.response?.status === 404) return { data: null };
                 throw err;
               });
-        const [companyRes, vehiclesRes, bidsRes, rentalsRes, rentalStatsRes] = await Promise.all([
+        const [companyRes, vehiclesRes, bidsRes, rentalsRes, rentalStatsRes, hostBookingsRes] = await Promise.all([
           companyReq,
           axios.get(`${API_URL}/api/vehicles/my`, {
             headers: { "x-auth-token": token },
@@ -178,6 +213,9 @@ export default function CompanyDashboard() {
           axios.get(`${API_URL}/api/rentals/stats`, {
             headers: { "x-auth-token": token },
           }).catch(() => ({ data: null })),
+          axios.get(`${API_URL}/api/bookings/host`, {
+            headers: { "x-auth-token": token },
+          }).catch(() => ({ data: [] })),
         ]);
         if (companyRes.data) {
           setCompany(companyRes.data);
@@ -492,18 +530,64 @@ export default function CompanyDashboard() {
     }
   };
 
-  const handleUpdateBidStatus = async (bidId, newStatus) => {
+
+  const handleHostResponse = async (bookingId, response) => {
+    setRespondingBookingId(bookingId);
     try {
-      const res = await axios.put(
-        `${API_URL}/api/bids/${bidId}`,
-        { status: newStatus },
+      const res = await axios.patch(
+        `${API_URL}/api/bookings/${bookingId}/host-response`,
+        { response },
         { headers: { "x-auth-token": token } }
       );
-      setBids((prev) => prev.map((b) => (b._id === bidId ? res.data : b)));
-      toast.success(`Inquiry offer marked as ${newStatus}`);
+      setHostBookings((prev) =>
+        prev.map((b) => (b._id === bookingId ? res.data : b))
+      );
+      toast.success(
+        response === "available"
+          ? "Availability confirmed! Concierge notified."
+          : "Vehicle marked as unavailable."
+      );
     } catch (err) {
-      toast.error(err.response?.data?.msg || "Could not update offer status");
+      console.error("Error updating host response:", err);
+      toast.error(err.response?.data?.msg || "Failed to update response.");
+    } finally {
+      setRespondingBookingId(null);
     }
+  };
+
+  const handleOpenQuickRentalModal = () => {
+    if (vehicles.length === 0) {
+      toast.error("Please add a vehicle to your fleet first.");
+      return;
+    }
+    const defaultVeh = vehicles.find((v) => v.status === "active") || vehicles[0];
+    setRentalModalMode("rental");
+    handleOpenRentalModal(defaultVeh);
+  };
+
+  const handleOpenQuickBlockModal = () => {
+    if (vehicles.length === 0) {
+      toast.error("Please add a vehicle to your fleet first.");
+      return;
+    }
+    const defaultVeh = vehicles.find((v) => v.status === "active") || vehicles[0];
+    setRentalModalMode("blocked");
+    const defaultReturn = new Date();
+    defaultReturn.setDate(defaultReturn.getDate() + 3);
+    setRentalModal(defaultVeh);
+    setRentalForm({
+      customerName: "Maintenance / Servicing",
+      customerPhone: "",
+      customerNIC: "",
+      pickupDate: new Date().toISOString().split("T")[0],
+      returnDate: defaultReturn.toISOString().split("T")[0],
+      dailyRate: "0",
+      notes: "Routine Servicing / Maintenance",
+      isBlocked: true,
+      rentalType: "maintenance",
+      blockReason: "Routine Servicing / Maintenance",
+    });
+    setShowRentalDetails(false);
   };
 
   // Calculations from real data (rentals + bids combined)
@@ -695,23 +779,23 @@ export default function CompanyDashboard() {
           {/* ── Main content ── */}
           <main className="cd-main">
             <header className="cd-header">
-              <div>
+              <div className="cd-header-text">
                 <h1 className="cd-title">
-                  {greeting()}, <span style={{ color: "#f97316" }}>{company.companyName}</span>
+                  {greeting()}, <span className="cd-company-title-name">{company.companyName}</span>
                 </h1>
                 <p className="cd-subtitle">
                   {company.isPersonal ? "Manage your vehicles and rentals." : "Manage your fleet, rentals and company profile."}
                 </p>
               </div>
               <div className="cd-header-actions">
-                <Link to={addVehiclePath} className="cd-btn-primary-sm cd-header-btn">
-                  <Plus size={14} /> Add vehicle
+                <Link to={addVehiclePath} className="cd-btn-primary-sm cd-header-btn cd-btn-add">
+                  <Plus size={15} /> Add vehicle
                 </Link>
-                <button type="button" onClick={browseAsCustomer} className="cd-btn-outline cd-header-btn">
-                  <Eye size={14} /> View site as customer
+                <button type="button" onClick={browseAsCustomer} className="cd-btn-outline cd-header-btn cd-btn-view-customer">
+                  <Eye size={15} /> View as customer
                 </button>
                 <button type="button" onClick={handleLogout} className="cd-btn-outline cd-header-btn cd-btn-logout">
-                  <LogOut size={14} /> Log out
+                  <LogOut size={15} /> Log out
                 </button>
               </div>
             </header>
@@ -725,19 +809,23 @@ export default function CompanyDashboard() {
                   className={`cd-mobile-tab ${activeTab === label ? "cd-mobile-tab-active" : ""}`}
                   onClick={() => setActiveTab(label)}
                 >
-                  <Icon size={15} /> {label === "Bookings" ? "Rentals" : label}
+                  <Icon size={16} /> <span>{label}</span>
                 </button>
               ))}
             </nav>
 
             {!company.phone && (
               <div className="cd-alert">
-                <Phone size={18} />
-                <div>
-                  <strong>Add your phone number</strong>
-                  <p>Customers contact you on WhatsApp from your listings. Without a number they can't reach you.</p>
+                <div className="cd-alert-main">
+                  <div className="cd-alert-icon">
+                    <Phone size={18} />
+                  </div>
+                  <div className="cd-alert-text">
+                    <strong>Add your phone number</strong>
+                    <p>Customers contact you on WhatsApp from your listings. Without a number they can't reach you.</p>
+                  </div>
                 </div>
-                <button type="button" className="cd-btn-primary-sm" onClick={startEditProfile}>
+                <button type="button" className="cd-btn-primary-sm cd-alert-btn" onClick={startEditProfile}>
                   Add number
                 </button>
               </div>
@@ -1375,129 +1463,6 @@ export default function CompanyDashboard() {
               </section>
             )}
 
-            {/* ── INQUIRIES & BIDS TAB ── */}
-            {activeTab === "Inquiries & Bids" && (
-              <section className="cd-card" style={{ marginTop: 24 }}>
-                <div className="cd-card-head">
-                  <div>
-                    <h2 className="cd-card-title">Customer Inquiries & Price Bids</h2>
-                    <p className="cd-card-desc">
-                      {bids.length} total inquiries · {bids.filter((b) => b.status === "pending").length} pending offers · {bids.filter((b) => b.status === "accepted").length} accepted
-                    </p>
-                  </div>
-                </div>
-                <div className="cd-card-body" style={{ padding: 0 }}>
-                  {bids.length === 0 ? (
-                    <div className="cd-empty-state">
-                      <MessageSquare size={24} style={{ color: "#f97316" }} />
-                      <h3>No inquiries or bids yet</h3>
-                      <p>When customers send price offers or booking inquiries on your vehicles, they will appear here.</p>
-                    </div>
-                  ) : (
-                    <div className="cd-table-wrap">
-                      <table className="cd-table">
-                        <thead>
-                          <tr>
-                            <th>Vehicle</th>
-                            <th>Customer</th>
-                            <th>Offered Price</th>
-                            <th>Customer Message</th>
-                            <th>Status</th>
-                            <th style={{ textAlign: "right" }}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {bids.map((b) => {
-                            const veh = b.vehicle;
-                            const statusColors = { pending: "#f59e0b", accepted: "#10b981", rejected: "#ef4444" };
-                            const statusLabels = { pending: "Pending Offer", accepted: "Accepted", rejected: "Declined" };
-                            const renterPhone = b.renter?.phone || "";
-                            const waDigits = String(renterPhone).replace(/[^0-9]/g, "").replace(/^0/, "94");
-                            const waMsg = encodeURIComponent(
-                              `Hello ${b.renter?.name || "Customer"}, regarding your inquiry for ${veh?.brand || "the vehicle"} ${veh?.model || ""} on Yamu Car Rentals...`
-                            );
-                            const waLink = waDigits ? `https://wa.me/${waDigits}?text=${waMsg}` : null;
-
-                            return (
-                              <tr key={b._id}>
-                                <td>
-                                  <div className="cd-cell-vehicle">
-                                    <div>
-                                      <span className="cd-vehicle-name">{veh?.brand || "—"} {veh?.model || ""}</span>
-                                      <span className="cd-vehicle-year">{veh?.year ? `${veh.year} · ` : ""}{veh?.pricePerDay ? `Listed: ${formatLKR(veh.pricePerDay)}/day` : ""}</span>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td>
-                                  <div>
-                                    <span style={{ fontWeight: 600, display: "block", color: "#09090b" }}>{b.renter?.name || "Customer"}</span>
-                                    <span style={{ fontSize: "0.75rem", color: "#71717a" }}>{b.renter?.phone || b.renter?.email || "No direct phone"}</span>
-                                  </div>
-                                </td>
-                                <td className="cd-cell-price">
-                                  <div>
-                                    <span style={{ fontWeight: 700, color: "#ea580c" }}>{formatLKR(b.offerPrice)}</span>
-                                    <span style={{ fontSize: "0.72rem", color: "#71717a", display: "block" }}>
-                                      {new Date(b.createdAt).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="cd-cell-muted" style={{ maxWidth: 220 }}>
-                                  <p style={{ margin: 0, fontSize: "0.82rem", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={b.message || ""}>
-                                    {b.message || "Direct price inquiry"}
-                                  </p>
-                                </td>
-                                <td>
-                                  <span className="cd-rental-status-badge" style={{ background: `${statusColors[b.status || "pending"]}15`, color: statusColors[b.status || "pending"] }}>
-                                    {statusLabels[b.status || "pending"] || b.status}
-                                  </span>
-                                </td>
-                                <td>
-                                  <div className="cd-cell-actions" style={{ justifyContent: "flex-end", gap: 6 }}>
-                                    {waLink && (
-                                      <a
-                                        href={waLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="cd-action-icon-btn"
-                                        style={{ background: "#22c55e", color: "#fff", borderColor: "#22c55e" }}
-                                        title="Chat on WhatsApp"
-                                      >
-                                        <Phone size={13} />
-                                      </a>
-                                    )}
-                                    {b.status !== "accepted" && (
-                                      <button
-                                        type="button"
-                                        className="cd-action-icon-btn cd-view-btn"
-                                        onClick={() => handleUpdateBidStatus(b._id, "accepted")}
-                                        title="Accept Offer"
-                                      >
-                                        <CheckCircle size={14} />
-                                      </button>
-                                    )}
-                                    {b.status !== "rejected" && (
-                                      <button
-                                        type="button"
-                                        className="cd-action-icon-btn cd-delete-btn"
-                                        onClick={() => handleUpdateBidStatus(b._id, "rejected")}
-                                        title="Decline Offer"
-                                      >
-                                        <X size={14} />
-                                      </button>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
 
           </main>
         </div>
@@ -2167,36 +2132,46 @@ const dashboardCSS = `
     .cd-fleet-row .cd-cell-actions { grid-area: actions; justify-content: flex-end; }
     .cd-action-icon-btn { width: 40px; height: 40px; }
   }
-  .cd-header-btn { padding: 8px 14px !important; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .cd-header-btn {
+    padding: 8px 14px !important; text-decoration: none; display: inline-flex;
+    align-items: center; gap: 6px; font-weight: 700; font-size: 0.82rem;
+    border-radius: 10px; transition: all 0.2s;
+  }
   .cd-btn-logout { color: #EF4444 !important; border-color: rgba(239,68,68,0.3) !important; }
+  .cd-btn-logout:hover { background: #fef2f2 !important; border-color: #ef4444 !important; }
+
+  /* ── Mobile Tabs Bar ── */
   .cd-mobile-tabs { display: none; }
   .cd-mobile-tab {
-    flex: 1 0 auto; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 10px 8px; border: none; border-radius: 999px; background: transparent;
-    color: #71717a; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit;
+    flex: 1 1 0; min-width: 0; white-space: nowrap; display: inline-flex;
+    align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 8px; border: none; border-radius: 12px; background: transparent;
+    color: #64748b; font-weight: 700; font-size: 0.82rem; cursor: pointer;
+    font-family: inherit; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .cd-mobile-tab-active { background: var(--grad-primary); color: #fff; }
+  .cd-mobile-tab:hover { color: #09090b; background: #f4f4f5; }
+  .cd-mobile-tab-active {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 3px 10px rgba(249,115,22,0.35);
+  }
+
+  /* ── Alert Banner ── */
   .cd-alert {
-    display: flex; align-items: center; gap: 14px; margin-top: 20px; padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    margin-top: 16px; padding: 14px 18px;
     background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; color: #9a3412;
   }
-  .cd-alert > div { flex: 1; min-width: 0; }
-  .cd-alert strong { display: block; font-size: 0.9rem; }
-  .cd-alert p { margin: 2px 0 0; font-size: 0.8rem; color: #9a3412; }
+  .cd-alert-main { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+  .cd-alert-icon {
+    width: 38px; height: 38px; border-radius: 10px; background: rgba(249,115,22,0.15);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #ea580c;
+  }
+  .cd-alert-text { flex: 1; min-width: 0; }
+  .cd-alert-text strong { display: block; font-size: 0.92rem; font-weight: 700; color: #9a3412; }
+  .cd-alert-text p { margin: 2px 0 0; font-size: 0.8rem; color: #9a3412; line-height: 1.4; }
+  .cd-alert-btn { flex-shrink: 0; white-space: nowrap; }
   #cd-profile { scroll-margin-top: 16px; }
-  @media (max-width: 1024px) {
-    .cd-mobile-tabs {
-      display: flex; gap: 4px; margin-top: 16px; padding: 4px; background: #fff;
-      overflow-x: auto; scrollbar-width: none; max-width: 100%;
-      border: 1px solid rgba(228,228,231,0.8); border-radius: 999px;
-      position: sticky; top: 8px; z-index: 20; box-shadow: 0 4px 14px rgba(0,0,0,0.05);
-    }
-  }
-  @media (max-width: 640px) {
-    .cd-header-actions { width: 100%; }
-    .cd-header-btn { flex: 1 1 auto; justify-content: center; }
-    .cd-alert { flex-wrap: wrap; }
-  }
 
   .cd-sidebar {
     position: sticky; top: 0; width: 250px; flex-shrink: 0;
@@ -2488,25 +2463,124 @@ const dashboardCSS = `
   @keyframes cd-fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes cd-zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+  /* ── Bookings & Availability Tab ── */
+  .cd-bookings-subnav {
+    display: flex; gap: 8px; margin: 16px 0 0; padding: 0 20px;
+    border-bottom: 1px solid #f1f5f9; overflow-x: auto; scrollbar-width: none;
+  }
+  .cd-bookings-subtab {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px;
+    border: none; background: transparent; font-size: 0.85rem; font-weight: 700;
+    color: #64748b; cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all 0.2s; white-space: nowrap; font-family: inherit;
+  }
+  .cd-bookings-subtab.active {
+    color: #ea580c; border-bottom-color: #ea580c;
+  }
+  .cd-subtab-badge-pill {
+    padding: 2px 7px; border-radius: 999px; background: #f1f5f9; font-size: 0.72rem;
+    font-weight: 700; color: #475569;
+  }
+  .cd-subtab-alert-pill {
+    padding: 2px 7px; border-radius: 999px; background: #fee2e2; font-size: 0.72rem;
+    font-weight: 700; color: #dc2626;
+  }
+
+  .cd-inquiry-cards-list { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+  .cd-inquiry-card {
+    background: #fff; border: 1.5px solid #e2e8f0; border-radius: 16px;
+    padding: 16px 18px; transition: all 0.2s;
+  }
+  .cd-inquiry-card.is-pending {
+    border-color: #fed7aa; background: #fffcf8;
+    box-shadow: 0 4px 14px rgba(249, 115, 22, 0.08);
+  }
+  .cd-inquiry-top {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .cd-inquiry-ref-box { display: flex; align-items: center; gap: 8px; }
+  .cd-inquiry-ref { font-weight: 800; font-size: 0.85rem; color: #0f172a; font-family: monospace; }
+  .cd-inquiry-time { font-size: 0.75rem; color: #94a3b8; }
+  .cd-inquiry-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cd-pill-pending-check {
+    background: #ffedd5; color: #c2410c; padding: 3px 9px; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 700;
+  }
+  .cd-pill-available {
+    background: #dcfce7; color: #15803d; padding: 3px 9px; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 700;
+  }
+  .cd-pill-busy {
+    background: #f1f5f9; color: #64748b; padding: 3px 9px; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 700;
+  }
+  .cd-pill-confirmed {
+    background: #e0e7ff; color: #4338ca; padding: 3px 9px; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 700;
+  }
+  .cd-inquiry-grid {
+    display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 14px;
+    align-items: center; padding: 12px 0; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9;
+  }
+  .cd-inquiry-veh { display: flex; align-items: center; gap: 10px; }
+  .cd-inquiry-veh-thumb { width: 56px; height: 42px; border-radius: 8px; object-fit: cover; background: #f1f5f9; }
+  .cd-inquiry-veh-details { display: flex; flex-direction: column; min-width: 0; }
+  .cd-inquiry-tag { font-size: 0.7rem; color: #64748b; }
+  .cd-inquiry-col { display: flex; flex-direction: column; gap: 2px; }
+  .cd-inquiry-col-label { font-size: 0.68rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
+  .cd-inquiry-dates-display { display: flex; align-items: center; gap: 4px; font-size: 0.85rem; }
+  .cd-inquiry-arrow { color: #94a3b8; }
+  .cd-inquiry-days-tag { font-size: 0.72rem; color: #ea580c; font-weight: 700; }
+  .cd-inquiry-amount { font-size: 1rem; font-weight: 800; color: #09090b; }
+  .cd-inquiry-rate-hint { font-size: 0.72rem; color: #94a3b8; }
+  .cd-inquiry-cust-name { font-size: 0.88rem; font-weight: 700; color: #0f172a; }
+  .cd-inquiry-wa-link {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem;
+    color: #16a34a; font-weight: 600; text-decoration: none;
+  }
+  .cd-inquiry-actions-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-top: 12px; flex-wrap: wrap;
+  }
+  .cd-inquiry-action-prompt { font-size: 0.82rem; color: #334155; }
+  .cd-inquiry-btns { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .cd-btn-resp {
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
+    border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+    border: 1px solid #e2e8f0; background: #fff; color: #475569; transition: all 0.2s;
+  }
+  .cd-btn-avail:hover { background: #dcfce7; border-color: #86efac; color: #15803d; }
+  .cd-btn-avail.active-selected { background: #16a34a; border-color: #16a34a; color: #fff; }
+  .cd-btn-busy:hover { background: #fee2e2; border-color: #fca5a5; color: #b91c1c; }
+  .cd-btn-busy.active-selected { background: #ef4444; border-color: #ef4444; color: #fff; }
+
   /* ── Responsive ── */
   @media (max-width: 1024px) {
     .cd-sidebar { display: none; }
+    .cd-mobile-tabs {
+      display: flex; gap: 4px; margin-top: 14px; padding: 4px; background: #fff;
+      overflow-x: auto; scrollbar-width: none; max-width: 100%;
+      border: 1px solid rgba(228,228,231,0.85); border-radius: 16px;
+      position: sticky; top: 8px; z-index: 25; box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+    }
     .cd-stats-grid { grid-template-columns: repeat(2, 1fr); }
     .cd-mid-row { grid-template-columns: 1fr; }
     .cd-main { padding: 20px 16px 40px; }
-    .cd-title { font-size: 1.4rem; }
-    .cd-header { flex-wrap: wrap; gap: 12px; }
+    .cd-title { font-size: 1.45rem; }
+    .cd-header { flex-wrap: wrap; gap: 14px; }
     .cd-info-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
   }
+
   @media (max-width: 768px) {
-    .cd-main { padding: 16px 12px 40px; }
-    .cd-title { font-size: 1.25rem; }
-    .cd-subtitle { font-size: 0.8rem; }
+    .cd-main { padding: 16px 14px 40px; }
+    .cd-title { font-size: 1.35rem; }
+    .cd-subtitle { font-size: 0.82rem; }
     .cd-stats-grid { gap: 10px; }
     .cd-stat-card { padding: 16px; border-radius: 18px; }
-    .cd-stat-value { font-size: 1.1rem; }
+    .cd-stat-value { font-size: 1.15rem; }
     .cd-stat-icon { width: 34px; height: 34px; border-radius: 12px; }
-    .cd-chart-wrap { height: 200px; }
+    .cd-chart-wrap { height: 210px; }
     .cd-card { border-radius: 18px; padding: 16px; }
     .cd-card-body { padding: 12px 14px; }
     .cd-card-head { flex-wrap: wrap; gap: 8px; }
@@ -2517,55 +2591,105 @@ const dashboardCSS = `
     .cd-payment-value { font-size: 0.8rem; }
     .cd-action-btn { padding: 12px; border-radius: 12px; }
     .cd-modal { padding: 24px 20px; border-radius: 18px; }
+
+    .cd-inquiry-grid {
+      grid-template-columns: 1fr 1fr; row-gap: 12px;
+    }
+    .cd-inquiry-veh { grid-column: 1 / -1; }
+    .cd-inquiry-actions-bar { flex-direction: column; align-items: stretch; }
+    .cd-inquiry-btns { width: 100%; justify-content: stretch; }
+    .cd-inquiry-btns .cd-btn-resp { flex: 1; justify-content: center; }
   }
+
   @media (max-width: 640px) {
-    .cd-main { padding: 12px 10px 80px; }
-    .cd-title { font-size: 1.15rem; }
-    .cd-stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .cd-stat-card { padding: 12px; border-radius: 14px; }
+    .cd-main { padding: 16px 14px 80px; }
+    .cd-header {
+      flex-direction: column; align-items: stretch; gap: 14px;
+    }
+    .cd-header-text { width: 100%; }
+    .cd-title {
+      font-size: 1.25rem; line-height: 1.3; letter-spacing: -0.01em; margin: 0;
+      word-break: break-word;
+    }
+    .cd-subtitle { font-size: 0.8rem; margin: 3px 0 0; line-height: 1.4; }
+
+    .cd-header-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: 100%;
+    }
+    .cd-btn-add {
+      grid-column: 1 / -1;
+      padding: 12px 16px !important;
+      font-size: 0.88rem !important;
+      font-weight: 700 !important;
+      border-radius: 12px !important;
+      justify-content: center;
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+      box-shadow: 0 4px 14px rgba(249,115,22,0.3) !important;
+    }
+    .cd-btn-view-customer, .cd-btn-logout {
+      padding: 9px 10px !important;
+      font-size: 0.78rem !important;
+      border-radius: 10px !important;
+      justify-content: center;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .cd-alert {
+      flex-direction: column; align-items: stretch; gap: 12px; padding: 14px;
+      margin-top: 14px;
+    }
+    .cd-alert-main { align-items: flex-start; gap: 12px; }
+    .cd-alert-btn {
+      width: 100%; justify-content: center; padding: 10px 14px !important;
+      font-size: 0.85rem !important; border-radius: 10px !important;
+    }
+
+    .cd-stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+    .cd-stat-card {
+      padding: 14px 12px; border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
     .cd-stat-top { gap: 8px; }
-    .cd-stat-icon { width: 30px; height: 30px; border-radius: 10px; }
-    .cd-stat-label { font-size: 0.65rem; }
-    .cd-stat-value { font-size: 0.95rem; margin: 8px 0 0; }
-    .cd-stat-delta { font-size: 0.65rem; }
-    .cd-chart-wrap { height: 170px; }
-    .cd-card { padding: 12px; border-radius: 14px; }
-    .cd-card-body { padding: 10px; }
-    .cd-card-title { font-size: 0.9rem; }
-    .cd-card-desc { font-size: 0.7rem; }
+    .cd-stat-icon { width: 32px; height: 32px; border-radius: 10px; }
+    .cd-stat-label { font-size: 0.72rem; font-weight: 600; color: #64748b; }
+    .cd-stat-value { font-size: 1.15rem; font-weight: 800; margin: 8px 0 2px; }
+    .cd-stat-delta { font-size: 0.68rem; font-weight: 600; }
+
+    .cd-chart-wrap { height: 200px; }
+    .cd-card { padding: 14px; border-radius: 16px; }
+    .cd-card-body { padding: 12px 10px; }
+    .cd-card-title { font-size: 0.95rem; }
+    .cd-card-desc { font-size: 0.72rem; }
     .cd-actions-grid { gap: 8px; }
-    .cd-action-btn { padding: 10px; gap: 6px; }
-    .cd-action-label { font-size: 0.7rem; }
-    .cd-action-icon { width: 16px; height: 16px; }
-    .cd-header { flex-direction: column; align-items: flex-start; gap: 8px; }
-    .cd-btn-outline { padding: 5px 10px; font-size: 0.75rem; }
-    .cd-btn-primary-sm { padding: 5px 10px; font-size: 0.75rem; }
+    .cd-action-btn { padding: 12px; gap: 6px; }
+    .cd-action-label { font-size: 0.72rem; }
+    .cd-action-icon { width: 18px; height: 18px; }
+
     .cd-table { min-width: 500px; font-size: 0.8rem; }
-    .cd-table th { padding: 10px 12px; font-size: 0.65rem; }
+    .cd-table th { padding: 10px 12px; font-size: 0.68rem; }
     .cd-table td { padding: 10px 12px; }
-    .cd-vehicle-thumb { width: 40px; height: 30px; border-radius: 6px; }
-    .cd-vehicle-thumb-placeholder { width: 40px; height: 30px; }
-    .cd-vehicle-name { font-size: 0.8rem; }
-    .cd-vehicle-year { font-size: 0.65rem; }
-    .cd-empty-state { padding: 24px 12px; }
-    .cd-info-item { padding: 10px; }
-    .cd-info-icon { width: 30px; height: 30px; border-radius: 8px; }
-    .cd-info-label { font-size: 0.6rem; }
-    .cd-info-value { font-size: 0.8rem; }
+    .cd-vehicle-thumb { width: 42px; height: 32px; border-radius: 6px; }
+    .cd-vehicle-thumb-placeholder { width: 42px; height: 32px; }
+    .cd-vehicle-name { font-size: 0.82rem; }
+    .cd-vehicle-year { font-size: 0.68rem; }
+    .cd-empty-state { padding: 28px 14px; }
+    .cd-info-item { padding: 12px; }
+    .cd-info-icon { width: 32px; height: 32px; border-radius: 8px; }
+    .cd-info-label { font-size: 0.65rem; }
+    .cd-info-value { font-size: 0.85rem; }
     .cd-edit-actions { flex-wrap: wrap; }
-    .cd-modal { padding: 20px 16px; border-radius: 16px; }
-    .cd-modal h3 { font-size: 1rem; }
-    .cd-modal p { font-size: 0.8rem; }
+    .cd-modal { padding: 22px 18px; border-radius: 18px; }
+    .cd-modal h3 { font-size: 1.05rem; }
+    .cd-modal p { font-size: 0.82rem; }
     .cd-modal-actions { flex-wrap: wrap; }
-    .cd-btn-danger { padding: 7px 16px; font-size: 0.8rem; }
+    .cd-btn-danger { padding: 8px 18px; font-size: 0.82rem; }
     .cd-profile-card { margin-top: 16px; }
     .cd-fleet-card { margin-top: 16px; }
     .cd-mid-row { gap: 14px; margin-top: 16px; }
-    .cd-payment-title { margin-top: 16px; font-size: 0.8rem; }
-  }
-  @media (max-width: 400px) {
-    .cd-stats-grid { grid-template-columns: 1fr; }
-    .cd-actions-grid { grid-template-columns: 1fr; }
-    .cd-table { min-width: 420px; }
+    .cd-payment-title { margin-top: 16px; font-size: 0.85rem; }
   }
 `;

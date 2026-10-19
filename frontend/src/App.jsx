@@ -237,7 +237,7 @@ function AppContent() {
           <Route path="/list-my-car" element={<ListVehicle />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={isLister() ? <Navigate to={DASHBOARD_PATH} replace /> : <Profile />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/why-us" element={<WhyUs />} />
           <Route path="/splash" element={<Splash />} />
           <Route path="/companies" element={<Companies />} />

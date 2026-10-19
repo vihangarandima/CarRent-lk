@@ -10,6 +10,31 @@ const nodemailer = require("nodemailer");
  * 4. Gmail / SMTP Port 465 (SSL fallback).
  */
 
+const parseApiError = async (response, provider) => {
+  let rawText = "";
+  try {
+    rawText = await response.text();
+  } catch (_) {}
+
+  let data = null;
+  if (rawText) {
+    try {
+      data = JSON.parse(rawText);
+    } catch (_) {}
+  }
+
+  const errorMessage =
+    data?.message ||
+    data?.error?.message ||
+    (typeof data?.error === "string" ? data.error : null) ||
+    data?.description ||
+    (rawText ? rawText.replace(/<[^>]*>?/gm, " ").replace(/\s+/g, " ").trim().slice(0, 300) : null) ||
+    response.statusText ||
+    "Unknown error";
+
+  return new Error(`${provider} API error (${response.status}): ${errorMessage}`);
+};
+
 const sendViaBrevo = async ({ to, subject, html, senderEmail, senderName }) => {
   const apiKey = process.env.BREVO_API_KEY?.trim();
   if (!apiKey) throw new Error("BREVO_API_KEY missing");
@@ -33,8 +58,7 @@ const sendViaBrevo = async ({ to, subject, html, senderEmail, senderName }) => {
   });
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.message || `Brevo API error (${response.status}): ${response.statusText}`);
+    throw await parseApiError(response, "Brevo");
   }
   return { success: true, provider: "brevo" };
 };
@@ -60,8 +84,7 @@ const sendViaResend = async ({ to, subject, html, senderEmail, senderName }) => 
   });
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.message || `Resend API error (${response.status}): ${response.statusText}`);
+    throw await parseApiError(response, "Resend");
   }
   return { success: true, provider: "resend" };
 };
@@ -132,4 +155,5 @@ const sendEmail = async ({ to, subject, html }) => {
 
 module.exports = {
   sendEmail,
+  parseApiError,
 };

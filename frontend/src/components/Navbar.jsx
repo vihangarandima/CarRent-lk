@@ -316,6 +316,13 @@ const Navbar = () => {
                           My Dashboard
                         </Link>
                         <Link
+                          to="/profile"
+                          role="menuitem"
+                          onClick={() => setAcctMenuOpen(false)}
+                        >
+                          Personal Profile
+                        </Link>
+                        <Link
                           to={listTarget}
                           role="menuitem"
                           onClick={() => setAcctMenuOpen(false)}
