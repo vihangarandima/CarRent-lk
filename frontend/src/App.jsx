@@ -211,12 +211,18 @@ function AppContent() {
           .app-container.has-tab-bar .site-footer {
             padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
           }
-          .app-container.has-tab-bar .yamu-exact-hero {
-            padding-bottom: calc(1.25rem + 84px + env(safe-area-inset-bottom, 0px));
-          }
           .app-container.has-tab-bar .wa-float-btn {
-            bottom: calc(92px + env(safe-area-inset-bottom, 0px));
-            right: 16px;
+            bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+            right: 14px;
+            width: 46px;
+            height: 46px;
+          }
+          .app-container.has-tab-bar .wa-float-btn svg {
+            width: 22px;
+            height: 22px;
+          }
+          .app-container.has-tab-bar .wa-pulse {
+            display: none;
           }
         }
       `}</style>

@@ -98,8 +98,10 @@ const Hero = () => {
     const params = new URLSearchParams();
     if (vehicleType) params.set("type", vehicleType);
     if (location && location.trim()) params.set("location", location.trim());
-    if (minPrice > 0) params.set("minPrice", minPrice);
-    if (maxPrice < PRICE_MAX) params.set("maxPrice", maxPrice);
+    // Phones hide the price slider to keep the search simple, so don't send its unseen defaults
+    const priceShown = !window.matchMedia("(max-width: 768px)").matches;
+    if (priceShown && minPrice > 0) params.set("minPrice", minPrice);
+    if (priceShown && maxPrice < PRICE_MAX) params.set("maxPrice", maxPrice);
     if (rentMode) params.set("mode", rentMode);
     navigate(`/vehicles${params.toString() ? `?${params.toString()}` : ""}`);
   };
@@ -1359,34 +1361,6 @@ const Hero = () => {
             overflow: visible !important;
           }
 
-<<<<<<< HEAD
-          /* Column layout: flex-basis 0 would collapse the pills, so size them explicitly */
-          .search-field-pill {
-            flex: none;
-            width: 100%;
-            min-width: 0;
-            height: 48px;
-            border-radius: 12px;
-          }
-
-          /* 16px stops iOS Safari zooming the page when a field is focused */
-          .search-select,
-          .location-input,
-          .price-input {
-            font-size: 16px;
-          }
-
-          .search-mode-btn {
-            min-height: 40px;
-            font-size: 0.85rem;
-          }
-
-          .search-price-row {
-            flex: none;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-=======
           /* Dropdown Pills Reset on Mobile */
           .search-field-pill {
             flex: none !important;
@@ -1608,7 +1582,6 @@ const Hero = () => {
           .search-price-range-pill .range-input {
             position: absolute;
             inset: 0;
->>>>>>> afd3b61174c807f983c62e48cd59c8beb9d31a77
             width: 100%;
             height: 36px;
             padding: 0;
@@ -1645,34 +1618,15 @@ const Hero = () => {
             cursor: grab;
           }
 
-<<<<<<< HEAD
-          .search-input-pill {
-            height: 48px;
-            border-radius: 12px;
-=======
           .search-price-range-pill .range-input:focus-visible::-webkit-slider-thumb {
             outline: 3px solid #1D140C;
             outline-offset: 2px;
->>>>>>> afd3b61174c807f983c62e48cd59c8beb9d31a77
           }
 
           /* Submit Button on Mobile (Order 5) */
           .hero-search-submit-btn {
             order: 5;
             width: 100%;
-<<<<<<< HEAD
-            height: 52px;
-            justify-content: center;
-            margin-top: 2px;
-            border-radius: 14px;
-            font-size: 1rem;
-          }
-
-          /* Touch feedback instead of hover lifts */
-          .hero-search-submit-btn:active,
-          .hero-action-btn:active {
-            transform: scale(0.97);
-=======
             height: 56px;
             border: 0;
             border-radius: 14px;
@@ -1694,7 +1648,6 @@ const Hero = () => {
 
           .hero-search-submit-btn:active {
             transform: scale(0.98);
->>>>>>> afd3b61174c807f983c62e48cd59c8beb9d31a77
           }
         }
 
@@ -1773,6 +1726,83 @@ const Hero = () => {
           .search-mode-btn {
             font-size: 0.8rem;
             padding: 8px 2px;
+          }
+        }
+
+        /* =========================================================
+           5. SIMPLE PHONE LAYOUT — brand, one headline, one search.
+           Rent = search; "List car" lives in the bottom tab bar.
+           ========================================================= */
+        @media (max-width: 768px) {
+          .yamu-exact-hero {
+            padding: 72px 1rem 1.5rem;
+            gap: 0;
+          }
+
+          .hero-center-stage {
+            min-height: 0;
+            padding: 0;
+            justify-content: flex-start;
+          }
+
+          .heroic-fleet-stage {
+            padding-top: 1.5rem;
+          }
+
+          .watermark-yamu-text {
+            font-size: clamp(4.5rem, 21vw, 6.5rem) !important;
+            line-height: 0.85 !important;
+          }
+
+          .fleet-image-wrap {
+            margin-top: -2rem;
+          }
+
+          .fleet-cutout-img {
+            max-height: 170px;
+          }
+
+          .hero-buttons-container,
+          .hero-sub-top,
+          .hero-scroll-hint-pill,
+          .search-price-range-pill {
+            display: none !important;
+          }
+
+          .hero-taglines {
+            margin: 0.75rem 0 1.1rem;
+            padding: 0 0.75rem;
+          }
+
+          .hero-sub-bottom {
+            font-size: 1.2rem;
+            line-height: 1.3;
+            text-align: center;
+          }
+
+          .hero-search-card-container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 0;
+          }
+
+          .hero-search-bar {
+            padding: 14px;
+            gap: 10px;
+            border-radius: 22px;
+          }
+
+          .search-mode {
+            height: 48px !important;
+            min-height: 48px !important;
+          }
+
+          .search-location-pill,
+          .search-vehicle-pill,
+          .hero-search-submit-btn {
+            height: 52px !important;
+            min-height: 52px !important;
+            max-height: 52px !important;
           }
         }
       `}</style>

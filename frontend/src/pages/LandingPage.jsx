@@ -1460,84 +1460,6 @@ const LandingPage = () => {
           -webkit-mask-image: linear-gradient(to right, transparent, black 30%);
         }
 
-<<<<<<< HEAD
-=======
-        .benefits-list h4 {
-          font-family: var(--font-body);
-          font-size: 1.05rem;
-          font-weight: 800;
-          margin-bottom: 0.25rem;
-        }
-
-        .benefits-list p {
-          font-size: 0.9rem;
-        }
-
-        .why-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.4rem;
-          color: var(--primary);
-          font-weight: 700;
-          transition: gap 0.25s ease;
-        }
-
-        .why-link:hover {
-          gap: 0.65rem;
-        }
-
-        .why-visual {
-          position: relative;
-        }
-
-        .why-img {
-          width: 100%;
-          height: 420px;
-          object-fit: cover;
-          border-radius: var(--radius-xl);
-          box-shadow: var(--shadow-card);
-        }
-
-        .trust-card {
-          position: absolute;
-          bottom: -2rem;
-          left: 50%;
-          transform: translateX(-50%);
-          background: white;
-          border-radius: var(--radius-lg);
-          padding: 1.5rem 2rem;
-          display: flex;
-          gap: 2rem;
-          box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
-          border: 1px solid var(--border);
-          white-space: nowrap;
-        }
-
-        .trust-stat {
-          text-align: center;
-        }
-
-        .stat-number {
-          display: block;
-          font-family: var(--font-display);
-          font-size: 1.75rem;
-          font-weight: 800;
-          color: var(--primary);
-          line-height: 1;
-        }
-
-        .stat-label {
-          font-size: 0.78rem;
-          color: var(--text-muted);
-          font-weight: 600;
-        }
-
-        .trust-divider {
-          width: 1px;
-          background: var(--border);
-        }
-
->>>>>>> afd3b61174c807f983c62e48cd59c8beb9d31a77
         @media (max-width: 1024px) {
           .category-layout,
           .why-layout {
@@ -1552,268 +1474,16 @@ const LandingPage = () => {
         }
 
         @media (max-width: 768px) {
-<<<<<<< HEAD
           .section {
-            padding: 3.5rem 0;
+            padding: 2.75rem 0;
           }
           .section-header-row {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .category-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-          .steps-grid {
-            grid-template-columns: 1fr;
-          }
-          .deals-grid {
-            grid-template-columns: 1fr;
-          }
-          .trust-card {
-            position: relative;
-            bottom: auto;
-            left: auto;
-            transform: none;
-            margin-top: -2rem;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 1rem;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .category-grid {
-            grid-template-columns: 1fr;
-          }
-          .deal-card {
-            flex-direction: column;
-            min-height: auto;
-          }
-          .deal-card img {
-            position: relative;
-            width: 100%;
-            height: 220px;
-            mask-image: none;
-            -webkit-mask-image: none;
-          }
-          .deal-content {
-            padding: 1.5rem;
-          }
-          .section-header-row {
-            align-items: flex-start;
-          }
-          .section-title {
-            font-size: clamp(1.7rem, 6vw, 2.25rem);
-          }
-        }
-
-        /* =========================================================
-           PHONES — swipeable rails instead of long stacked lists
-           ========================================================= */
-        @media (max-width: 640px) {
-          .section {
-            padding: 3rem 0;
-=======
-          .section {
-            padding: 2.75rem 0 !important;
->>>>>>> afd3b61174c807f983c62e48cd59c8beb9d31a77
-          }
-
-          .section-header-row {
-<<<<<<< HEAD
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-          }
-
-          .section-header.center {
-            margin-bottom: 1.75rem;
-          }
-
-          /* Full-bleed horizontal rails that snap card by card */
-          .vehicle-grid,
-          .category-grid,
-          .testimonials-grid {
-            display: flex;
-            gap: 0.85rem;
-            overflow-x: auto;
-            overscroll-behavior-x: contain;
-            scroll-snap-type: x mandatory;
-            scroll-padding-inline: 1.5rem;
-            margin-inline: -1.5rem;
-            padding: 0.25rem 1.5rem 1rem;
-            scrollbar-width: none;
-            -webkit-overflow-scrolling: touch;
-          }
-
-          .vehicle-grid::-webkit-scrollbar,
-          .category-grid::-webkit-scrollbar,
-          .testimonials-grid::-webkit-scrollbar {
-            display: none;
-          }
-
-          .vehicle-grid > *,
-          .category-grid > *,
-          .testimonials-grid > * {
-            scroll-snap-align: start;
-            flex-shrink: 0;
-          }
-
-          .vehicle-grid > * {
-            width: 82%;
-          }
-
-          .vehicle-grid > .loading-state,
-          .vehicle-grid > .empty-state {
-            width: 100%;
-            padding: 2.5rem 1.5rem;
-          }
-
-          /* Categories: tall photo tiles, two and a bit on screen */
-          .category-section {
-            padding: 3rem 0;
-          }
-
-          .category-layout {
-            gap: 1.75rem;
-          }
-
-          .category-desc {
-            font-size: 0.98rem;
-            margin: 0.75rem 0 1.25rem;
-          }
-
-          .category-grid > * {
-            width: 42%;
-          }
-
-          .category-card a {
-            aspect-ratio: 3 / 4;
-          }
-
-          .category-label {
-            left: 0.75rem;
-            right: 0.75rem;
-            bottom: 0.75rem;
-            font-size: 0.9rem;
-          }
-
-          .category-label svg {
-            width: 16px;
-            height: 16px;
-          }
-
-          .testimonials-grid > * {
-            width: 86%;
-          }
-
-          .testimonial-card {
-            padding: 1.4rem;
-          }
-
-          .testimonial-text {
-            font-size: 0.92rem;
-            margin-bottom: 1.15rem;
-          }
-
-          .testimonials-footer {
-            margin-top: 1.25rem;
-          }
-
-          .btn-view-all-reviews {
-            width: 100%;
-            justify-content: center;
-            text-align: center;
-            padding: 14px 20px;
-          }
-
-          /* Why us: tighter list and a compact three-up stat strip */
-          .benefits-list {
-            margin: 1.5rem 0;
-          }
-
-          .benefits-list li {
-            gap: 1rem;
-            margin-bottom: 1.25rem;
-          }
-
-          .benefit-icon {
-            width: 46px;
-            height: 46px;
-            border-radius: 12px;
-          }
-
-          .why-img {
-            height: 240px;
-          }
-
-          .trust-card {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0;
-            margin: -1.75rem 0.75rem 0;
-            padding: 1rem 0.5rem;
-            white-space: normal;
-          }
-
-          .trust-divider {
-            display: none;
-          }
-
-          .trust-stat {
-            padding: 0 0.35rem;
-          }
-
-          .trust-stat + .trust-divider + .trust-stat {
-            border-left: 1px solid var(--border);
-          }
-
-          .stat-number {
-            font-size: 1.15rem;
-            line-height: 1.15;
-            margin-bottom: 0.3rem;
-          }
-
-          .stat-label {
-            font-size: 0.7rem;
-          }
-
-          .deals-grid {
-            gap: 1rem;
-          }
-
-          .deal-card img {
-            height: 180px;
-          }
-
-          .deal-btn {
-            width: 100%;
-            justify-content: center;
-          }
-        }
-
-        /* Touch screens: no sticky hover lifts, give press feedback instead */
-        @media (hover: none) {
-          .category-card a:hover,
-          .testimonial-card:hover,
-          .deal-card:hover {
-            transform: none;
-            box-shadow: none;
-          }
-
-          .category-card:hover img {
-            transform: none;
-          }
-
-          .category-card a:active,
-          .deal-card:active,
-          .category-cta:active,
-          .deal-btn:active,
-          .btn-view-all-reviews:active {
-            transform: scale(0.97);
-=======
             flex-direction: column;
             align-items: flex-start;
             gap: 0.75rem;
+            margin-bottom: 1.5rem;
+          }
+          .section-header.center {
             margin-bottom: 1.5rem;
           }
           .section-title {
@@ -1821,29 +1491,151 @@ const LandingPage = () => {
             line-height: 1.2;
           }
           .section-subtitle {
-            font-size: 0.9rem;
+            font-size: 0.92rem;
             line-height: 1.5;
           }
-          .vehicle-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 0.65rem !important;
-          }
-          .category-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 0.75rem !important;
-          }
-          .steps-grid {
+          .steps-grid,
+          .deals-grid {
             grid-template-columns: 1fr;
             gap: 1rem;
           }
-          .deals-grid {
-            grid-template-columns: 1fr;
-            gap: 1.25rem;
+          .why-layout {
+            gap: 2rem;
           }
+          .trust-card {
+            position: relative;
+            bottom: auto;
+            left: auto;
+            transform: none;
+          }
+        }
+
+        /* =========================================================
+           PHONES — one clear column, swipe rails for browsing
+           ========================================================= */
+        @media (max-width: 640px) {
+          /* Two compact vehicle cards per row: easy to compare at a glance */
+          .vehicle-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.65rem;
+          }
+
+          /* Categories and reviews: one swipeable row instead of a long stack */
+          .category-grid,
+          .testimonials-grid {
+            display: flex;
+            gap: 0.75rem;
+            overflow-x: auto;
+            overscroll-behavior-x: contain;
+            scroll-snap-type: x mandatory;
+            scroll-padding-inline: 1.5rem;
+            margin-inline: -1.5rem;
+            padding: 0.25rem 1.5rem 1rem;
+            scrollbar-width: none;
+          }
+          .category-grid::-webkit-scrollbar,
+          .testimonials-grid::-webkit-scrollbar {
+            display: none;
+          }
+          .category-grid > *,
+          .testimonials-grid > * {
+            scroll-snap-align: start;
+            flex-shrink: 0;
+          }
+          .category-grid > * {
+            width: 40%;
+          }
+          .testimonials-grid > * {
+            width: 85%;
+          }
+
+          .category-section {
+            padding: 2.75rem 0;
+          }
+          .category-layout {
+            gap: 1.5rem;
+          }
+          .category-desc {
+            font-size: 0.95rem;
+            margin: 0.6rem 0 1.1rem;
+          }
+          .category-card a {
+            aspect-ratio: 3 / 4;
+          }
+          .category-label {
+            left: 0.7rem;
+            right: 0.7rem;
+            bottom: 0.7rem;
+            font-size: 0.9rem;
+          }
+          .category-label svg {
+            display: none;
+          }
+
+          .testimonial-card {
+            padding: 1.25rem;
+          }
+          .testimonial-text {
+            font-size: 0.92rem;
+            margin-bottom: 1rem;
+          }
+          .testimonials-footer {
+            margin-top: 1rem;
+          }
+          .btn-view-all-reviews {
+            width: 100%;
+            justify-content: center;
+            text-align: center;
+            padding: 14px 20px;
+          }
+
+          .benefits-list {
+            margin: 1.25rem 0;
+          }
+          .benefits-list li {
+            gap: 0.9rem;
+            margin-bottom: 1.1rem;
+          }
+          .benefit-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+          }
+          .why-img {
+            height: 220px;
+            border-radius: 18px;
+          }
+          .trust-card {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            margin: -1.5rem 0.75rem 0;
+            padding: 1rem 0.5rem;
+            border-radius: 16px;
+            white-space: normal;
+          }
+          .trust-divider {
+            display: none;
+          }
+          .trust-stat {
+            padding: 0 0.35rem;
+          }
+          .trust-stat + .trust-divider + .trust-stat {
+            border-left: 1px solid var(--border);
+          }
+          .stat-number {
+            font-size: 1.1rem;
+            line-height: 1.15;
+            margin-bottom: 0.3rem;
+          }
+          .stat-label {
+            font-size: 0.7rem;
+          }
+
           .deal-card {
             flex-direction: column;
             min-height: auto;
-            border-radius: 16px;
+            border-radius: 18px;
           }
           .deal-card img {
             position: relative;
@@ -1859,41 +1651,11 @@ const LandingPage = () => {
             width: 100%;
             justify-content: center;
           }
-          .why-layout {
-            gap: 2rem;
-          }
-          .why-img {
-            height: 260px;
-            border-radius: 18px;
-          }
-          .trust-card {
-            position: relative;
-            bottom: auto;
-            left: auto;
-            transform: none;
-            margin-top: -1.5rem;
-            padding: 1rem 0.75rem;
-            width: 100%;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.5rem;
-            border-radius: 14px;
-            text-align: center;
-          }
-          .stat-number {
-            font-size: 1.35rem;
-          }
-          .stat-label {
-            font-size: 0.7rem;
-          }
-          .trust-divider {
-            display: none;
-          }
         }
 
         @media (max-width: 480px) {
           .vehicle-grid {
-            gap: 0.5rem !important;
+            gap: 0.5rem;
           }
           .hiw-mockups {
             height: 220px;
@@ -1920,7 +1682,26 @@ const LandingPage = () => {
           }
           .hiw-step-title {
             font-size: 1rem;
->>>>>>> afd3b61174c807f983c62e48cd59c8beb9d31a77
+          }
+        }
+
+        /* Touch screens: no sticky hover lifts, give press feedback instead */
+        @media (hover: none) {
+          .category-card a:hover,
+          .testimonial-card:hover,
+          .deal-card:hover {
+            transform: none;
+            box-shadow: none;
+          }
+          .category-card:hover img {
+            transform: none;
+          }
+          .category-card a:active,
+          .deal-card:active,
+          .category-cta:active,
+          .deal-btn:active,
+          .btn-view-all-reviews:active {
+            transform: scale(0.97);
           }
         }
       `}</style>
