@@ -146,7 +146,8 @@ router.get('/:id', async (req, res) => {
         const company = await Company.findById(req.params.id).populate('user', 'name');
         if (!company) return res.status(404).json({ msg: 'Company not found' });
 
-        const vehicles = await Vehicle.find({ company: company._id, ...PUBLIC_STATUS_FILTER });
+        const vehicles = await Vehicle.find({ company: company._id, ...PUBLIC_STATUS_FILTER })
+            .populate("company", "companyName logo address phone contactEmail isVerified");
         const vehicleIds = vehicles.map(v => v._id);
         const reviews = await Review.find({ vehicle: { $in: vehicleIds } });
         const reviewCount = reviews.length;

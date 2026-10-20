@@ -427,7 +427,7 @@ const VehicleDetail = () => {
         {/* Breadcrumb */}
         <div className="breadcrumb">
           <Link to="/vehicles">← Back to Listings</Link>
-          {vehicle.company && (
+          {vehicle.company && vehicle.company._id && vehicle.company.companyName && !vehicle.company.isPersonal && (
             <span style={{ marginLeft: 8, color: "#94a3b8" }}>
               / <Link to={`/companies/${vehicle.company._id}`} style={{ color: "#ea580c" }}>{vehicle.company.companyName}</Link>
             </span>

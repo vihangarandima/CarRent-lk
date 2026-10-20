@@ -4,38 +4,11 @@ const Review = require("../models/Review");
 const Vehicle = require("../models/Vehicle");
 const User = require("../models/User");
 const Company = require("../models/Company");
-const jwt = require("jsonwebtoken");
-const { escapeRegex } = require("../middleware/auth");
-
-// Optional & strict auth middleware
-const optionalAuth = (req, res, next) => {
-  const token = req.header("x-auth-token");
-  if (!token) return next();
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-  } catch (err) {
-    // ignore invalid token in optional auth
-  }
-  next();
-};
-
-const auth = (req, res, next) => {
-  const token = req.header("x-auth-token");
-  if (!token)
-    return res.status(401).json({ msg: "No token, authorization denied" });
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ msg: "Token is not valid" });
-  }
-};
+const { auth, optionalAuth, escapeRegex } = require("../middleware/auth");
 
 // @route   GET /api/reviews
 // @desc    Get all reviews with filters, search, sorting & aggregated analytics
-router.get("/", async (req, res) => {
+router.get("/", optionalAuth, async (req, res) => {
   try {
     const {
       vehicleType,
@@ -172,7 +145,16 @@ router.get("/", async (req, res) => {
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 20;
     const startIndex = (pageNum - 1) * limitNum;
-    const paginatedReviews = allReviews.slice(startIndex, startIndex + limitNum);
+    const currentUserId = req.user?.id ? req.user.id.toString() : null;
+    const paginatedReviews = allReviews.slice(startIndex, startIndex + limitNum).map((r) => {
+      const obj = r.toObject ? r.toObject() : r;
+      return {
+        ...obj,
+        hasVoted: currentUserId && Array.isArray(obj.helpfulUsers)
+          ? obj.helpfulUsers.some((u) => u.toString() === currentUserId)
+          : false,
+      };
+    });
 
     res.json({
       reviews: paginatedReviews,
@@ -311,39 +293,32 @@ router.post("/", auth, async (req, res) => {
 
 // @route   POST /api/reviews/:id/helpful
 // @desc    Mark review as helpful
-router.post("/:id/helpful", optionalAuth, async (req, res) => {
+router.post("/:id/helpful", auth, async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);
     if (!review) {
       return res.status(404).json({ msg: "Review not found" });
     }
 
-    if (req.user) {
-      const userId = req.user.id;
-      const alreadyVoted = review.helpfulUsers.some(
-        (u) => u.toString() === userId
-      );
+    const userId = req.user.id.toString();
+    const alreadyVoted = review.helpfulUsers.some(
+      (u) => u.toString() === userId
+    );
 
-      if (alreadyVoted) {
-        review.helpfulUsers = review.helpfulUsers.filter(
-          (u) => u.toString() !== userId
-        );
-        review.helpfulCount = Math.max(0, review.helpfulCount - 1);
-      } else {
-        review.helpfulUsers.push(userId);
-        review.helpfulCount += 1;
-      }
+    if (alreadyVoted) {
+      review.helpfulUsers = review.helpfulUsers.filter(
+        (u) => u.toString() !== userId
+      );
+      review.helpfulCount = Math.max(0, review.helpfulCount - 1);
     } else {
-      // Guest vote
+      review.helpfulUsers.push(userId);
       review.helpfulCount += 1;
     }
 
     await review.save();
     res.json({
       helpfulCount: review.helpfulCount,
-      hasVoted: req.user
-        ? review.helpfulUsers.some((u) => u.toString() === req.user.id)
-        : true,
+      hasVoted: review.helpfulUsers.some((u) => u.toString() === userId),
     });
   } catch (err) {
     console.error("Error marking review helpful:", err);

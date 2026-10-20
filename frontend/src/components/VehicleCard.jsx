@@ -47,6 +47,15 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
   const year = vehicle.year;
   const typeLabel = TYPE_LABELS[vehicle.vehicleType] || vehicle.vehicleType;
   const modeLabel = RENT_MODE_LABELS[vehicle.rentMode || "self-drive"];
+  const companyObj =
+    typeof vehicle?.company === "object" && vehicle?.company !== null
+      ? vehicle.company
+      : null;
+  const companyId =
+    companyObj?._id ||
+    (typeof vehicle?.company === "string" ? vehicle.company : null);
+  const companyName = companyObj?.companyName;
+  const isPersonalHost = Boolean(companyObj?.isPersonal);
 
   return (
     <motion.div
@@ -91,12 +100,13 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           <h3>
             {vehicle.brand} {vehicle.model}
           </h3>
-          {vehicle.company && (
+          {companyId && companyName && !isPersonalHost && (
             <Link
-              to={`/companies/${vehicle.company._id}`}
+              to={`/companies/${companyId}`}
               className="v-company-link"
+              onClick={(e) => e.stopPropagation()}
             >
-              <Building2 size={12} /> {vehicle.company.companyName}
+              <Building2 size={12} /> {companyName}
             </Link>
           )}
         </div>
