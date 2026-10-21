@@ -161,7 +161,11 @@ const ReviewsPortal = () => {
       params.append("page", page);
       params.append("limit", REVIEWS_PER_PAGE);
 
-      const res = await axios.get(`${API_URL}/api/reviews?${params.toString()}`);
+      const res = await axios.get(`${API_URL}/api/reviews?${params.toString()}`, {
+        headers: token
+          ? { "x-auth-token": token, Authorization: `Bearer ${token}` }
+          : {},
+      });
       const newReviews = res.data.reviews || [];
 
       if (append) {
@@ -369,11 +373,22 @@ const ReviewsPortal = () => {
   };
 
   const handleHelpfulClick = async (reviewId) => {
+    if (!token) {
+      toast.info("Please log in to vote on reviews.", "Login Required");
+      navigate("/login?redirect=/reviews");
+      return;
+    }
+
     try {
       const res = await axios.post(
         `${API_URL}/api/reviews/${reviewId}/helpful`,
         {},
-        token ? { headers: { "x-auth-token": token } } : {}
+        {
+          headers: {
+            "x-auth-token": token,
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       setReviews((prev) =>
         prev.map((r) =>
@@ -393,6 +408,12 @@ const ReviewsPortal = () => {
       }
     } catch (err) {
       console.warn("Helpful vote error:", err);
+      if (err.response?.status === 401) {
+        toast.info("Please log in to vote on reviews.", "Login Required");
+        navigate("/login?redirect=/reviews");
+      } else {
+        toast.error("Could not record vote. Please try again.");
+      }
     }
   };
 

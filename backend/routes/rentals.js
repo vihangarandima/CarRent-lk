@@ -10,6 +10,27 @@ const { autoExpireRentals } = require("../utils/rentalExpiry");
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
+// Helper: Build rental query covering individual owner OR rental company fleet
+const getHostRentalQuery = async (userId) => {
+  const userCompany = await Company.findOne({ user: userId }).select("_id");
+  const vehicleFilter = userCompany
+    ? { $or: [{ owner: userId }, { company: userCompany._id }] }
+    : { owner: userId };
+  const userVehicles = await Vehicle.find(vehicleFilter).select("_id");
+  const vehicleIds = userVehicles.map((v) => v._id);
+
+  const orConditions = [{ owner: userId }];
+  if (userCompany) {
+    orConditions.push({ company: userCompany._id });
+  }
+  if (vehicleIds.length > 0) {
+    orConditions.push({ vehicle: { $in: vehicleIds } });
+  }
+
+  const query = orConditions.length > 1 ? { $or: orConditions } : orConditions[0];
+  return { query, userCompany };
+};
+
 // @route   GET api/rentals/vehicle/:id
 // @desc    Get active booked date ranges for a vehicle (merges active rentals and live bookings)
 router.get("/vehicle/:id", async (req, res) => {
@@ -66,10 +87,11 @@ router.get("/vehicle/:id", async (req, res) => {
 // @desc    Get all rentals for vehicles owned by the logged-in user/company
 router.get("/my", auth, async (req, res) => {
   try {
-    // Auto-expire any overdue rentals first
-    await autoExpireRentals(req.user.id);
+    const { query, userCompany } = await getHostRentalQuery(req.user.id);
+    // Auto-expire any overdue rentals first (checking both user and company)
+    await autoExpireRentals(req.user.id, false, userCompany?._id);
 
-    const rentals = await Rental.find({ owner: req.user.id })
+    const rentals = await Rental.find(query)
       .populate("vehicle", "brand model year pricePerDay images vehicleType location")
       .sort({ createdAt: -1 });
     res.json(rentals);
@@ -83,10 +105,11 @@ router.get("/my", auth, async (req, res) => {
 // @desc    Get rental stats for dashboard (revenue, counts, monthly breakdown)
 router.get("/stats", auth, async (req, res) => {
   try {
+    const { query, userCompany } = await getHostRentalQuery(req.user.id);
     // Auto-expire any overdue rentals first
-    await autoExpireRentals(req.user.id);
+    await autoExpireRentals(req.user.id, false, userCompany?._id);
 
-    const rentals = await Rental.find({ owner: req.user.id });
+    const rentals = await Rental.find(query);
 
     const now = new Date();
     const monthlyRevenue = [];
@@ -248,7 +271,15 @@ router.put("/:id", auth, async (req, res) => {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Rental not found" });
     const rental = await Rental.findById(req.params.id);
     if (!rental) return res.status(404).json({ msg: "Rental not found" });
-    if (rental.owner?.toString() !== req.user.id && req.user.role !== "admin") {
+
+    let isAuthorized = req.user.role === "admin" || rental.owner?.toString() === req.user.id;
+    if (!isAuthorized && rental.company) {
+      const userCompany = await Company.findOne({ user: req.user.id }).select("_id");
+      if (userCompany && rental.company.toString() === userCompany._id.toString()) {
+        isAuthorized = true;
+      }
+    }
+    if (!isAuthorized) {
       return res.status(403).json({ msg: "Not authorized" });
     }
 
@@ -293,7 +324,15 @@ router.delete("/:id", auth, async (req, res) => {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Rental not found" });
     const rental = await Rental.findById(req.params.id);
     if (!rental) return res.status(404).json({ msg: "Rental not found" });
-    if (rental.owner?.toString() !== req.user.id && req.user.role !== "admin") {
+
+    let isAuthorized = req.user.role === "admin" || rental.owner?.toString() === req.user.id;
+    if (!isAuthorized && rental.company) {
+      const userCompany = await Company.findOne({ user: req.user.id }).select("_id");
+      if (userCompany && rental.company.toString() === userCompany._id.toString()) {
+        isAuthorized = true;
+      }
+    }
+    if (!isAuthorized) {
       return res.status(403).json({ msg: "Not authorized" });
     }
 

@@ -10,18 +10,19 @@ const GLOBAL_THROTTLE_MS = 10000; // 10 seconds throttle for global checks to pr
  * 
  * @param {string|null} ownerId - Optional owner ID. If null, runs globally for all owners.
  * @param {boolean} force - If true, bypasses the throttle.
+ * @param {string|null} companyId - Optional company ID to check company-owned rentals.
  * @returns {Promise<number>} Number of expired rentals processed.
  */
-async function autoExpireRentals(ownerId = null, force = false) {
+async function autoExpireRentals(ownerId = null, force = false, companyId = null) {
   try {
     const now = new Date();
 
     // Throttle un-scoped global runs to at most once every 10 seconds
-    if (!ownerId && !force && Date.now() - lastGlobalRun < GLOBAL_THROTTLE_MS) {
+    if (!ownerId && !companyId && !force && Date.now() - lastGlobalRun < GLOBAL_THROTTLE_MS) {
       return 0;
     }
 
-    if (!ownerId) {
+    if (!ownerId && !companyId) {
       lastGlobalRun = Date.now();
     }
 
@@ -29,8 +30,12 @@ async function autoExpireRentals(ownerId = null, force = false) {
       status: "active",
       returnDate: { $lt: now },
     };
-    if (ownerId) {
+    if (ownerId && companyId) {
+      query.$or = [{ owner: ownerId }, { company: companyId }];
+    } else if (ownerId) {
       query.owner = ownerId;
+    } else if (companyId) {
+      query.company = companyId;
     }
 
     const expiredRentals = await Rental.find(query);
