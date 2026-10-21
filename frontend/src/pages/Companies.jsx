@@ -131,12 +131,12 @@ const Companies = () => {
         const matchSearch =
           !search ||
           company.companyName?.toLowerCase().includes(search.toLowerCase()) ||
-          company.address?.toLowerCase().includes(search.toLowerCase()) ||
+          (company.cities || []).some((c) => c.toLowerCase().includes(search.toLowerCase())) ||
           company.description?.toLowerCase().includes(search.toLowerCase());
 
         const matchCity =
           selectedCity === "All Cities" ||
-          company.address?.toLowerCase().includes(selectedCity.toLowerCase()) ||
+          (company.cities || []).some((c) => c.toLowerCase().includes(selectedCity.toLowerCase())) ||
           company.companyName?.toLowerCase().includes(selectedCity.toLowerCase());
 
         return matchSearch && matchCity;
@@ -332,10 +332,10 @@ const Companies = () => {
 
                     <div className="company-title-block">
                       <h3 className="company-name">{company.companyName}</h3>
-                      {company.address ? (
+                      {company.cities?.length ? (
                         <span className="company-location">
                           <MapPin size={13} />
-                          <span>{company.address}</span>
+                          <span>{company.cities.slice(0, 2).join(", ")}</span>
                         </span>
                       ) : (
                         <span className="company-location">

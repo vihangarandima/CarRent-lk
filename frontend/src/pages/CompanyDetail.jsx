@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
-import { Building2, MapPin, Phone, Mail, Car, ArrowLeft, Star, MessageCircle } from "lucide-react";
+import { Building2, MapPin, Car, ArrowLeft, Star, MessageCircle } from "lucide-react";
+import { useSiteConfig } from "../context/SiteConfigContext";
 import VehicleCard from "../components/VehicleCard";
 import { API_URL } from "../config";
 
@@ -19,6 +20,8 @@ const CompanyDetail = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { config } = useSiteConfig();
+  const supportPhone = config?.global?.whatsAppSupport?.phoneNumber || "+94702434288";
 
   useEffect(() => {
     const fetchCompany = async () => {
@@ -53,8 +56,10 @@ const CompanyDetail = () => {
   }
 
   const { vehicles = [], ...company } = data;
-  const phone = toIntlNumber(company.phone);
-  const waText = encodeURIComponent(`Hello ${company.companyName}! I found you on Yamu Car Rentals and would like to rent a vehicle.`);
+  // Enquiries go to Yamu's WhatsApp line; companies' own contact details are not public
+  const phone = toIntlNumber(supportPhone);
+  const waText = encodeURIComponent(`Hello Yamu! I'd like to rent a vehicle from ${company.companyName}.`);
+  const cities = [...new Set(vehicles.map((v) => v.location).filter(Boolean))];
 
   return (
     <div className="cdp-page">
@@ -80,17 +85,13 @@ const CompanyDetail = () => {
                   <Star size={15} fill="#fde68a" color="#fde68a" />
                   {company.rating > 0 ? `${company.rating.toFixed(1)} (${company.reviewCount} reviews)` : "No reviews yet"}
                 </span>
-                {company.address && <span><MapPin size={15} /> {company.address}</span>}
-                {company.contactEmail && <span><Mail size={15} /> {company.contactEmail}</span>}
+                {cities.length > 0 && <span><MapPin size={15} /> {cities.slice(0, 3).join(", ")}</span>}
               </div>
               {company.description && <p className="cdp-desc">{company.description}</p>}
               {phone && (
                 <div className="cdp-actions">
                   <a className="y-btn y-btn-white" href={`https://wa.me/${phone}?text=${waText}`} target="_blank" rel="noopener noreferrer">
-                    <MessageCircle size={18} /> WhatsApp
-                  </a>
-                  <a className="y-btn y-btn-ghost-light" href={`tel:+${phone}`}>
-                    <Phone size={18} /> {company.phone}
+                    <MessageCircle size={18} /> Ask Yamu on WhatsApp
                   </a>
                 </div>
               )}

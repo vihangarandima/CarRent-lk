@@ -487,12 +487,10 @@ const VehicleListing = () => {
       } else {
         const searchLocation = normalizeSearchText(filter.location);
         const vehicleLocation = normalizeSearchText(v.location);
-        const companyLocation = normalizeSearchText(v.company?.address);
         const companyName = normalizeSearchText(v.company?.companyName);
         matchLocation =
           !searchLocation ||
           vehicleLocation.includes(searchLocation) ||
-          companyLocation.includes(searchLocation) ||
           companyName.includes(searchLocation);
       }
 

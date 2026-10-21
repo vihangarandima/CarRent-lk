@@ -59,7 +59,7 @@ router.get("/", optionalAuth, async (req, res) => {
 
     // Fetch matching reviews
     let query = Review.find(filter)
-      .populate("user", "name email profileImage role location")
+      .populate("user", "name profileImage role location")
       .populate({
         path: "vehicle",
         select: "brand model year vehicleType images pricePerDay location company",
@@ -274,7 +274,7 @@ router.post("/", auth, async (req, res) => {
     const savedReview = await newReview.save();
 
     const populated = await Review.findById(savedReview._id)
-      .populate("user", "name email profileImage role location")
+      .populate("user", "name profileImage role location")
       .populate({
         path: "vehicle",
         select: "brand model year vehicleType images pricePerDay location company",

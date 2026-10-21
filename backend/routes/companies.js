@@ -13,6 +13,10 @@ const PUBLIC_STATUS_FILTER = { status: { $in: ['active', 'rented'] } };
 
 // @route   GET /api/companies
 // @desc    Get all companies with vehicle counts (public)
+// What anyone may see about a company: its brand, not its contact details or address.
+// Renters contact companies through Yamu.
+const PUBLIC_COMPANY_FIELDS = 'companyName logo description isVerified createdAt';
+
 router.get('/', async (req, res) => {
     try {
         const { search } = req.query;
@@ -20,13 +24,13 @@ router.get('/', async (req, res) => {
         if (search) query.companyName = new RegExp(escapeRegex(search), 'i');
 
         const companies = await Company.find(query)
-            .populate('user', 'name')
+            .select(PUBLIC_COMPANY_FIELDS)
             .sort({ createdAt: -1 });
 
         // Vehicle counts and ratings for all companies in two aggregate queries
         const companyIds = companies.map((c) => c._id);
         const vehicles = await Vehicle.find({ company: { $in: companyIds }, ...PUBLIC_STATUS_FILTER })
-            .select('_id company')
+            .select('_id company location')
             .lean();
         const companyByVehicle = new Map(vehicles.map((v) => [v._id.toString(), v.company.toString()]));
         const reviewStats = await Review.aggregate([
@@ -37,8 +41,9 @@ router.get('/', async (req, res) => {
         const totals = {};
         for (const v of vehicles) {
             const key = v.company.toString();
-            totals[key] = totals[key] || { vehicleCount: 0, reviewCount: 0, ratingSum: 0 };
+            totals[key] = totals[key] || { vehicleCount: 0, reviewCount: 0, ratingSum: 0, cities: new Set() };
             totals[key].vehicleCount += 1;
+            if (v.location) totals[key].cities.add(v.location.trim());
         }
         for (const r of reviewStats) {
             const key = companyByVehicle.get(r._id.toString());
@@ -48,9 +53,10 @@ router.get('/', async (req, res) => {
         }
 
         const result = companies.map((c) => {
-            const t = totals[c._id.toString()] || { vehicleCount: 0, reviewCount: 0, ratingSum: 0 };
+            const t = totals[c._id.toString()] || { vehicleCount: 0, reviewCount: 0, ratingSum: 0, cities: new Set() };
             return {
                 ...c.toObject(),
+                cities: [...t.cities],
                 vehicleCount: t.vehicleCount,
                 reviewCount: t.reviewCount,
                 rating: t.reviewCount ? t.ratingSum / t.reviewCount : 0,
@@ -143,11 +149,11 @@ router.get('/:id', async (req, res) => {
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(404).json({ msg: 'Company not found' });
         }
-        const company = await Company.findById(req.params.id).populate('user', 'name');
+        const company = await Company.findById(req.params.id).select(PUBLIC_COMPANY_FIELDS);
         if (!company) return res.status(404).json({ msg: 'Company not found' });
 
         const vehicles = await Vehicle.find({ company: company._id, ...PUBLIC_STATUS_FILTER })
-            .populate("company", "companyName logo address phone contactEmail isVerified");
+            .populate("company", "companyName logo isVerified");
         const vehicleIds = vehicles.map(v => v._id);
         const reviews = await Review.find({ vehicle: { $in: vehicleIds } });
         const reviewCount = reviews.length;

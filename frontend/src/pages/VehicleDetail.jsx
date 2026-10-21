@@ -10,7 +10,6 @@ import {
   Fuel,
   Users,
   Settings2,
-  Phone,
   Gauge,
   Calendar,
   CalendarX,
@@ -383,14 +382,8 @@ const VehicleDetail = () => {
     );
   }
 
-  // Host's own number first (company, then personal owner), else the site's support line
-  const hostPhone =
-    vehicle.company?.phone ||
-    vehicle.owner?.phone ||
-    config?.global?.whatsAppSupport?.phoneNumber ||
-    "+94702434288";
-  const waNumber = toWhatsAppNumber(hostPhone);
-  const directPhone = vehicle.company?.phone || vehicle.owner?.phone || "";
+  // Renters always go through Yamu's WhatsApp line: listers' contact details stay private
+  const waNumber = toWhatsAppNumber(config?.global?.whatsAppSupport?.phoneNumber || "+94702434288");
   const viewer = getStoredUser();
   const isOwnListing = Boolean(viewer && vehicle.owner?._id && (viewer.id || viewer._id) === vehicle.owner._id);
   const isUnavailable = ["hidden", "flagged", "pending", "rejected"].includes(vehicle.status);
@@ -636,9 +629,9 @@ const VehicleDetail = () => {
               </div>
               
               <div className="owner-row">
-                <div className="owner-avatar">{vehicle.company?.companyName?.[0] || vehicle.owner?.name?.[0] || "Y"}</div>
+                <div className="owner-avatar">{vehicle.company?.companyName?.[0] || "Y"}</div>
                 <div>
-                  <strong>{vehicle.company?.companyName || vehicle.owner?.name || "Owner"}</strong>
+                  <strong>{vehicle.company?.companyName || "Verified Yamu host"}</strong>
                   <p>
                     {vehicle.company ? "Rent-a-car company" : "Individual owner"}
                     {hostSince && ` · on Yamu since ${hostSince}`}
@@ -909,24 +902,6 @@ const VehicleDetail = () => {
                     </button>
                   )}
 
-                  {directPhone && (
-                    <a
-                      href={`tel:+${toWhatsAppNumber(directPhone)}`}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 6,
-                        marginTop: 10,
-                        color: "#64748b",
-                        fontSize: "0.85rem",
-                        textDecoration: "none",
-                        fontWeight: 600,
-                      }}
-                    >
-                      <Phone size={14} /> Call Host Directly: {directPhone}
-                    </a>
-                  )}
                 </div>
               )}
             </div>

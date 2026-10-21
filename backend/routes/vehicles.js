@@ -61,9 +61,10 @@ router.get("/", async (req, res) => {
       if (Object.keys(query.pricePerDay).length === 0) delete query.pricePerDay;
     }
 
+    // Public listing: never send listers' contact or personal details
     const vehicles = await Vehicle.find(query)
-      .populate("owner", "name role phone")
-      .populate("company", "companyName logo address phone contactEmail isVerified")
+      .populate("owner", "role")
+      .populate("company", "companyName logo isVerified")
       .sort({ isFeatured: -1, createdAt: -1 })
       .lean();
 
@@ -345,10 +346,10 @@ router.get("/:id", async (req, res) => {
   try {
     if (!isValidId(req.params.id)) return res.status(404).json({ msg: "Vehicle not found" });
     await autoExpireRentals(); // Refresh vehicle status if rental period passed
-    // Owner phone is public on purpose: customers contact hosts directly on WhatsApp
+    // Renters book through Yamu, so the public page gets no lister contact or personal details
     const vehicle = await Vehicle.findById(req.params.id)
-      .populate("owner", "name phone createdAt")
-      .populate("company", "companyName logo phone contactEmail address createdAt");
+      .populate("owner", "createdAt")
+      .populate("company", "companyName logo isVerified createdAt");
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
     res.json(vehicle);
   } catch (err) {
