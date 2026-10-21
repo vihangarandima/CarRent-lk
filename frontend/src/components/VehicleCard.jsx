@@ -71,9 +71,13 @@ export const getAvailability = (vehicle) => {
 
 const formatShortDate = (d) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
-const VehicleCard = ({ vehicle, index = 0 }) => {
+const VehicleCard = ({ vehicle, index = 0, searchDates = null }) => {
   const { formatPrice } = useCurrency();
-  const availability = getAvailability(vehicle);
+  // With searched dates the list only holds vehicles free for them; otherwise status is for today
+  const availability = searchDates ? { bookedNow: false, availableFrom: null } : getAvailability(vehicle);
+  const detailUrl = searchDates
+    ? `/vehicle/${vehicle._id}?startDate=${encodeURIComponent(searchDates.from.toISOString())}&endDate=${encodeURIComponent(searchDates.to.toISOString())}`
+    : `/vehicle/${vehicle._id}`;
   const coverImage = formatVehicleImageUrl(vehicle?.images, vehicle?.vehicleType);
 
   const year = vehicle.year;
@@ -171,7 +175,9 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         <div className={`v-avail-line ${availability.bookedNow && !availability.availableFrom ? "is-unknown" : ""}`}>
           <span className="v-avail-dot" />
           <span>
-            {!availability.bookedNow
+            {searchDates
+              ? `Free ${formatShortDate(searchDates.from)}${searchDates.to > searchDates.from ? ` – ${formatShortDate(searchDates.to)}` : ""}`
+              : !availability.bookedNow
               ? "Available now"
               : availability.availableFrom
               ? `Available from ${formatShortDate(availability.availableFrom)}`
@@ -195,7 +201,7 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           </div>
         </div>
 
-        <Link to={`/vehicle/${vehicle._id}`} className={`v-cta ${availability.bookedNow ? "v-cta-check-dates" : ""}`}>
+        <Link to={detailUrl} className={`v-cta ${availability.bookedNow ? "v-cta-check-dates" : ""}`}>
           <span className="v-cta-text-desktop">
             {availability.bookedNow ? "Check Available Dates" : "View Details"}
           </span>

@@ -38,15 +38,13 @@ const Hero = () => {
   const { config } = useSiteConfig();
   const hero = config?.hero;
 
-  const PRICE_MIN = 0;
-  const PRICE_MAX = 100000;
-  const PRICE_STEP = 1000;
-
   const [activeTab, setActiveTab] = useState("rent"); // "rent" | "buy"
   const [vehicleType, setVehicleType] = useState("");
   const [location, setLocation] = useState("");
-  const [minPrice, setMinPrice] = useState(5000);
-  const [maxPrice, setMaxPrice] = useState(80000);
+  // Rental dates (yyyy-mm-dd), carried to the vehicles page and the vehicle's calendar
+  const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [rentMode, setRentMode] = useState(""); // "" = any, "self-drive", "with-driver"
   const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState(false);
   const vehicleDropdownRef = useRef(null);
@@ -73,35 +71,14 @@ const Hero = () => {
     };
   }, []);
 
-  const handleMinChange = (e) => {
-    const val = Number(e.target.value);
-    if (val > maxPrice - PRICE_STEP) {
-      setMinPrice(maxPrice - PRICE_STEP);
-    } else {
-      setMinPrice(val);
-    }
-  };
-
-  const handleMaxChange = (e) => {
-    const val = Number(e.target.value);
-    if (val < minPrice + PRICE_STEP) {
-      setMaxPrice(minPrice + PRICE_STEP);
-    } else {
-      setMaxPrice(val);
-    }
-  };
-
-  const minPercent = Math.min(100, Math.max(0, (minPrice / PRICE_MAX) * 100));
-  const maxPercent = Math.min(100, Math.max(0, (maxPrice / PRICE_MAX) * 100));
-
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (vehicleType) params.set("type", vehicleType);
     if (location && location.trim()) params.set("location", location.trim());
-    // Phones hide the price slider to keep the search simple, so don't send its unseen defaults
-    const priceShown = !window.matchMedia("(max-width: 768px)").matches;
-    if (priceShown && minPrice > 0) params.set("minPrice", minPrice);
-    if (priceShown && maxPrice < PRICE_MAX) params.set("maxPrice", maxPrice);
+    if (fromDate) {
+      params.set("from", fromDate);
+      params.set("to", toDate && toDate >= fromDate ? toDate : fromDate);
+    }
     if (rentMode) params.set("mode", rentMode);
     navigate(`/vehicles${params.toString() ? `?${params.toString()}` : ""}`);
   };
@@ -350,44 +327,35 @@ const Hero = () => {
             </datalist>
           </div>
 
-          {/* Price Range Dual-Slider Mechanism */}
-          <div className="search-price-range-pill" aria-label="Price range filter">
-            <div className="price-row">
-              <span className="price-label">Price / day</span>
-              <output className="price-output">
-                LKR {minPrice.toLocaleString("en-US")} – {maxPrice.toLocaleString("en-US")}{maxPrice >= PRICE_MAX ? "+" : ""}
-              </output>
-            </div>
-            <div className="range-slider-wrap">
-              <div className="range-track" />
-              <div
-                className="range-fill"
-                style={{
-                  left: `${minPercent}%`,
-                  right: `${100 - maxPercent}%`,
+          {/* Rental dates */}
+          <div className="search-dates-pill" role="group" aria-label="Rental dates">
+            <label className="dates-field">
+              <span className="dates-label">From</span>
+              <input
+                type="date"
+                className="date-input"
+                value={fromDate}
+                min={todayStr}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setFromDate(v);
+                  if (toDate && v && toDate < v) setToDate(v);
                 }}
+                aria-label="Pickup date"
               />
+            </label>
+            <span className="dates-sep" aria-hidden="true">→</span>
+            <label className="dates-field">
+              <span className="dates-label">To</span>
               <input
-                type="range"
-                min={PRICE_MIN}
-                max={PRICE_MAX}
-                step={PRICE_STEP}
-                value={minPrice}
-                onChange={handleMinChange}
-                aria-label="Minimum price per day in LKR"
-                className="range-input range-input-min"
+                type="date"
+                className="date-input"
+                value={toDate}
+                min={fromDate || todayStr}
+                onChange={(e) => setToDate(e.target.value)}
+                aria-label="Return date"
               />
-              <input
-                type="range"
-                min={PRICE_MIN}
-                max={PRICE_MAX}
-                step={PRICE_STEP}
-                value={maxPrice}
-                onChange={handleMaxChange}
-                aria-label="Maximum price per day in LKR"
-                className="range-input range-input-max"
-              />
-            </div>
+            </label>
           </div>
 
           {/* Search CTA Button */}
@@ -918,8 +886,7 @@ const Hero = () => {
           font-weight: 500;
         }
 
-        /* Price Range Mechanism on Desktop: Balanced, never wraps, clean containment */
-        .search-price-range-pill {
+        .search-dates-pill {
           position: relative;
           display: flex;
           flex-direction: column;
@@ -935,140 +902,80 @@ const Hero = () => {
           transition: all 0.2s;
         }
 
-        .search-price-range-pill:hover {
+        .search-dates-pill:hover {
           border-color: #cbd5e1;
           background: #ffffff;
         }
 
-        .search-price-range-pill:focus-within {
+        .search-dates-pill:focus-within {
           border-color: #ea580c;
           background: #ffffff;
           box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
         }
 
-        .search-price-range-pill .price-row {
-          display: flex;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /* Rental dates: two native date pickers side by side */
+        .search-dates-pill {
+          flex-direction: row !important;
+          align-items: center;
           justify-content: space-between;
-          align-items: center;
-          width: 100%;
-          line-height: 1;
-          white-space: nowrap;
+          gap: 6px;
         }
 
-        .search-price-range-pill .price-label {
-          font-size: 0.7rem;
-          font-weight: 700;
-          color: #64748b;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          white-space: nowrap;
-          user-select: none;
-        }
-
-        .search-price-range-pill .price-output {
-          font-size: 0.82rem;
-          font-weight: 800;
-          color: #0f172a;
-          white-space: nowrap;
-          font-variant-numeric: tabular-nums;
-        }
-
-        .search-price-range-pill .range-slider-wrap {
-          position: relative;
-          width: 100%;
-          height: 14px;
-          margin: 0;
+        .dates-field {
           display: flex;
-          align-items: center;
+          flex-direction: column;
+          flex: 1;
+          min-width: 0;
+          cursor: pointer;
         }
 
-        .search-price-range-pill .range-track,
-        .search-price-range-pill .range-fill {
-          position: absolute;
-          top: 50%;
-          height: 4px;
-          border-radius: 2px;
-          transform: translateY(-50%);
-          pointer-events: none;
+        .dates-label {
+          font-size: 0.68rem;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: #94a3b8;
+          line-height: 1.1;
         }
 
-        .search-price-range-pill .range-track {
-          left: 0;
-          right: 0;
-          background: #e2e8f0;
-        }
-
-        .search-price-range-pill .range-fill {
-          background: #ea580c;
-        }
-
-        .search-price-range-pill .range-input {
-          position: absolute;
-          inset: 0;
+        .date-input {
           width: 100%;
-          height: 100%;
-          padding: 0;
-          border: 0;
-          border-radius: 0;
-          background: transparent;
-          margin: 0;
-          -webkit-appearance: none;
-          appearance: none;
-          pointer-events: none;
-        }
-
-        .search-price-range-pill .range-input::-webkit-slider-runnable-track {
-          background: transparent;
+          min-width: 0;
           border: none;
-          height: 100%;
-        }
-
-        .search-price-range-pill .range-input::-moz-range-track {
           background: transparent;
-          border: none;
-          height: 100%;
-        }
-
-        .search-price-range-pill .range-input::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          pointer-events: auto;
-          width: 14px;
-          height: 14px;
-          border-radius: 50%;
-          background: #ffffff;
-          border: 2.5px solid #ea580c;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-          cursor: grab;
-          transition: transform 0.1s ease;
-        }
-
-        .search-price-range-pill .range-input::-webkit-slider-thumb:hover {
-          transform: scale(1.2);
-        }
-
-        .search-price-range-pill .range-input::-moz-range-thumb {
-          pointer-events: auto;
-          width: 14px;
-          height: 14px;
-          border-radius: 50%;
-          background: #ffffff;
-          border: 2.5px solid #ea580c;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-          cursor: grab;
-          transition: transform 0.1s ease;
-        }
-
-        .search-price-range-pill .range-input::-moz-range-thumb:hover {
-          transform: scale(1.2);
-        }
-
-        .search-price-range-pill .range-input:focus {
           outline: none;
+          padding: 0;
+          font-family: inherit;
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: #1e293b;
         }
 
-        .search-price-range-pill .range-input:active {
-          z-index: 10;
+        .date-input:invalid,
+        .date-input[value=""] {
+          color: #94a3b8;
+        }
+
+        .dates-sep {
+          color: #94a3b8;
+          font-weight: 700;
+          flex-shrink: 0;
         }
 
         /* Search CTA Button — Radiant Sunset Orange Theme */
@@ -1185,7 +1092,7 @@ const Hero = () => {
             padding: 0 12px;
           }
 
-          .search-price-range-pill {
+          .search-dates-pill {
             grid-column: 1 / 4;
             grid-row: 2;
             width: 100%;
@@ -1508,8 +1415,7 @@ const Hero = () => {
             font-size: 15px !important;
           }
 
-          /* Price Range Field on Mobile (Order 4) */
-          .search-price-range-pill {
+          .search-dates-pill {
             order: 4;
             width: 100%;
             height: auto;
@@ -1523,105 +1429,22 @@ const Hero = () => {
             gap: 2px;
           }
 
-          .search-price-range-pill:focus-within {
+          .search-dates-pill:focus-within {
             border-color: #E8590C;
             outline: 3px solid #E8590C;
             outline-offset: 1px;
           }
 
-          .search-price-range-pill .price-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            font-size: 14px;
-            font-weight: 600;
-            color: #6F6359;
-          }
 
-          .search-price-range-pill .price-label {
-            text-transform: none;
-            letter-spacing: normal;
-            font-size: 14px;
-            font-weight: 600;
-            color: #6F6359;
-          }
 
-          .search-price-range-pill .price-output {
-            color: #1D140C;
-            font-weight: 800;
-            font-size: 15px;
-          }
 
-          .search-price-range-pill .range-slider-wrap {
-            position: relative;
-            height: 36px;
-            margin: 4px 10px 0;
-            display: flex;
-            align-items: center;
-          }
 
-          .search-price-range-pill .range-track,
-          .search-price-range-pill .range-fill {
-            position: absolute;
-            top: 50%;
-            height: 6px;
-            border-radius: 3px;
-            transform: translateY(-50%);
-          }
 
-          .search-price-range-pill .range-track {
-            left: 0;
-            right: 0;
-            background: #E7E1DA;
-          }
 
-          .search-price-range-pill .range-fill {
-            background: #E8590C;
-          }
 
-          .search-price-range-pill .range-input {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 36px;
-            padding: 0;
-            border: 0;
-            border-radius: 0;
-            background: none;
-            margin: 0;
-            -webkit-appearance: none;
-            appearance: none;
-            pointer-events: none;
-          }
 
-          .search-price-range-pill .range-input::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            pointer-events: auto;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: #ffffff;
-            border: 3px solid #E8590C;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-            cursor: grab;
-          }
 
-          .search-price-range-pill .range-input::-moz-range-thumb {
-            pointer-events: auto;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: #ffffff;
-            border: 3px solid #E8590C;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-            cursor: grab;
-          }
 
-          .search-price-range-pill .range-input:focus-visible::-webkit-slider-thumb {
-            outline: 3px solid #1D140C;
-            outline-offset: 2px;
-          }
 
           /* Submit Button on Mobile (Order 5) */
           .hero-search-submit-btn {
@@ -1719,7 +1542,7 @@ const Hero = () => {
             gap: 10px;
           }
 
-          .search-price-range-pill {
+          .search-dates-pill {
             padding: 10px 12px 6px;
           }
 
@@ -1766,8 +1589,7 @@ const Hero = () => {
 
           .hero-buttons-container,
           .hero-sub-top,
-          .hero-scroll-hint-pill,
-          .search-price-range-pill {
+          .hero-scroll-hint-pill {
             display: none !important;
           }
 
@@ -1811,6 +1633,21 @@ const Hero = () => {
             height: 48px !important;
             min-height: 48px !important;
             max-height: 48px !important;
+          }
+
+          /* Dates field on phones: same look as the other fields */
+          .search-dates-pill {
+            order: 4 !important;
+            display: flex !important;
+            height: 48px !important;
+            padding: 4px 14px !important;
+            border-radius: 14px !important;
+            border: 1.5px solid #E7E1DA !important;
+            background: #F6F4F1 !important;
+          }
+
+          .search-dates-pill .date-input {
+            font-size: 16px;
           }
 
           .hero-search-submit-btn {

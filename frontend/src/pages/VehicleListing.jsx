@@ -26,6 +26,7 @@ import {
   Layers,
   Wallet,
   RotateCcw,
+  Calendar,
 } from "lucide-react";
 
 // Image Imports
@@ -134,6 +135,30 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
+// "yyyy-mm-dd" -> local midnight Date (avoids the UTC shift of new Date("yyyy-mm-dd"))
+const parseDay = (value) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+};
+
+const dayStart = (value) => {
+  const d = new Date(value);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+// Free for the whole period: no booked interval touches it (booked days are inclusive)
+const isFreeForDates = (vehicle, from, to) => {
+  const intervals = vehicle.bookedIntervals || [];
+  if (!intervals.length && vehicle.status === "rented") return false;
+  return !intervals.some((i) => {
+    if (!i.pickupDate || !i.returnDate) return false;
+    return from <= dayStart(i.returnDate) && to >= dayStart(i.pickupDate);
+  });
+};
+
+const todayInputValue = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+
 const VehicleListing = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -186,6 +211,11 @@ const VehicleListing = () => {
   );
   // "" = any, "self-drive", "with-driver" (vehicles offered "both" ways match either)
   const [filterMode, setFilterMode] = useState(searchParams.get("mode") || "");
+  // Rental dates from the home search or the When field (yyyy-mm-dd)
+  const [dates, setDates] = useState({
+    from: searchParams.get("from") || "",
+    to: searchParams.get("to") || "",
+  });
   
   // GPS & Radius Search States
   const [userLocation, setUserLocation] = useState(null);
@@ -230,6 +260,10 @@ const VehicleListing = () => {
     if (vehicleType) params.set("type", vehicleType);
     if (filterFuel && filterFuel !== "any") params.set("fuel", filterFuel);
     if (filterMode) params.set("mode", filterMode);
+    if (dates.from) {
+      params.set("from", dates.from);
+      params.set("to", dates.to || dates.from);
+    }
     if (filterShow && filterShow !== "nearest") params.set("sort", filterShow);
     if (viewMode && viewMode !== "grid") params.set("view", viewMode);
     if (radius && radius !== 20) params.set("radius", radius);
@@ -242,7 +276,7 @@ const VehicleListing = () => {
     if (paramStr !== searchParams.toString()) {
       setSearchParams(params, { replace: true });
     }
-  }, [filter, vehicleType, filterFuel, filterMode, filterShow, viewMode, radius, pinnedLocation]);
+  }, [filter, vehicleType, filterFuel, filterMode, dates, filterShow, viewMode, radius, pinnedLocation]);
 
   // Sync back when browser back/forward buttons are pressed
   useEffect(() => {
@@ -253,6 +287,8 @@ const VehicleListing = () => {
     const typeParam = searchParams.get("type") || searchParams.get("vehicleType") || "";
     const fuelParam = searchParams.get("fuel") || "any";
     const modeParam = searchParams.get("mode") || "";
+    const fromParam = searchParams.get("from") || "";
+    const toParam = searchParams.get("to") || "";
     const sortParam = searchParams.get("sort") || "nearest";
     const viewParam = searchParams.get("view") || "grid";
     const radiusParam = parseInt(searchParams.get("radius")) || 20;
@@ -274,6 +310,7 @@ const VehicleListing = () => {
     setVehicleType((prev) => (prev === typeParam ? prev : typeParam));
     setFilterFuel((prev) => (prev === fuelParam ? prev : fuelParam));
     setFilterMode((prev) => (prev === modeParam ? prev : modeParam));
+    setDates((prev) => (prev.from === fromParam && prev.to === toParam ? prev : { from: fromParam, to: toParam }));
     setFilterShow((prev) => (prev === sortParam ? prev : sortParam));
     setViewMode((prev) => (prev === viewParam ? prev : viewParam));
     setRadius((prev) => (prev === radiusParam ? prev : radiusParam));
@@ -347,6 +384,7 @@ const VehicleListing = () => {
     setFilterShow("nearest");
     setFilterFuel("any");
     setFilterMode("");
+    setDates({ from: "", to: "" });
     setVehicleType("");
     setUserLocation(null);
     setPinnedLocation(null);
@@ -458,6 +496,10 @@ const VehicleListing = () => {
     pinnedLocation ||
     (userLocation && filter.location === "My GPS Location" ? userLocation : null);
 
+  const dateFrom = parseDay(dates.from);
+  const dateTo = parseDay(dates.to) || dateFrom;
+  const searchDates = dateFrom && dateTo && dateTo >= dateFrom ? { from: dateFrom, to: dateTo } : null;
+
   const filtered = vehicles
     .map((v) => {
       let distanceFromCenter = null;
@@ -506,7 +548,9 @@ const VehicleListing = () => {
       const matchType =
         !vehicleType ||
         v.vehicleType?.toLowerCase() === vehicleType.toLowerCase();
+      const matchDates = !searchDates || isFreeForDates(v, searchDates.from, searchDates.to);
       return (
+        matchDates &&
         matchBrand &&
         matchLocation &&
         matchMinPrice &&
@@ -625,7 +669,7 @@ const VehicleListing = () => {
                 <strong>{filtered.length}</strong> {filtered.length === 1 ? "vehicle matches" : "vehicles match"} your search
               </p>
             </div>
-            {(filter.location || filter.brand || filter.minPrice || filter.maxPrice || vehicleType || filterFuel !== "any" || filterMode || pinnedLocation) && (
+            {(filter.location || filter.brand || filter.minPrice || filter.maxPrice || vehicleType || filterFuel !== "any" || filterMode || dates.from || pinnedLocation) && (
               <button
                 type="button"
                 className="sc-reset"
@@ -676,6 +720,31 @@ const VehicleListing = () => {
                 )}
               </span>
             </label>
+
+            <div className="sc-field sc-field-dates">
+              <span className="sc-field-label">When</span>
+              <span className="sc-field-input sc-dates">
+                <Calendar size={17} className="sc-field-icon" />
+                <input
+                  type="date"
+                  aria-label="Pickup date"
+                  min={todayInputValue()}
+                  value={dates.from}
+                  onChange={(e) => {
+                    const from = e.target.value;
+                    setDates((prev) => ({ from, to: prev.to && prev.to >= from ? prev.to : from }));
+                  }}
+                />
+                <span className="sc-price-sep">to</span>
+                <input
+                  type="date"
+                  aria-label="Return date"
+                  min={dates.from || todayInputValue()}
+                  value={dates.to}
+                  onChange={(e) => setDates((prev) => ({ from: prev.from || e.target.value, to: e.target.value }))}
+                />
+              </span>
+            </div>
 
             <label className="sc-field sc-field-brand">
               <span className="sc-field-label">Brand or model</span>
@@ -922,6 +991,7 @@ const VehicleListing = () => {
                   key={vehicle._id}
                   vehicle={vehicle}
                   distance={vehicle.distanceFromCenter}
+                  searchDates={searchDates}
                 />
               ))}
             </div>
@@ -1480,7 +1550,7 @@ const VehicleListing = () => {
         /* Main bar */
         .sc-bar {
           display: grid;
-          grid-template-columns: 1.3fr 1fr 1.25fr auto;
+          grid-template-columns: 1.15fr 1.35fr 0.9fr 1.1fr auto;
           align-items: stretch;
           background: #f8f6f3;
           border: 1px solid #efe9e2;
@@ -1548,6 +1618,18 @@ const VehicleListing = () => {
         .sc-price input {
           width: 0;
           text-align: center;
+        }
+
+        .sc-dates input {
+          flex: 1;
+          width: 0;
+          min-width: 0;
+          font-size: 0.86rem;
+          color: #111827;
+        }
+
+        .sc-dates input:invalid {
+          color: #9ca3af;
         }
 
         .sc-price input::-webkit-outer-spin-button,
