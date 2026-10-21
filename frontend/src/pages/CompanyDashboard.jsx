@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
+import DateRangeField from "../components/DateRangeField";
 import { API_URL } from "../config";
 import { useToast } from "../context/ToastContext";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
@@ -1521,22 +1522,13 @@ export default function CompanyDashboard() {
                       <option value="rented" disabled>🔑 Currently Rented</option>
                     </select>
                   </div>
-                  <div className="cd-form-group">
-                    <label>Available From</label>
-                    <input
-                      type="date"
-                      required
-                      value={vehicleEditData.availableFrom || ""}
-                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, availableFrom: e.target.value })}
-                    />
-                  </div>
-                  <div className="cd-form-group">
-                    <label>Available To</label>
-                    <input
-                      type="date"
-                      required
-                      value={vehicleEditData.availableTo || ""}
-                      onChange={(e) => setVehicleEditData({ ...vehicleEditData, availableTo: e.target.value })}
+                  <div className="cd-form-group" style={{ gridColumn: "1 / -1" }}>
+                    <label>Available dates</label>
+                    <DateRangeField
+                      from={vehicleEditData.availableFrom || ""}
+                      to={vehicleEditData.availableTo || ""}
+                      ariaLabel="Available dates"
+                      onChange={({ from, to }) => setVehicleEditData({ ...vehicleEditData, availableFrom: from, availableTo: to })}
                     />
                   </div>
                 </div>
@@ -1836,7 +1828,7 @@ export default function CompanyDashboard() {
                     }));
                   }}
                 >
-                  <KeyRound size={14} /> Customer Rental
+                  <KeyRound size={14} /> Customer rental
                 </button>
                 <button
                   type="button"
@@ -1853,7 +1845,7 @@ export default function CompanyDashboard() {
                     }));
                   }}
                 >
-                  <Wrench size={14} /> Block Dates / Maintenance
+                  <Wrench size={14} /> Block dates
                 </button>
               </div>
 
@@ -1896,22 +1888,13 @@ export default function CompanyDashboard() {
                 </div>
               )}
                 <div className="cd-form-row">
-                  <div className="cd-form-group">
-                    <label>Pickup Date</label>
-                    <input
-                      type="date"
-                      required
-                      value={rentalForm.pickupDate}
-                      onChange={(e) => setRentalForm({ ...rentalForm, pickupDate: e.target.value })}
-                    />
-                  </div>
-                  <div className="cd-form-group">
-                    <label>Return Date</label>
-                    <input
-                      type="date"
-                      required
-                      value={rentalForm.returnDate}
-                      onChange={(e) => setRentalForm({ ...rentalForm, returnDate: e.target.value })}
+                  <div className="cd-form-group" style={{ gridColumn: "1 / -1" }}>
+                    <label>{rentalModalMode === "blocked" ? "Blocked dates" : "Rental dates"}</label>
+                    <DateRangeField
+                      from={rentalForm.pickupDate}
+                      to={rentalForm.returnDate}
+                      ariaLabel={rentalModalMode === "blocked" ? "Blocked dates" : "Rental dates"}
+                      onChange={({ from, to }) => setRentalForm({ ...rentalForm, pickupDate: from, returnDate: to })}
                     />
                   </div>
                 </div>
@@ -2332,6 +2315,44 @@ const dashboardCSS = `
   .cd-form-group input:focus, .cd-form-group textarea:focus {
     border-color: #f97316; box-shadow: 0 0 0 3px rgba(249,115,22,0.1);
   }
+
+  /* Dropdowns match the text fields, with a custom arrow */
+  .cd-form-group select {
+    width: 100%; box-sizing: border-box; height: 42px;
+    padding: 0 38px 0 14px; border: 1px solid #e2e8f0; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; color: #09090b; background-color: #ffffff;
+    appearance: none; -webkit-appearance: none; cursor: pointer; outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .cd-form-group select:focus { border-color: #f97316; box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+
+  /* Rental / block-dates switch in the record-rental window */
+  .cd-modal-mode-tabs {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px;
+    margin-bottom: 14px; border-radius: 12px; background: #f4f4f5;
+  }
+  .cd-modal-mode-tab {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 40px; padding: 0 10px; border: none; border-radius: 9px;
+    background: transparent; color: #52525b; font-family: inherit;
+    font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .cd-modal-mode-tab:hover { color: #18181b; }
+  .cd-modal-mode-tab.active {
+    background: #ffffff; color: #ea580c; font-weight: 800;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.06);
+  }
+
+  .cd-block-helper-banner {
+    display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px;
+    padding: 10px 12px; border-radius: 10px;
+    background: #fffbeb; border: 1px solid #fde68a; color: #78350f;
+  }
+  .cd-block-helper-banner strong { display: block; font-size: 0.85rem; }
+  .cd-block-helper-banner p { margin: 2px 0 0; font-size: 0.78rem; line-height: 1.45; color: #92400e; }
 
   .cd-info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
   .cd-info-item {

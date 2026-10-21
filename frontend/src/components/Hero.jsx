@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Search, ChevronDown, MapPin, Car, PlusCircle, Check } from "lucide-react";
 import fleetCutoutImg from "../assets/images/yamu_fleet_cutout.png";
 import { useSiteConfig } from "../context/SiteConfigContext";
+import DateRangeField from "./DateRangeField";
 import { FestivalHeroDecorations } from "./festivals/FestivalAccessoriesManager";
 
 const VEHICLE_TYPES = [
@@ -42,7 +43,6 @@ const Hero = () => {
   const [vehicleType, setVehicleType] = useState("");
   const [location, setLocation] = useState("");
   // Rental dates (yyyy-mm-dd), carried to the vehicles page and the vehicle's calendar
-  const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [rentMode, setRentMode] = useState(""); // "" = any, "self-drive", "with-driver"
@@ -328,34 +328,19 @@ const Hero = () => {
           </div>
 
           {/* Rental dates */}
-          <div className="search-dates-pill" role="group" aria-label="Rental dates">
-            <label className="dates-field">
-              <span className="dates-label">From</span>
-              <input
-                type="date"
-                className="date-input"
-                value={fromDate}
-                min={todayStr}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setFromDate(v);
-                  if (toDate && v && toDate < v) setToDate(v);
-                }}
-                aria-label="Pickup date"
-              />
-            </label>
-            <span className="dates-sep" aria-hidden="true">→</span>
-            <label className="dates-field">
-              <span className="dates-label">To</span>
-              <input
-                type="date"
-                className="date-input"
-                value={toDate}
-                min={fromDate || todayStr}
-                onChange={(e) => setToDate(e.target.value)}
-                aria-label="Return date"
-              />
-            </label>
+          <div className="search-dates-pill">
+            <span className="dates-label">Dates</span>
+            <DateRangeField
+              variant="bare"
+              from={fromDate}
+              to={toDate}
+              minDate={new Date()}
+              ariaLabel="Rental dates"
+              onChange={({ from, to }) => {
+                setFromDate(from);
+                setToDate(to);
+              }}
+            />
           </div>
 
           {/* Search CTA Button */}
@@ -929,19 +914,12 @@ const Hero = () => {
 
 
 
-        /* Rental dates: two native date pickers side by side */
+        /* Rental dates: small label above the picker */
         .search-dates-pill {
-          flex-direction: row !important;
-          align-items: center;
-          justify-content: space-between;
-          gap: 6px;
-        }
-
-        .dates-field {
-          display: flex;
-          flex-direction: column;
-          flex: 1;
-          min-width: 0;
+          flex-direction: column !important;
+          align-items: stretch;
+          justify-content: center;
+          gap: 2px;
           cursor: pointer;
         }
 
@@ -952,30 +930,6 @@ const Hero = () => {
           text-transform: uppercase;
           color: #94a3b8;
           line-height: 1.1;
-        }
-
-        .date-input {
-          width: 100%;
-          min-width: 0;
-          border: none;
-          background: transparent;
-          outline: none;
-          padding: 0;
-          font-family: inherit;
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: #1e293b;
-        }
-
-        .date-input:invalid,
-        .date-input[value=""] {
-          color: #94a3b8;
-        }
-
-        .dates-sep {
-          color: #94a3b8;
-          font-weight: 700;
-          flex-shrink: 0;
         }
 
         /* Search CTA Button — Radiant Sunset Orange Theme */
@@ -1646,9 +1600,6 @@ const Hero = () => {
             background: #F6F4F1 !important;
           }
 
-          .search-dates-pill .date-input {
-            font-size: 16px;
-          }
 
           .hero-search-submit-btn {
             margin-top: 2px !important;

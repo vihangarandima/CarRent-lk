@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import DateRangeField from "../components/DateRangeField";
 import { API_URL } from "../config";
 import { useToast } from "../context/ToastContext";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
@@ -1082,26 +1083,13 @@ const Profile = () => {
                         <option value="hidden">Hidden (Paused)</option>
                       </select>
                     </div>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: "0.78rem" }}>Available From</label>
-                      <input
-                        type="date"
-                        required
-                        value={vehicleEditData.availableFrom || ""}
-                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, availableFrom: e.target.value })}
-                        className="input-field"
-                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
-                      />
-                    </div>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: "0.78rem" }}>Available To</label>
-                      <input
-                        type="date"
-                        required
-                        value={vehicleEditData.availableTo || ""}
-                        onChange={(e) => setVehicleEditData({ ...vehicleEditData, availableTo: e.target.value })}
-                        className="input-field"
-                        style={{ padding: "8px 10px", fontSize: "0.85rem" }}
+                    <div className="form-group" style={{ margin: 0, gridColumn: "1 / -1" }}>
+                      <label style={{ fontSize: "0.78rem" }}>Available dates</label>
+                      <DateRangeField
+                        from={vehicleEditData.availableFrom || ""}
+                        to={vehicleEditData.availableTo || ""}
+                        ariaLabel="Available dates"
+                        onChange={({ from, to }) => setVehicleEditData({ ...vehicleEditData, availableFrom: from, availableTo: to })}
                       />
                     </div>
                   </div>

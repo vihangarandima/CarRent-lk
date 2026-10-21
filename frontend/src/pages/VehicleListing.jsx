@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { API_URL } from "../config";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
+import DateRangeField from "../components/DateRangeField";
 import VehicleCard from "../components/VehicleCard";
 import PageHero from "../components/PageHero";
 import {
@@ -156,8 +157,6 @@ const isFreeForDates = (vehicle, from, to) => {
     return from <= dayStart(i.returnDate) && to >= dayStart(i.pickupDate);
   });
 };
-
-const todayInputValue = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
 const VehicleListing = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -656,7 +655,7 @@ const VehicleListing = () => {
         badge="Find your ride"
         title="Find the"
         highlight="nearest ride in seconds."
-        subtitle="Search verified vehicles across Sri Lanka. Filter by type, location and price, then message the owner on WhatsApp."
+        subtitle="Search verified vehicles across Sri Lanka by dates, type, location and price, then book in minutes."
       />
 
       <div className="container y-overlap">
@@ -725,23 +724,13 @@ const VehicleListing = () => {
               <span className="sc-field-label">When</span>
               <span className="sc-field-input sc-dates">
                 <Calendar size={17} className="sc-field-icon" />
-                <input
-                  type="date"
-                  aria-label="Pickup date"
-                  min={todayInputValue()}
-                  value={dates.from}
-                  onChange={(e) => {
-                    const from = e.target.value;
-                    setDates((prev) => ({ from, to: prev.to && prev.to >= from ? prev.to : from }));
-                  }}
-                />
-                <span className="sc-price-sep">to</span>
-                <input
-                  type="date"
-                  aria-label="Return date"
-                  min={dates.from || todayInputValue()}
-                  value={dates.to}
-                  onChange={(e) => setDates((prev) => ({ from: prev.from || e.target.value, to: e.target.value }))}
+                <DateRangeField
+                  variant="bare"
+                  from={dates.from}
+                  to={dates.to}
+                  minDate={new Date()}
+                  ariaLabel="Rental dates"
+                  onChange={({ from, to }) => setDates({ from, to })}
                 />
               </span>
             </div>
@@ -1620,16 +1609,9 @@ const VehicleListing = () => {
           text-align: center;
         }
 
-        .sc-dates input {
+        .sc-dates .drf-trigger {
           flex: 1;
-          width: 0;
-          min-width: 0;
-          font-size: 0.86rem;
-          color: #111827;
-        }
-
-        .sc-dates input:invalid {
-          color: #9ca3af;
+          min-height: 26px;
         }
 
         .sc-price input::-webkit-outer-spin-button,
