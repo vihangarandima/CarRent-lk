@@ -20,6 +20,9 @@ import {
   Info,
   ChevronLeft,
   ChevronRight,
+  Phone,
+  Mail,
+  X,
 } from "lucide-react";
 import axios from "axios";
 import { API_URL } from "../config";
@@ -51,6 +54,10 @@ const toWhatsAppNumber = (phone) => {
   return digits;
 };
 
+// Yamu's customer hotline, shown under the booking button and in the confirmation popup
+const YAMU_HOTLINE_DISPLAY = "070 243 4288";
+const YAMU_HOTLINE_TEL = "+94702434288";
+
 const VehicleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -80,6 +87,8 @@ const VehicleDetail = () => {
   
 
   const [sent, setSent] = useState(false);
+  // "Booking request sent" popup: { ref, dates, waUrl, recorded }
+  const [bookingConfirm, setBookingConfirm] = useState(null);
   const [customerMessage, setCustomerMessage] = useState(() => searchParams.get("message") || "");
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -289,7 +298,9 @@ const VehicleDetail = () => {
       `Hello! I would like to rent the ${vehicle.brand} ${vehicle.model} (${vehicle.year}) listed on Yamu Car Rentals (${rentModeText.toLowerCase()}) for ${dateStr}.\n${window.location.href}`
     )}`;
 
-    // 1. Create official Booking record in backend with secure dispatch token
+    // 1. Create official Booking record in backend (this also emails the Yamu team)
+    let bookingRef = "";
+    let recorded = false;
     try {
       const bookingRes = await axios.post(
         `${API_URL}/api/bookings`,
@@ -314,6 +325,8 @@ const VehicleDetail = () => {
       if (bookingRes.data?.whatsappMessage) {
         finalWaUrl = `https://wa.me/${targetWaNumber}?text=${encodeURIComponent(bookingRes.data.whatsappMessage)}`;
       }
+      bookingRef = bookingRes.data?.booking?.bookingNumber || "";
+      recorded = Boolean(bookingRes.data?.success);
     } catch (bookingErr) {
       console.warn("Could not record booking ahead of WhatsApp:", bookingErr?.response?.data || bookingErr.message);
       if (bookingErr.response?.status === 401) {
@@ -341,15 +354,7 @@ const VehicleDetail = () => {
     }
 
     setSent(true);
-    // Open WhatsApp in new tab, or fallback to window.location.href if popups blocked
-    try {
-      const waWin = window.open(finalWaUrl, "_blank", "noopener,noreferrer");
-      if (!waWin || waWin.closed || typeof waWin.closed === "undefined") {
-        window.location.href = finalWaUrl;
-      }
-    } catch {
-      window.location.href = finalWaUrl;
-    }
+    setBookingConfirm({ ref: bookingRef, dates: dateStr, waUrl: finalWaUrl, recorded });
   };
 
   if (loading) {
@@ -655,21 +660,24 @@ const VehicleDetail = () => {
               ) : sent ? (
                 <div className="sent-msg">
                   <CheckCircle2 size={44} className="sent-check-icon" />
-                  <h3>Booking Chat Launched!</h3>
-                  <p>WhatsApp opened with your dates. The owner will reply there to confirm availability.</p>
+                  <h3>Booking request sent!</h3>
+                  <p>The Yamu team has your request and will confirm availability with you on WhatsApp shortly.</p>
                   <button
                     type="button"
                     className="btn-primary"
                     style={{ marginTop: 12, padding: "8px 16px", fontSize: "0.88rem" }}
                     onClick={() => setSent(false)}
                   >
-                    Send Another Inquiry
+                    Book other dates
                   </button>
+                  <a className="btn-call-us" href={`tel:${YAMU_HOTLINE_TEL}`}>
+                    <Phone size={16} /> Call us on {YAMU_HOTLINE_DISPLAY}
+                  </a>
                 </div>
               ) : (
                 <div className="booking-form">
                   <h3>Check Availability</h3>
-                  <p>Select your required dates, then message the host to confirm availability.</p>
+                  <p>Pick your dates and confirm. The Yamu team checks availability and gets back to you.</p>
                   
                   <div className="calendar-wrapper">
                     <DatePicker
@@ -897,10 +905,23 @@ const VehicleDetail = () => {
                         cursor: bookingSubmitting ? "wait" : "pointer"
                       }}
                     >
-                      <MessageSquare size={18} />
-                      <span>{bookingSubmitting ? "Connecting..." : "Chat via WhatsApp"}</span>
+                      <CheckCircle2 size={18} />
+                      <span>{bookingSubmitting ? "Sending request..." : "Confirm & Book"}</span>
                     </button>
                   )}
+
+                  {!isBookedConflict && (
+                    <p className="book-note">
+                      <Mail size={14} />
+                      <span>
+                        Your request goes straight to the Yamu team by email, then WhatsApp opens so you can confirm the details with us.
+                      </span>
+                    </p>
+                  )}
+
+                  <a className="btn-call-us" href={`tel:${YAMU_HOTLINE_TEL}`}>
+                    <Phone size={16} /> Questions? Call us on {YAMU_HOTLINE_DISPLAY}
+                  </a>
 
                 </div>
               )}
@@ -1611,6 +1632,200 @@ const VehicleDetail = () => {
           padding-top: 0.2rem;
         }
 
+        .book-note {
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+          margin: 0.6rem 0 0;
+          font-size: 0.78rem;
+          line-height: 1.45;
+          color: #64748b;
+        }
+
+        .book-note svg {
+          flex-shrink: 0;
+          margin-top: 2px;
+          color: #f97316;
+        }
+
+        .btn-call-us {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          min-height: 44px;
+          margin-top: 0.75rem;
+          border: 1.5px solid #fed7aa;
+          border-radius: 12px;
+          background: #fff7ed;
+          color: #c2410c;
+          font-size: 0.9rem;
+          font-weight: 700;
+          text-decoration: none;
+          transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .btn-call-us:hover {
+          background: #ffedd5;
+          border-color: #fdba74;
+          color: #9a3412;
+        }
+
+        .bk-confirm-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 10000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1rem;
+          background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(4px);
+          animation: bkFade 0.2s ease;
+        }
+
+        .bk-confirm-card {
+          position: relative;
+          width: 100%;
+          max-width: 420px;
+          max-height: calc(100dvh - 2rem);
+          overflow-y: auto;
+          padding: 1.75rem 1.5rem 1.25rem;
+          border-radius: 20px;
+          background: #ffffff;
+          text-align: center;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+          animation: bkPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes bkFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes bkPop { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+        .bk-confirm-close {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: grid;
+          place-items: center;
+          width: 34px;
+          height: 34px;
+          border: none;
+          border-radius: 50%;
+          background: #f1f5f9;
+          color: #64748b;
+          cursor: pointer;
+        }
+
+        .bk-confirm-icon {
+          display: grid;
+          place-items: center;
+          width: 64px;
+          height: 64px;
+          margin: 0 auto 0.75rem;
+          border-radius: 50%;
+          background: #dcfce7;
+          color: #16a34a;
+        }
+
+        .bk-confirm-card h3 {
+          margin: 0 0 0.35rem;
+          font-size: 1.3rem;
+          color: #0f172a;
+        }
+
+        .bk-confirm-sub {
+          margin: 0 auto 1rem;
+          max-width: 32ch;
+          font-size: 0.9rem;
+          line-height: 1.5;
+          color: #64748b;
+        }
+
+        .bk-confirm-summary {
+          display: grid;
+          gap: 6px;
+          padding: 0.75rem 0.9rem;
+          margin-bottom: 1rem;
+          border-radius: 12px;
+          background: #f8fafc;
+          text-align: left;
+        }
+
+        .bk-confirm-summary div {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          font-size: 0.84rem;
+        }
+
+        .bk-confirm-summary span {
+          color: #64748b;
+        }
+
+        .bk-confirm-summary strong {
+          color: #0f172a;
+          text-align: right;
+        }
+
+        .bk-confirm-steps {
+          display: grid;
+          gap: 8px;
+          margin: 0 0 1.1rem;
+          padding: 0;
+          list-style: none;
+          text-align: left;
+        }
+
+        .bk-confirm-steps li {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.84rem;
+          color: #475569;
+        }
+
+        .bk-confirm-steps li svg {
+          flex-shrink: 0;
+          color: #f97316;
+        }
+
+        .bk-confirm-steps li.done svg {
+          color: #16a34a;
+        }
+
+        .bk-confirm-wa {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          min-height: 50px;
+          border-radius: 12px;
+          background: #25d366;
+          color: #ffffff;
+          font-size: 1rem;
+          font-weight: 800;
+          text-decoration: none;
+          box-shadow: 0 8px 20px -6px rgba(37, 211, 102, 0.6);
+        }
+
+        .bk-confirm-wa:hover {
+          background: #1ebe5a;
+          color: #ffffff;
+        }
+
+        .bk-confirm-done {
+          margin-top: 0.6rem;
+          padding: 0.6rem 1rem;
+          border: none;
+          background: none;
+          color: #64748b;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
         .sent-msg {
           text-align: center;
           padding: 1.5rem 0;
@@ -1891,6 +2106,56 @@ const VehicleDetail = () => {
         }
       `}</style>
       {/* Progressive Booking Auth & Phone Modal */}
+      {bookingConfirm && (
+        <div className="bk-confirm-overlay" onClick={() => setBookingConfirm(null)}>
+          <div className="bk-confirm-card" role="dialog" aria-modal="true" aria-labelledby="bk-confirm-title" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="bk-confirm-close" onClick={() => setBookingConfirm(null)} aria-label="Close">
+              <X size={18} />
+            </button>
+            <div className="bk-confirm-icon">
+              <CheckCircle2 size={34} />
+            </div>
+            <h3 id="bk-confirm-title">
+              {bookingConfirm.recorded ? "Booking request sent!" : "Almost there!"}
+            </h3>
+            <p className="bk-confirm-sub">
+              {bookingConfirm.recorded
+                ? "The Yamu team has been notified by email and will confirm availability with you shortly."
+                : "We couldn't save your request just now. Send it to us on WhatsApp and we'll take it from there."}
+            </p>
+
+            <div className="bk-confirm-summary">
+              {bookingConfirm.ref && (
+                <div><span>Reference</span><strong>{bookingConfirm.ref}</strong></div>
+              )}
+              <div><span>Vehicle</span><strong>{vehicle.brand} {vehicle.model} ({vehicle.year})</strong></div>
+              <div><span>Dates</span><strong>{bookingConfirm.dates}</strong></div>
+            </div>
+
+            <ol className="bk-confirm-steps">
+              <li className="done"><Mail size={15} /> Request emailed to the Yamu team</li>
+              <li><MessageSquare size={15} /> Tap below and press Send in WhatsApp</li>
+              <li><Phone size={15} /> We confirm the car and pickup with you</li>
+            </ol>
+
+            <a
+              className="bk-confirm-wa"
+              href={bookingConfirm.waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <MessageSquare size={18} /> Send on WhatsApp
+            </a>
+            <a className="btn-call-us" href={`tel:${YAMU_HOTLINE_TEL}`}>
+              <Phone size={16} /> Call us on {YAMU_HOTLINE_DISPLAY}
+            </a>
+            <button type="button" className="bk-confirm-done" onClick={() => setBookingConfirm(null)}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
       <BookingAuthModal
         isOpen={authModalOpen}
         initialMode={authModalMode}
