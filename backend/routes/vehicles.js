@@ -7,6 +7,7 @@ const User = require("../models/User");
 const Review = require("../models/Review");
 const Rental = require("../models/Rental");
 const Booking = require("../models/Booking");
+const Bid = require("../models/Bid");
 const { auth, escapeRegex } = require("../middleware/auth");
 const { autoExpireRentals } = require("../utils/rentalExpiry");
 
@@ -454,8 +455,18 @@ router.delete("/:id", auth, async (req, res) => {
     if (!isAuthorized)
       return res.status(403).json({ msg: "Not authorized" });
 
-    await vehicle.deleteOne();
-    res.json({ msg: "Vehicle removed" });
+    const vehicleId = vehicle._id;
+    await Promise.all([
+      vehicle.deleteOne(),
+      Review.deleteMany({ vehicle: vehicleId }),
+      Rental.deleteMany({ vehicle: vehicleId }),
+      Booking.deleteMany({
+        $or: [{ vehicle: vehicleId }, { assignedVehicle: vehicleId }],
+      }),
+      Bid.deleteMany({ vehicle: vehicleId }),
+    ]);
+
+    res.json({ msg: "Vehicle and all associated records removed" });
   } catch (err) {
     console.error("Error deleting vehicle:", err);
     res.status(500).json({ msg: "Server Error" });

@@ -434,8 +434,12 @@ router.patch("/dispatch/:id/status", verifyDispatchAccess, async (req, res) => {
           const savedRental = await rental.save();
           booking.confirmedRental = savedRental._id;
 
-          // Mark vehicle rented if active
-          if (vehicleToRent.status === "active") {
+          // Mark vehicle rented only if active and the rental window is currently ongoing today
+          const now = new Date();
+          const pickupStart = new Date(booking.startDate).setHours(0, 0, 0, 0);
+          const returnEnd = new Date(booking.endDate).setHours(23, 59, 59, 999);
+          const nowTime = now.getTime();
+          if (nowTime >= pickupStart && nowTime <= returnEnd && vehicleToRent.status === "active") {
             vehicleToRent.status = "rented";
             await vehicleToRent.save();
           }

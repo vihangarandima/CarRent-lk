@@ -9,6 +9,7 @@ const Company = require("../models/Company");
 const Bid = require("../models/Bid");
 const Review = require("../models/Review");
 const Rental = require("../models/Rental");
+const Booking = require("../models/Booking");
 
 // Middleware: Auth check
 const auth = async (req, res, next) => {
@@ -345,11 +346,21 @@ router.patch("/vehicles/:id/feature", auth, adminOnly, async (req, res) => {
 // @desc    Super Admin permanently delete vehicle listing
 router.delete("/vehicles/:id", auth, adminOnly, async (req, res) => {
   try {
-    const vehicle = await Vehicle.findByIdAndDelete(req.params.id);
+    const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
-    // Also clean up associated bids
-    await Bid.deleteMany({ vehicle: req.params.id });
-    res.json({ msg: "Vehicle and associated inquiries permanently deleted." });
+
+    const vehicleId = vehicle._id;
+    await Promise.all([
+      vehicle.deleteOne(),
+      Review.deleteMany({ vehicle: vehicleId }),
+      Rental.deleteMany({ vehicle: vehicleId }),
+      Booking.deleteMany({
+        $or: [{ vehicle: vehicleId }, { assignedVehicle: vehicleId }],
+      }),
+      Bid.deleteMany({ vehicle: vehicleId }),
+    ]);
+
+    res.json({ msg: "Vehicle and all associated records permanently deleted." });
   } catch (err) {
     console.error("Error deleting vehicle:", err);
     res.status(500).json({ msg: "Server error deleting vehicle" });
@@ -435,14 +446,54 @@ router.delete("/users/:id", auth, adminOnly, async (req, res) => {
     if (req.params.id === req.user.id) {
       return res.status(400).json({ msg: "Cannot delete your own admin account" });
     }
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ msg: "User not found" });
 
-    // Cascade delete company and listings
-    await Company.deleteMany({ user: req.params.id });
-    await Vehicle.deleteMany({ owner: req.params.id });
+    const userId = user._id;
 
-    res.json({ msg: "User and associated data deleted successfully" });
+    // Find all companies owned by this user
+    const userCompanies = await Company.find({ user: userId }).select("_id");
+    const companyIds = userCompanies.map((c) => c._id);
+
+    // Find all vehicles owned by this user or their companies
+    const userVehicles = await Vehicle.find({
+      $or: [{ owner: userId }, { company: { $in: companyIds } }],
+    }).select("_id");
+    const vehicleIds = userVehicles.map((v) => v._id);
+
+    // Cascade delete all identified vehicles and their associated collections
+    if (vehicleIds.length > 0) {
+      await Promise.all([
+        Vehicle.deleteMany({ _id: { $in: vehicleIds } }),
+        Review.deleteMany({ vehicle: { $in: vehicleIds } }),
+        Rental.deleteMany({ vehicle: { $in: vehicleIds } }),
+        Booking.deleteMany({
+          $or: [
+            { vehicle: { $in: vehicleIds } },
+            { assignedVehicle: { $in: vehicleIds } },
+          ],
+        }),
+        Bid.deleteMany({ vehicle: { $in: vehicleIds } }),
+      ]);
+    }
+
+    // Delete user's companies
+    if (companyIds.length > 0) {
+      await Company.deleteMany({ _id: { $in: companyIds } });
+    }
+
+    // Clean up any remaining records authored or created directly by this user
+    await Promise.all([
+      Review.deleteMany({ user: userId }),
+      Booking.deleteMany({ user: userId }),
+      Bid.deleteMany({ renter: userId }),
+      Rental.deleteMany({ owner: userId }),
+    ]);
+
+    // Finally delete the user account
+    await user.deleteOne();
+
+    res.json({ msg: "User and all associated data deleted successfully" });
   } catch (err) {
     console.error("Error deleting user:", err);
     res.status(500).json({ msg: "Server error deleting user" });
@@ -552,9 +603,43 @@ router.patch("/companies/:id/verify", auth, adminOnly, async (req, res) => {
 // @desc    Delete company
 router.delete("/companies/:id", auth, adminOnly, async (req, res) => {
   try {
-    const company = await Company.findByIdAndDelete(req.params.id);
+    const company = await Company.findById(req.params.id);
     if (!company) return res.status(404).json({ msg: "Company not found" });
-    res.json({ msg: "Company deleted successfully" });
+
+    const companyId = company._id;
+
+    // For vehicles that have an individual owner, detach the company reference so the owner retains their listing
+    await Vehicle.updateMany(
+      { company: companyId, owner: { $ne: null } },
+      { $set: { company: null } }
+    );
+
+    // For any vehicles remaining that belonged solely to this company (no owner), cascade delete them
+    const orphanVehicles = await Vehicle.find({ company: companyId }).select("_id");
+    const orphanIds = orphanVehicles.map((v) => v._id);
+    if (orphanIds.length > 0) {
+      await Promise.all([
+        Vehicle.deleteMany({ _id: { $in: orphanIds } }),
+        Review.deleteMany({ vehicle: { $in: orphanIds } }),
+        Rental.deleteMany({ vehicle: { $in: orphanIds } }),
+        Booking.deleteMany({
+          $or: [
+            { vehicle: { $in: orphanIds } },
+            { assignedVehicle: { $in: orphanIds } },
+          ],
+        }),
+        Bid.deleteMany({ vehicle: { $in: orphanIds } }),
+      ]);
+    }
+
+    // Unset dangling company references in rentals and bookings
+    await Promise.all([
+      Rental.updateMany({ company: companyId }, { $set: { company: null } }),
+      Booking.updateMany({ company: companyId }, { $set: { company: null } }),
+    ]);
+
+    await company.deleteOne();
+    res.json({ msg: "Company deleted and fleet references cleaned up successfully" });
   } catch (err) {
     console.error("Error deleting company:", err);
     res.status(500).json({ msg: "Server error deleting company" });
