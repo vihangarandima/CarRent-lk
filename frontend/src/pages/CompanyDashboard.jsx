@@ -44,6 +44,7 @@ import {
   Wallet,
   X,
   MessageSquare,
+  Wrench,
 } from "lucide-react";
 import {
   Area,
@@ -127,6 +128,12 @@ export default function CompanyDashboard() {
   });
   const [savingRental, setSavingRental] = useState(false);
   const [showRentalDetails, setShowRentalDetails] = useState(false);
+  const [rentalModalMode, setRentalModalMode] = useState("rental"); // "rental" | "blocked"
+
+  // Incoming booking inquiries from customers (Bookings tab)
+  const [hostBookings, setHostBookings] = useState([]);
+  const [bookingsSubTab, setBookingsSubTab] = useState("incoming"); // "incoming" | "records"
+  const [respondingBookingId, setRespondingBookingId] = useState(null);
 
   const [newCompanyName, setNewCompanyName] = useState(user?.name ? `${user.name} Rentals` : "");
   const [newPhone, setNewPhone] = useState("");
@@ -164,7 +171,7 @@ export default function CompanyDashboard() {
                 if (err.response?.status === 404) return { data: null };
                 throw err;
               });
-        const [companyRes, vehiclesRes, bidsRes, rentalsRes, rentalStatsRes] = await Promise.all([
+        const [companyRes, vehiclesRes, bidsRes, rentalsRes, rentalStatsRes, hostBookingsRes] = await Promise.all([
           companyReq,
           axios.get(`${API_URL}/api/vehicles/my`, {
             headers: { "x-auth-token": token },
@@ -178,6 +185,9 @@ export default function CompanyDashboard() {
           axios.get(`${API_URL}/api/rentals/stats`, {
             headers: { "x-auth-token": token },
           }).catch(() => ({ data: null })),
+          axios.get(`${API_URL}/api/bookings/host`, {
+            headers: { "x-auth-token": token },
+          }).catch(() => ({ data: [] })),
         ]);
         if (companyRes.data) {
           setCompany(companyRes.data);
@@ -388,21 +398,59 @@ export default function CompanyDashboard() {
   };
 
   // ── Mark as Rented ──
-  const handleOpenRentalModal = (vehicle) => {
+  const handleOpenRentalModal = (vehicle, mode = "rental") => {
     setRentalModal(vehicle);
+    setRentalModalMode(mode);
     // Default return date to 3 days from now for quick fill
     const defaultReturn = new Date();
     defaultReturn.setDate(defaultReturn.getDate() + 3);
+    const blocked = mode === "blocked";
     setRentalForm({
-      customerName: "",
+      customerName: blocked ? "Maintenance / Servicing" : "",
       customerPhone: "",
       customerNIC: "",
       pickupDate: new Date().toISOString().split("T")[0],
       returnDate: defaultReturn.toISOString().split("T")[0],
-      dailyRate: vehicle.pricePerDay || "",
+      dailyRate: blocked ? "0" : vehicle.pricePerDay || "",
       notes: "",
+      isBlocked: blocked,
+      rentalType: blocked ? "maintenance" : "rental",
+      blockReason: blocked ? "Routine Servicing / Maintenance" : "",
     });
     setShowRentalDetails(false);
+  };
+
+  // "Record Rental" / "Block Dates" buttons on the Bookings tab (vehicle is picked in the modal)
+  const openQuickModal = (mode) => {
+    if (vehicles.length === 0) {
+      toast.error("Add a vehicle to your fleet first.");
+      return;
+    }
+    handleOpenRentalModal(vehicles[0], mode);
+  };
+  const handleOpenQuickRentalModal = () => openQuickModal("rental");
+  const handleOpenQuickBlockModal = () => openQuickModal("blocked");
+
+  // One-tap reply to a customer's booking inquiry
+  const handleHostResponse = async (bookingId, response) => {
+    setRespondingBookingId(bookingId);
+    try {
+      const res = await axios.patch(
+        `${API_URL}/api/bookings/${bookingId}/host-response`,
+        { response },
+        { headers: { "x-auth-token": token } }
+      );
+      setHostBookings((prev) => prev.map((b) => (b._id === bookingId ? res.data : b)));
+      toast.success(
+        response === "available"
+          ? "Thanks! Yamu will confirm the booking with the customer."
+          : "Marked as busy. Yamu will offer the customer an alternative."
+      );
+    } catch (err) {
+      toast.error(err.response?.data?.msg || "Could not save your reply. Please try again.");
+    } finally {
+      setRespondingBookingId(null);
+    }
   };
 
   const handleSubmitRental = async (e) => {
@@ -430,7 +478,11 @@ export default function CompanyDashboard() {
         setRentalStats(statsRes.data);
       } catch (_) {}
       setRentalModal(null);
-      toast.success(`${rentalModal.brand} ${rentalModal.model} marked as rented!`);
+      toast.success(
+        rentalModalMode === "blocked"
+          ? `Dates blocked for ${rentalModal.brand} ${rentalModal.model}.`
+          : `${rentalModal.brand} ${rentalModal.model} marked as rented!`
+      );
     } catch (err) {
       toast.error("Failed to record rental: " + (err.response?.data?.msg || err.message));
     } finally {
@@ -533,6 +585,9 @@ export default function CompanyDashboard() {
   const pendingRevenue = bidPendingRevenue + activeRentalRevenue;
 
   const activeRentalsCount = rentalStats?.activeRentals || 0;
+  const pendingBookingsCount = hostBookings.filter(
+    (b) => !b.hostAvailabilityStatus || b.hostAvailabilityStatus === "pending_check"
+  ).length;
   const activeBookings = activeRentalsCount + bids.filter((b) => b.status === "accepted" || b.status === "pending").length;
   const todayBookings = rentals.filter((r) => new Date(r.createdAt).toDateString() === new Date().toDateString()).length +
     bids.filter((b) => new Date(b.createdAt).toDateString() === new Date().toDateString()).length;
@@ -1836,6 +1891,28 @@ export default function CompanyDashboard() {
             </div>
 
             <form onSubmit={handleSubmitRental} className="cd-vehicle-modal-body">
+              {vehicles.length > 1 && (
+                <div className="cd-form-group" style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Vehicle</label>
+                  <select
+                    value={rentalModal._id || rentalModal.id}
+                    onChange={(e) => {
+                      const next = vehicles.find((v) => (v._id || v.id) === e.target.value);
+                      if (!next) return;
+                      setRentalModal(next);
+                      if (rentalModalMode === "rental") {
+                        setRentalForm((prev) => ({ ...prev, dailyRate: next.pricePerDay || "" }));
+                      }
+                    }}
+                  >
+                    {vehicles.map((v) => (
+                      <option key={v._id || v.id} value={v._id || v.id}>
+                        {v.brand} {v.model} ({v.year}){v.licensePlate ? ` · ${v.licensePlate}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {/* Mode Switcher Tabs */}
               <div className="cd-modal-mode-tabs">
                 <button
