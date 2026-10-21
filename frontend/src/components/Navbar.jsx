@@ -11,15 +11,16 @@ import {
 } from "../utils/session";
 import {
   Search,
-  Car,
   Star,
-  HelpCircle,
-  ShieldCheck,
   Plus,
   LayoutDashboard,
   Eye,
   LogOut,
+  MessageCircle,
 } from "lucide-react";
+
+// "Contact" opens a WhatsApp chat with the Yamu team (same line as the hotline)
+const CONTACT_URL = `https://wa.me/94702434288?text=${encodeURIComponent("Hello Yamu! I have a question.")}`;
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -127,9 +128,6 @@ const Navbar = () => {
     navigate("/");
   };
 
-  const listLabel = 
-    user?.role === "renter" ? "List Your Car" : "List Car";
-
   return (
     <>
       <nav className={`hero-nav ${scrolled ? "scrolled" : ""} ${onOrangeHeader ? "on-orange" : ""}`}>
@@ -177,16 +175,16 @@ const Navbar = () => {
                     className={location.pathname.startsWith("/vehicles") ? "active" : ""}
                     aria-current={location.pathname.startsWith("/vehicles") ? "page" : undefined}
                   >
-                    Find Cars
+                    Find a car
                   </Link>
                 </li>
                 <li>
                   <Link
-                    to="/companies"
-                    className={location.pathname === "/companies" || location.pathname.startsWith("/companies/") ? "active" : ""}
-                    aria-current={location.pathname === "/companies" || location.pathname.startsWith("/companies/") ? "page" : undefined}
+                    to={listTarget}
+                    className={location.pathname === listTarget ? "active" : ""}
+                    aria-current={location.pathname === listTarget ? "page" : undefined}
                   >
-                    Fleets
+                    List your vehicle
                   </Link>
                 </li>
                 <li>
@@ -199,22 +197,9 @@ const Navbar = () => {
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    to="/#how-it-works"
-                    className={location.hash === "#how-it-works" ? "active" : ""}
-                    aria-current={location.hash === "#how-it-works" ? "page" : undefined}
-                  >
-                    How it works
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/why-us"
-                    className={location.pathname === "/why-us" ? "active" : ""}
-                    aria-current={location.pathname === "/why-us" ? "page" : undefined}
-                  >
-                    Why us
-                  </Link>
+                  <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer">
+                    Contact
+                  </a>
                 </li>
               </ul>
             )}
@@ -246,15 +231,6 @@ const Navbar = () => {
                 <LayoutDashboard size={16} strokeWidth={2.4} />
                 <span>{hostingNav ? "My Dashboard" : "Back to Dashboard"}</span>
               </button>
-            ) : user?.role !== "admin" && !token ? (
-              <Link
-                to={listTarget}
-                className="nav-list-pill"
-                title="List a vehicle"
-              >
-                <Plus size={16} strokeWidth={2.4} />
-                <span>{listLabel}</span>
-              </Link>
             ) : null}
 
             {token ? (
@@ -472,19 +448,19 @@ const Navbar = () => {
                   <span className="mobile-nav-ic">
                     <Search size={20} strokeWidth={2.2} />
                   </span>
-                  <span>Find Cars</span>
+                  <span>Find a car</span>
                 </Link>
               </li>
               <li>
                 <Link
-                  to="/companies"
-                  className={`mobile-nav-link ${location.pathname === "/companies" || location.pathname.startsWith("/companies/") ? "active" : ""}`}
+                  to={listTarget}
+                  className={`mobile-nav-link ${location.pathname === listTarget ? "active" : ""}`}
                   onClick={closeMenu}
                 >
                   <span className="mobile-nav-ic">
-                    <Car size={20} strokeWidth={2.2} />
+                    <Plus size={20} strokeWidth={2.4} />
                   </span>
-                  <span>Fleets</span>
+                  <span>List your vehicle</span>
                 </Link>
               </li>
               <li>
@@ -496,32 +472,22 @@ const Navbar = () => {
                   <span className="mobile-nav-ic">
                     <Star size={20} strokeWidth={2.2} />
                   </span>
-                  <span>Reviews &amp; Ratings</span>
+                  <span>Reviews</span>
                 </Link>
               </li>
               <li>
-                <Link
-                  to="/#how-it-works"
+                <a
+                  href={CONTACT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="mobile-nav-link"
                   onClick={closeMenu}
                 >
                   <span className="mobile-nav-ic">
-                    <HelpCircle size={20} strokeWidth={2.2} />
+                    <MessageCircle size={20} strokeWidth={2.2} />
                   </span>
-                  <span>How it works</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/why-us"
-                  className={`mobile-nav-link ${location.pathname === "/why-us" ? "active" : ""}`}
-                  onClick={closeMenu}
-                >
-                  <span className="mobile-nav-ic">
-                    <ShieldCheck size={20} strokeWidth={2.2} />
-                  </span>
-                  <span>Why us</span>
-                </Link>
+                  <span>Contact us on WhatsApp</span>
+                </a>
               </li>
             </>
           )}
