@@ -5,17 +5,13 @@ import {
   Star,
   CheckCircle2,
   MessageSquare,
-  Navigation,
   Fuel,
   Users,
   Settings2,
   Gauge,
   Calendar,
-  CalendarX,
   AlertTriangle,
   KeyRound,
-  Shield,
-  Info,
   ChevronLeft,
   ChevronRight,
   Phone,
@@ -25,23 +21,15 @@ import {
 import axios from "axios";
 import { API_URL } from "../config";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
-import { GoogleMap, useJsApiLoader, MarkerF } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useToast } from "../context/ToastContext";
 import { useSiteConfig } from "../context/SiteConfigContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { getStoredUser } from "../utils/session";
-import ReviewSection from "../components/ReviewSection";
 import VehicleCard, { kmAllowanceLabel } from "../components/VehicleCard";
 import BookingAuthModal from "../components/BookingAuthModal";
 import { needsProfileCompletion } from "../utils/profile";
-
-const detailMapContainerStyle = {
-  width: "100%",
-  height: "100%",
-  borderRadius: "1rem",
-};
 
 // Normalise a Sri Lankan phone number to the international digits wa.me expects
 const toWhatsAppNumber = (phone) => {
@@ -88,6 +76,9 @@ const VehicleDetail = () => {
   const [bookingConfirm, setBookingConfirm] = useState(null);
   const [customerMessage, setCustomerMessage] = useState(() => searchParams.get("message") || "");
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showNote, setShowNote] = useState(() => Boolean(searchParams.get("message")));
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState("login");
   const [vehicle, setVehicle] = useState(null);
@@ -96,10 +87,6 @@ const VehicleDetail = () => {
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [similar, setSimilar] = useState([]);
-
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-  });
 
   // Helper: check if a calendar day falls within any active booked interval
   const isDateBooked = (date) => {
@@ -191,10 +178,6 @@ const VehicleDetail = () => {
     }
   }, [searchParams]);
 
-  const handleReviewAdded = (newReview) => {
-    setReviews([newReview, ...reviews]);
-  };
-
   const avgRating = reviews.length > 0 
     ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
     : "New";
@@ -226,6 +209,16 @@ const VehicleDetail = () => {
 
     if (belowMinDays) {
       toast.warning(`This vehicle is rented for at least ${minDays} days. Please choose a longer period.`, "Minimum Rental");
+      return;
+    }
+
+    if (!startDate) {
+      toast.warning("Please pick your pickup and return dates first.", "Choose Dates");
+      return;
+    }
+
+    if (!termsAccepted) {
+      toast.warning("Please accept the rental terms to continue.", "Rental Terms");
       return;
     }
 
@@ -504,6 +497,7 @@ const VehicleDetail = () => {
                   {vehicle.brand} {vehicle.model}
                 </h1>
               </div>
+              {numReviews > 0 && (
               <div className="vehicle-rating">
                 <span>
                   <Star
@@ -520,6 +514,7 @@ const VehicleDetail = () => {
                 </span>
                 <small>{numReviews} reviews</small>
               </div>
+              )}
             </div>
 
             {/* Key specs */}
@@ -553,53 +548,6 @@ const VehicleDetail = () => {
               <p>{vehicle.description || "The owner hasn't added a description yet. Message them on WhatsApp for more details."}</p>
             </div>
 
-            {/* Location Map Section */}
-            {vehicle.lat && vehicle.lng && (
-              <div className="location-map-section">
-                <h3>
-                  <Navigation size={18} className="feature-check" />
-                  Pickup & Return Location
-                </h3>
-                <p className="location-address">
-                  <MapPin size={14} /> {vehicle.location}
-                </p>
-                <div className="detail-map-wrapper">
-                  {isLoaded ? (
-                    <GoogleMap
-                      mapContainerStyle={detailMapContainerStyle}
-                      center={{ lat: Number(vehicle.lat), lng: Number(vehicle.lng) }}
-                      zoom={15}
-                      options={{
-                        streetViewControl: false,
-                        mapTypeControl: false,
-                        fullscreenControl: false,
-                        zoomControl: true,
-                        styles: [
-                          { featureType: "poi", stylers: [{ visibility: "off" }] },
-                          { featureType: "transit", stylers: [{ visibility: "off" }] },
-                        ],
-                      }}
-                    >
-                      <MarkerF
-                        position={{ lat: Number(vehicle.lat), lng: Number(vehicle.lng) }}
-                        title={`${vehicle.brand} ${vehicle.model} - Pickup Location`}
-                      />
-                    </GoogleMap>
-                  ) : (
-                    <div className="map-loading-placeholder">
-                      <Navigation size={24} color="#9ca3af" />
-                      <p>Loading Map...</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <ReviewSection 
-              vehicleId={vehicle._id} 
-              reviews={reviews} 
-              onReviewAdded={handleReviewAdded} 
-            />
           </div>
 
           {/* Right: Booking Sidebar */}
@@ -673,253 +621,218 @@ const VehicleDetail = () => {
                 </div>
               ) : (
                 <div className="booking-form">
-                  <h3>Check Availability</h3>
-                  <p>Pick your dates and confirm. The Yamu team checks availability and gets back to you.</p>
-                  
-                  <div className="calendar-wrapper">
-                    <DatePicker
-                      selected={startDate}
-                      onChange={(update) => setDateRange(update)}
-                      startDate={startDate}
-                      endDate={endDate}
-                      selectsRange
-                      inline
-                      minDate={new Date()}
-                      dayClassName={(date) => (isDateBooked(date) ? "booked-day-pill" : undefined)}
-                      renderCustomHeader={({
-                        date,
-                        decreaseMonth,
-                        increaseMonth,
-                        prevMonthButtonDisabled,
-                        nextMonthButtonDisabled,
-                      }) => (
-                        <div className="custom-calendar-header">
-                          <button
-                            type="button"
-                            onClick={decreaseMonth}
-                            disabled={prevMonthButtonDisabled}
-                            className={`calendar-nav-btn ${prevMonthButtonDisabled ? "disabled" : ""}`}
-                            aria-label="Previous Month"
-                          >
-                            <ChevronLeft size={16} />
-                          </button>
-                          <div className="calendar-header-title">
-                            {date.toLocaleString("default", { month: "long", year: "numeric" })}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={increaseMonth}
-                            disabled={nextMonthButtonDisabled}
-                            className={`calendar-nav-btn ${nextMonthButtonDisabled ? "disabled" : ""}`}
-                            aria-label="Next Month"
-                          >
-                            <ChevronRight size={16} />
-                          </button>
-                        </div>
-                      )}
-                    />
-                    <div className="calendar-legend">
-                      <span className="legend-item">
-                        <span className="legend-swatch swatch-available" /> Available
-                      </span>
-                      <span className="legend-item">
-                        <span className="legend-swatch swatch-booked" /> Booked / Unavailable
-                      </span>
-                      <span className="legend-item">
-                        <span className="legend-swatch swatch-selected" /> Selected
-                      </span>
+                  <h3>Book this vehicle</h3>
+
+                  {/* Step 1: dates */}
+                  <div className="bk-step">
+                    <div className="bk-step-head">
+                      <span className={`bk-step-num ${startDate ? "done" : ""}`}>1</span> Pick your dates
                     </div>
-                  </div>
-
-                  {belowMinDays && (
-                    <div className="min-days-warning">
-                      This vehicle is rented for at least {minDays} days. Please pick a longer period.
-                    </div>
-                  )}
-
-                  {/* Rental Terms & Requirements Upfront - Directly below calendar */}
-                  <div className="rental-requirements-card">
-                    <div className="req-card-header">
-                      <div className="req-icon-pill">
-                        <Shield size={16} />
-                      </div>
-                      <div>
-                        <h4>Rental Terms & Requirements</h4>
-                        <p>Agreed directly with host at key handover</p>
-                      </div>
-                    </div>
-
-                    <div className="req-items-list">
-                      <div className="req-item">
-                        <span className="req-item-bullet">🪪</span>
-                        <div className="req-item-body">
-                          <strong>Driver Requirements</strong>
-                          <p>Valid Sri Lankan Driving License (or International Driving Permit for tourists) + National ID (NIC) / Passport.</p>
-                        </div>
-                      </div>
-
-                      <div className="req-item">
-                        <span className="req-item-bullet">🛡️</span>
-                        <div className="req-item-body">
-                          <strong>Refundable Security Deposit</strong>
-                          <p>Settled directly with host at vehicle pickup (e.g. Rs. 25,000 – 50,000, or Passport/utility bill) & refunded upon safe return.</p>
-                        </div>
-                      </div>
-
-                      <div className="req-item">
-                        <span className="req-item-bullet">⛽</span>
-                        <div className="req-item-body">
-                          <strong>Fuel Policy: Same-to-Same</strong>
-                          <p>Return the vehicle with the exact same fuel level as recorded at pickup.</p>
-                        </div>
-                      </div>
-
-                      <div className="req-item">
-                        <span className="req-item-bullet">🛣️</span>
-                        <div className="req-item-body">
-                          <strong>Mileage Allowance</strong>
-                          <p>
-                            {kmAllowanceLabel(vehicle?.kmPerDay)}
-                            {extraKmRate > 0 ? ` (Excess: +${formatPrice(extraKmRate)}/km)` : ""}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="req-legal-disclaimer">
-                      <Info size={13} className="text-primary flex-shrink-0" style={{ marginTop: 2 }} />
-                      <p>
-                        <strong>Platform Notice:</strong> Yamu connects you with the vehicle owner/fleet. Deposit handling, physical license verification, and fuel handovers are conducted directly host-to-renter. Review our <Link to="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</Link> & <Link to="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</Link>.
-                      </p>
-                    </div>
-                  </div>
-
-
-                  {tripDays > 0 && (
-                    <div className="trip-pricing-card">
-                      <div className="trip-pricing-header">
-                        <span className="trip-duration-badge">
-                          <Calendar size={13} /> {tripDays} Day{tripDays > 1 ? "s" : ""} Trip
-                        </span>
-                        <span className="trip-total-price">
-                          {formatPrice(baseCost)}
-                        </span>
-                      </div>
-                      <div className="trip-pricing-breakdown">
-                        <div className="trip-pricing-row">
-                          <span>Base rate ({tripDays} × {formatPrice(vehicle?.pricePerDay || 0)})</span>
-                          <span>{formatPrice(baseCost)}</span>
-                        </div>
-                        <div className="trip-pricing-row">
-                          <span>Included mileage</span>
-                          <span className="trip-free-tag">{freeKm === null ? "Unlimited km" : `${freeKm.toLocaleString()} km included`}</span>
-                        </div>
-                        {extraKmRate > 0 && (
-                          <div className="trip-pricing-row">
-                            <span>Excess mileage rate</span>
-                            <span>+{formatPrice(extraKmRate)}/km</span>
+                    <p className="bk-hint">
+                      {!startDate
+                        ? "Tap your pickup date."
+                        : !endDate
+                        ? "Now tap your return date (tap the same day again for 1 day)."
+                        : "Great, your dates are set."}
+                    </p>
+                    <div className="calendar-wrapper">
+                      <DatePicker
+                        selected={startDate}
+                        onChange={(update) => setDateRange(update)}
+                        startDate={startDate}
+                        endDate={endDate}
+                        selectsRange
+                        inline
+                        minDate={new Date()}
+                        filterDate={(date) => !isDateBooked(date)}
+                        dayClassName={(date) => (isDateBooked(date) ? "booked-day-pill" : undefined)}
+                        renderCustomHeader={({
+                          date,
+                          decreaseMonth,
+                          increaseMonth,
+                          prevMonthButtonDisabled,
+                          nextMonthButtonDisabled,
+                        }) => (
+                          <div className="custom-calendar-header">
+                            <button
+                              type="button"
+                              onClick={decreaseMonth}
+                              disabled={prevMonthButtonDisabled}
+                              className={`calendar-nav-btn ${prevMonthButtonDisabled ? "disabled" : ""}`}
+                              aria-label="Previous Month"
+                            >
+                              <ChevronLeft size={16} />
+                            </button>
+                            <div className="calendar-header-title">
+                              {date.toLocaleString("default", { month: "long", year: "numeric" })}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={increaseMonth}
+                              disabled={nextMonthButtonDisabled}
+                              className={`calendar-nav-btn ${nextMonthButtonDisabled ? "disabled" : ""}`}
+                              aria-label="Next Month"
+                            >
+                              <ChevronRight size={16} />
+                            </button>
                           </div>
                         )}
-                        <div className="trip-pricing-divider" />
-                        <div className="trip-pricing-row trip-pricing-total">
-                          <strong>Total Trip Estimate</strong>
-                          <strong>{formatPrice(baseCost)}</strong>
-                        </div>
+                      />
+                      <div className="calendar-legend">
+                        <span className="legend-item">
+                          <span className="legend-swatch swatch-booked" /> Booked
+                        </span>
+                        <span className="legend-item">
+                          <span className="legend-swatch swatch-selected" /> Your dates
+                        </span>
                       </div>
                     </div>
-                  )}
 
-                  <div style={{ marginTop: "1rem" }}>
-                    <label
-                      htmlFor="booking-customer-message"
-                      style={{
-                        display: "block",
-                        fontSize: "0.8rem",
-                        fontWeight: 650,
-                        color: "#374151",
-                        marginBottom: 4,
-                      }}
-                    >
-                      Message or Special Request <span style={{ color: "#9ca3af", fontWeight: 400 }}>(Optional)</span>
-                    </label>
-                    <textarea
-                      id="booking-customer-message"
-                      rows={2}
-                      value={customerMessage}
-                      onChange={(e) => setCustomerMessage(e.target.value)}
-                      placeholder="e.g., flight pickup time, baby seat, or specific inquiries..."
-                      style={{
-                        width: "100%",
-                        padding: "8px 10px",
-                        fontSize: "0.82rem",
-                        borderRadius: "8px",
-                        border: "1px solid #d1d5db",
-                        resize: "vertical",
-                        boxSizing: "border-box",
-                        fontFamily: "inherit",
-                        lineHeight: 1.4,
-                      }}
-                    />
-                  </div>
+                    {startDate && (
+                      <div className="bk-date-summary">
+                        <div>
+                          <span>Pickup</span>
+                          <strong>{startDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</strong>
+                        </div>
+                        <div>
+                          <span>Return</span>
+                          <strong>
+                            {(endDate || startDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                          </strong>
+                        </div>
+                        <button type="button" className="bk-clear" onClick={() => setDateRange([null, null])}>
+                          Clear
+                        </button>
+                      </div>
+                    )}
 
-                  {isBookedConflict ? (
-                    <div style={{ marginTop: "1rem" }}>
+                    {belowMinDays && (
+                      <div className="min-days-warning">
+                        This vehicle is rented for at least {minDays} days. Please pick a longer period.
+                      </div>
+                    )}
+
+                    {isBookedConflict && (
                       <div className="booked-conflict-box">
                         <AlertTriangle size={18} style={{ color: "#dc2626", flexShrink: 0, marginTop: 2 }} />
                         <div>
-                          <strong>Vehicle Booked for Selected Dates</strong>
+                          <strong>Those dates include a booked day</strong>
                           <p>
-                            This vehicle is already reserved for dates overlapping your selection (
+                            It's booked{" "}
                             <b>{bookingConflict.start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</b> to{" "}
-                            <b>{bookingConflict.end.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</b>
-                            ). Please choose other dates on the calendar.
+                            <b>{bookingConflict.end.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</b>. Please pick other dates.
                           </p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        className="btn-booked-disabled"
-                        disabled
-                      >
-                        <CalendarX size={18} />
-                        <span>Booked for these dates</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn-primary"
-                      onClick={handleContact}
-                      disabled={bookingSubmitting}
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "8px",
-                        marginTop: "1rem",
-                        opacity: bookingSubmitting ? 0.7 : 1,
-                        cursor: bookingSubmitting ? "wait" : "pointer"
-                      }}
-                    >
-                      <CheckCircle2 size={18} />
-                      <span>{bookingSubmitting ? "Sending request..." : "Confirm & Book"}</span>
-                    </button>
-                  )}
+                    )}
+                  </div>
 
-                  {!isBookedConflict && (
-                    <p className="book-note">
-                      <Mail size={14} />
+                  {/* Step 2: price */}
+                  <div className="bk-step">
+                    <div className="bk-step-head">
+                      <span className={`bk-step-num ${tripDays > 0 && !isBookedConflict ? "done" : ""}`}>2</span> Your trip
+                    </div>
+                    {tripDays > 0 && !isBookedConflict ? (
+                      <>
+                        <div className="bk-trip-total">
+                          <span>
+                            {tripDays} day{tripDays > 1 ? "s" : ""} × {formatPrice(vehicle?.pricePerDay || 0)}
+                          </span>
+                          <strong>{formatPrice(baseCost)}</strong>
+                        </div>
+                        <p className="bk-trip-note">
+                          {freeKm === null ? "Unlimited km" : `${freeKm.toLocaleString()} km included`}
+                          {extraKmRate > 0 && ` · +${formatPrice(extraKmRate)} per extra km`}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="bk-hint">Pick your dates to see the total.</p>
+                    )}
+                    {showNote ? (
+                      <textarea
+                        id="booking-customer-message"
+                        className="bk-note-input"
+                        rows={2}
+                        value={customerMessage}
+                        onChange={(e) => setCustomerMessage(e.target.value)}
+                        placeholder="e.g. flight pickup time, baby seat..."
+                        aria-label="Note for the Yamu team"
+                      />
+                    ) : (
+                      <button type="button" className="bk-link" onClick={() => setShowNote(true)}>
+                        + Add a note (optional)
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Step 3: terms */}
+                  <div className="bk-step">
+                    <div className="bk-step-head">
+                      <span className={`bk-step-num ${termsAccepted ? "done" : ""}`}>3</span> Accept the rental terms
+                    </div>
+                    <label className="bk-terms-check">
+                      <input
+                        type="checkbox"
+                        checked={termsAccepted}
+                        onChange={(e) => setTermsAccepted(e.target.checked)}
+                      />
                       <span>
-                        Your request goes straight to the Yamu team by email, then WhatsApp opens so you can confirm the details with us.
+                        I agree to the rental terms below and Yamu's{" "}
+                        <Link to="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</Link>.
                       </span>
-                    </p>
-                  )}
+                    </label>
+                    <button type="button" className="bk-link" onClick={() => setShowTerms((v) => !v)} aria-expanded={showTerms}>
+                      {showTerms ? "Hide rental terms" : "View rental terms"}
+                    </button>
+                    {showTerms && (
+                      <ul className="bk-terms-list">
+                        <li>🪪 Valid driving licence (international permit for visitors) and NIC or passport at pickup.</li>
+                        <li>🛡️ A refundable security deposit is paid at pickup and returned after a safe return.</li>
+                        <li>⛽ Return the vehicle with the same fuel level.</li>
+                        <li>
+                          🛣️ {kmAllowanceLabel(vehicle?.kmPerDay)}
+                          {extraKmRate > 0 ? `; extra km at ${formatPrice(extraKmRate)}/km` : ""}.
+                        </li>
+                      </ul>
+                    )}
+                  </div>
+
+                  {(() => {
+                    const missing = !startDate
+                      ? "Pick your dates to continue."
+                      : isBookedConflict
+                      ? "Choose dates that aren't booked."
+                      : belowMinDays
+                      ? `Pick at least ${minDays} days.`
+                      : !termsAccepted
+                      ? "Tick the box to accept the rental terms."
+                      : "";
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          className="btn-primary bk-book-btn"
+                          onClick={handleContact}
+                          disabled={Boolean(missing) || bookingSubmitting}
+                        >
+                          <CheckCircle2 size={18} />
+                          <span>{bookingSubmitting ? "Sending request..." : "Confirm & Book"}</span>
+                        </button>
+                        {missing ? (
+                          <p className="bk-missing">{missing}</p>
+                        ) : (
+                          <p className="book-note">
+                            <Mail size={14} />
+                            <span>Your request goes to the Yamu team by email, then you confirm the details with us on WhatsApp.</span>
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
 
                   <a className="btn-call-us" href={`tel:${YAMU_HOTLINE_TEL}`}>
                     <Phone size={16} /> Questions? Call us on {YAMU_HOTLINE_DISPLAY}
                   </a>
-
                 </div>
               )}
             </div>
@@ -947,104 +860,6 @@ const VehicleDetail = () => {
       </div>
 
       <style>{`
-        .rental-requirements-card {
-          margin-top: 1.25rem;
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 1.25rem;
-          box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
-        }
-
-        .req-card-header {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 1rem;
-          padding-bottom: 0.75rem;
-          border-bottom: 1px solid #f1f5f9;
-        }
-
-        .req-icon-pill {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          background: rgba(249, 115, 22, 0.12);
-          color: #ea580c;
-          display: grid;
-          place-items: center;
-          flex-shrink: 0;
-        }
-
-        .req-card-header h4 {
-          font-size: 0.95rem;
-          font-weight: 750;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .req-card-header p {
-          font-size: 0.75rem;
-          color: #64748b;
-          margin: 0;
-        }
-
-        .req-items-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.85rem;
-        }
-
-        .req-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 0.65rem;
-        }
-
-        .req-item-bullet {
-          font-size: 1.1rem;
-          line-height: 1.2;
-          flex-shrink: 0;
-        }
-
-        .req-item-body strong {
-          display: block;
-          font-size: 0.82rem;
-          font-weight: 700;
-          color: #1e293b;
-          margin-bottom: 2px;
-        }
-
-        .req-item-body p {
-          font-size: 0.76rem;
-          color: #64748b;
-          line-height: 1.4;
-          margin: 0;
-        }
-
-        .req-legal-disclaimer {
-          margin-top: 1rem;
-          padding: 0.75rem;
-          background: #f8fafc;
-          border: 1px dashed #cbd5e1;
-          border-radius: 10px;
-          display: flex;
-          gap: 0.5rem;
-          align-items: flex-start;
-        }
-
-        .req-legal-disclaimer p {
-          font-size: 0.72rem;
-          color: #64748b;
-          line-height: 1.45;
-          margin: 0;
-        }
-
-        .req-legal-disclaimer a {
-          color: #f97316;
-          font-weight: 600;
-          text-decoration: underline;
-        }
 
         .detail-wrap {
           padding: 120px 0 6rem;          
@@ -1148,7 +963,7 @@ const VehicleDetail = () => {
         }
         .vehicle-rating span { font-weight: 800; font-size: 1.1rem; }
         .vehicle-rating small { color: var(--text-muted); font-size: 0.8rem; }
-        .about-section, .features-section {
+        .about-section {
           margin-bottom: 2rem;
           background: #ffffff;
           border: 1px solid var(--border);
@@ -1156,29 +971,11 @@ const VehicleDetail = () => {
           padding: 1.5rem;
           box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
-        .about-section h3, .features-section h3 {
+        .about-section h3 {
           margin-bottom: 0.75rem;
           font-size: 1.1rem;
         }
         .about-section p { line-height: 1.75; color: var(--text-muted); }
-        .features-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 0.6rem;
-          margin-top: 0.75rem;
-        }
-        .feature-tag {
-          font-size: 0.9rem;
-          font-weight: 500;
-          color: var(--text-muted);
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        .feature-check {
-          color: var(--accent);
-          flex-shrink: 0;
-        }
         .sent-check-icon {
           color: var(--accent);
           margin-bottom: 0.5rem;
@@ -1497,10 +1294,6 @@ const VehicleDetail = () => {
           display: inline-block;
           flex-shrink: 0;
         }
-        .swatch-available {
-          background: #ffffff;
-          border: 1px solid #cbd5e1;
-        }
         .swatch-booked {
           background: #fee2e2;
           border: 1px solid #ef4444;
@@ -1537,96 +1330,189 @@ const VehicleDetail = () => {
           color: #991b1b;
         }
 
-        /* Disabled Booked Button */
-        .btn-booked-disabled {
+        .bk-step {
+          padding: 0.9rem 0;
+          border-top: 1px solid #f1f5f9;
+        }
+
+        .bk-step:first-of-type {
+          border-top: none;
+          padding-top: 0.25rem;
+        }
+
+        .bk-step-head {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.92rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin-bottom: 0.35rem;
+        }
+
+        .bk-step-num {
+          display: grid;
+          place-items: center;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: #f1f5f9;
+          color: #475569;
+          font-size: 0.75rem;
+          font-weight: 800;
+          flex-shrink: 0;
+        }
+
+        .bk-step-num.done {
+          background: #16a34a;
+          color: #ffffff;
+        }
+
+        .bk-hint {
+          margin: 0 0 0.5rem;
+          font-size: 0.82rem;
+          color: #64748b;
+        }
+
+        .bk-date-summary {
+          display: grid;
+          grid-template-columns: 1fr 1fr auto;
+          align-items: center;
+          gap: 8px;
+          margin-top: 0.6rem;
+          padding: 0.6rem 0.75rem;
+          border-radius: 12px;
+          background: #fff7ed;
+          border: 1px solid #fed7aa;
+        }
+
+        .bk-date-summary span {
+          display: block;
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: #9a3412;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .bk-date-summary strong {
+          font-size: 0.88rem;
+          color: #0f172a;
+        }
+
+        .bk-clear {
+          border: none;
+          background: none;
+          color: #c2410c;
+          font-size: 0.8rem;
+          font-weight: 700;
+          cursor: pointer;
+          padding: 6px;
+        }
+
+        .bk-trip-total {
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+          gap: 10px;
+          font-size: 0.88rem;
+          color: #475569;
+        }
+
+        .bk-trip-total strong {
+          font-size: 1.15rem;
+          color: #ea580c;
+        }
+
+        .bk-trip-note {
+          margin: 2px 0 0.5rem;
+          font-size: 0.78rem;
+          color: #64748b;
+        }
+
+        .bk-link {
+          border: none;
+          background: none;
+          padding: 4px 0;
+          color: #c2410c;
+          font-size: 0.82rem;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .bk-note-input {
+          width: 100%;
+          padding: 8px 10px;
+          font-size: 16px;
+          border-radius: 10px;
+          border: 1px solid #d1d5db;
+          resize: vertical;
+          box-sizing: border-box;
+          font-family: inherit;
+          line-height: 1.4;
+        }
+
+        .bk-terms-check {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 0.65rem 0.75rem;
+          border-radius: 12px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          font-size: 0.84rem;
+          line-height: 1.45;
+          color: #334155;
+          cursor: pointer;
+        }
+
+        .bk-terms-check input {
+          width: 20px;
+          height: 20px;
+          margin-top: 1px;
+          accent-color: #16a34a;
+          flex-shrink: 0;
+          cursor: pointer;
+        }
+
+        .bk-terms-check a {
+          color: #c2410c;
+          font-weight: 700;
+        }
+
+        .bk-terms-list {
+          margin: 0.25rem 0 0;
+          padding: 0;
+          list-style: none;
+          display: grid;
+          gap: 6px;
+          font-size: 0.8rem;
+          line-height: 1.45;
+          color: #475569;
+        }
+
+        .bk-book-btn {
           width: 100%;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          padding: 11px 16px;
-          border-radius: 8px;
-          border: 1px solid #fca5a5;
-          background: #fef2f2;
-          color: #dc2626;
-          font-weight: 750;
-          font-size: 0.92rem;
+          margin-top: 0.5rem;
+        }
+
+        .bk-book-btn:disabled {
+          opacity: 0.5;
           cursor: not-allowed;
-          opacity: 0.95;
-          letter-spacing: 0.01em;
-          box-shadow: 0 1px 2px rgba(220, 38, 38, 0.08);
+          transform: none;
+          box-shadow: none;
         }
 
-        /* Dynamic Trip Pricing Card */
-        .trip-pricing-card {
-          margin-top: 1rem;
-          background: #fff7ed;
-          border: 1px solid #fed7aa;
-          border-radius: 0.85rem;
-          padding: 1rem;
-          animation: fadeIn 0.25s ease;
-        }
-
-        .trip-pricing-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 0.75rem;
-          padding-bottom: 0.5rem;
-          border-bottom: 1px dashed #fdba74;
-        }
-
-        .trip-duration-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          background: #ea580c;
-          color: #ffffff;
-          padding: 0.25rem 0.65rem;
-          border-radius: 100px;
-          font-size: 0.78rem;
-          font-weight: 700;
-        }
-
-        .trip-total-price {
-          font-size: 1.15rem;
-          font-weight: 800;
-          color: #c2410c;
-        }
-
-        .trip-pricing-breakdown {
-          display: flex;
-          flex-direction: column;
-          gap: 0.4rem;
-        }
-
-        .trip-pricing-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 0.82rem;
-          color: #475569;
-        }
-
-        .trip-free-tag {
-          color: #15803d;
-          font-weight: 700;
-          background: #dcfce7;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-size: 0.75rem;
-        }
-
-        .trip-pricing-divider {
-          height: 1px;
-          background: #fed7aa;
-          margin: 0.35rem 0;
-        }
-
-        .trip-pricing-total {
-          font-size: 0.92rem;
-          color: #0f172a;
-          padding-top: 0.2rem;
+        .bk-missing {
+          margin: 0.5rem 0 0;
+          font-size: 0.8rem;
+          font-weight: 600;
+          text-align: center;
+          color: #b45309;
         }
 
         .book-note {
@@ -1835,50 +1721,6 @@ const VehicleDetail = () => {
         .sent-msg h3 { color: var(--accent); }
         .sent-msg p { color: var(--text-muted); font-size: 0.9rem; }
 
-        /* Location Map Section */
-        .location-map-section {
-          margin-bottom: 2rem;
-          background: #ffffff;
-          border: 1px solid var(--border);
-          border-radius: 1rem;
-          padding: 1.5rem;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-          animation: fadeInMap 0.5s ease both 0.2s;
-        }
-        .location-map-section h3 {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 0.5rem;
-          font-size: 1.1rem;
-        }
-        .location-address {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          color: var(--text-muted);
-          font-size: 0.9rem;
-          margin-bottom: 1rem;
-        }
-        .detail-map-wrapper {
-          width: 100%;
-          height: 280px;
-          border-radius: 1rem;
-          overflow: hidden;
-          border: 1px solid rgba(249, 115, 22, 0.1);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-        }
-        .detail-map-loading {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-          gap: 0.75rem;
-          color: #6b7280;
-          background: #f9fafb;
-          border-radius: 1rem;
-        }
         .spinner {
           width: 40px;
           height: 40px;
@@ -1911,8 +1753,6 @@ const VehicleDetail = () => {
             margin: 0 !important;
           }
           .main-image { height: 280px; }
-          .features-grid { grid-template-columns: 1fr; }
-          .detail-map-wrapper { height: 220px; }
         }
 
         @media (max-width: 768px) {
@@ -1987,14 +1827,7 @@ const VehicleDetail = () => {
           .spec-value {
             font-size: 0.82rem !important;
           }
-          .about-section,
-          .features-section,
-          .location-map-section {
-            padding: 1.15rem !important;
-            margin-bottom: 1.25rem !important;
-            border-radius: 14px !important;
-          }
-          .features-grid {
+          .about-section {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 0.5rem !important;
           }
@@ -2004,13 +1837,6 @@ const VehicleDetail = () => {
           }
           .price {
             font-size: 1.65rem !important;
-          }
-          .rental-requirements-card {
-            padding: 1rem !important;
-            border-radius: 14px !important;
-          }
-          .req-item {
-            gap: 8px !important;
           }
           .react-datepicker {
             padding: 0.75rem 0.4rem !important;
@@ -2077,13 +1903,6 @@ const VehicleDetail = () => {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 8px !important;
             padding: 10px 12px !important;
-          }
-          .features-grid {
-            grid-template-columns: 1fr !important;
-            gap: 0.4rem !important;
-          }
-          .detail-map-wrapper {
-            height: 190px !important;
           }
           .react-datepicker__day-name {
             width: 29px !important;
