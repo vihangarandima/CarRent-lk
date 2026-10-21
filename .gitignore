@@ -6,3 +6,8 @@ dist/
 build/
 .DS_Store
 backend/uploads/
+
+# Local tooling, logs and caches
+.claude/
+*.log
+.vite/

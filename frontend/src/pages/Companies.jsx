@@ -16,22 +16,12 @@ import {
   Phone,
   SlidersHorizontal,
   Sparkles,
-  Users,
   Award,
-  ChevronRight,
-  Layers,
   X,
   Compass,
 } from "lucide-react";
 
 // Image Imports for vehicle categories & hero background
-import fleetsHeroBg from "../assets/images/fleets_hero_bg.jpg";
-import bikeeImg from "../assets/images/bikee.jpg";
-import threewheelerImg from "../assets/images/threewheeler.jpg";
-import carImg from "../assets/images/car.jpg";
-import vanImg from "../assets/images/van.jpg";
-import premiumCarImg from "../assets/images/premium_car.png";
-import miniVanImg from "../assets/images/mini_van.png";
 
 const POPULAR_CITIES = [
   "All Cities",
@@ -44,51 +34,10 @@ const POPULAR_CITIES = [
   "Gampaha",
 ];
 
-const vehicleCategoryCards = [
-  {
-    id: "all",
-    title: "All Fleets",
-    subtitle: "All vehicle types",
-    icon: <Building2 size={24} />,
-    image: null,
-  },
-  {
-    id: "car",
-    title: "Cars & Sedans",
-    subtitle: "Economical & Comfort",
-    image: carImg,
-  },
-  {
-    id: "premium-car",
-    title: "SUVs & Luxury",
-    subtitle: "Premium 4x4 & Offroad",
-    image: premiumCarImg,
-  },
-  {
-    id: "van",
-    title: "Vans & Mini Vans",
-    subtitle: "Group & Family Tours",
-    image: vanImg,
-  },
-  {
-    id: "threewheeler",
-    title: "Three-Wheelers",
-    subtitle: "Quick City Rides",
-    image: threewheelerImg,
-  },
-  {
-    id: "bicycle",
-    title: "Bicycles & Bikes",
-    subtitle: "Eco & Scenic Travel",
-    image: bikeeImg,
-  },
-];
-
 const Companies = () => {
   const [companies, setCompanies] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedCity, setSelectedCity] = useState("All Cities");
-  const [selectedType, setSelectedType] = useState("all");
   const [sortBy, setSortBy] = useState("vehicles"); // "vehicles", "rating", "newest", "name"
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();

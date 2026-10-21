@@ -4,14 +4,10 @@ import PageHero from "../components/PageHero";
 import {
   ShieldCheck,
   Scale,
-  Car,
-  KeyRound,
   FileText,
   AlertTriangle,
   Fuel,
   Gauge,
-  HelpCircle,
-  CheckCircle2,
   Phone,
   Mail,
 } from "lucide-react";

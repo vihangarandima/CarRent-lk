@@ -1,105 +1,62 @@
-# CarRents.lk
+# Yamu Car Rentals (CarRents.lk)
 
-CarRents.lk is a vehicle rental marketplace built with a Node.js/Express backend and a React/Vite frontend. The project includes support for company onboarding, vehicle listings, user authentication, Google Maps integration, image uploads, and launch-ready planning documentation.
+Vehicle rental marketplace for Sri Lanka: renters find bikes, tuk-tuks, cars and vans; private hosts and rent-a-car companies list them; the Yamu team confirms every booking.
 
-## Repository Structure
+- **Frontend:** React + Vite, deployed on Vercel (`frontend/`)
+- **Backend:** Node.js + Express + MongoDB, deployed on Render (`backend/`)
+- **Sign-in:** email + password with an emailed code, or Google (Firebase Authentication)
 
-- `backend/`
-  - Express server (`server.js`)
-  - MongoDB models and API routes
-  - Authentication, file upload, and email support
-  - `package.json` with `start` and `dev` scripts
-
-- `frontend/`
-  - React application with Vite
-  - Pages for landing, login, registration, vehicle browsing, company dashboard, and profiles
-  - Firebase auth + Google OAuth support
-  - `package.json` with `dev`, `build`, and `preview` scripts
-
-- Root documentation files
-  - `QUICK_REFERENCE.md`
-  - `LAUNCH_READINESS_REPORT.md`
-  - `LAUNCH_ACTION_PLAN.md`
-  - `ARCHITECTURE_DATABASE_OVERVIEW.md`
-  - `COMPANY_DASHBOARD_GUIDE.md`
-  - `CRITICAL_RENTAL_IMPLEMENTATION.md`
-  - `README_DOCUMENTATION.md`
-
-## Key Features
-
-- Company and user authentication flows
-- Vehicle listing and rental workflows
-- Admin/company dashboard support
-- Google Maps integration for location services
-- File uploads for vehicle images
-- Firebase and JWT authorization support
-- Backend email and payment preparation
-
-## Setup Instructions
+## Run locally
 
 ### Backend
 
-1. Open a terminal and go to the backend folder:
-   ```bash
-   cd backend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Create a `.env` file with the required environment variables. Typical variables include:
-   - `MONGO_URI`
-   - `JWT_SECRET`
-   - `FIREBASE_PROJECT_ID`
-   - `FIREBASE_CLIENT_EMAIL`
-   - `FIREBASE_PRIVATE_KEY`
-   - `EMAIL_HOST`
-   - `EMAIL_USER`
-   - `EMAIL_PASS`
-4. Start the backend server:
-   ```bash
-   npm run dev
-   ```
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Create `backend/.env`:
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `MONGO_URI` | yes | MongoDB connection string |
+| `JWT_SECRET` | yes | Signs login tokens |
+| `PORT` | no | Defaults to 5000 |
+| `CLIENT_URL` | production | Allowed site origins for CORS, comma separated |
+| `FIREBASE_PROJECT_ID` | no | Firebase project for Google sign-in (has a default) |
+| `BREVO_API_KEY` / `RESEND_API_KEY` (+ `RESEND_FROM`) / `EMAIL_USER` + `EMAIL_PASS` (+ `EMAIL_HOST`) | one of them | Sends verification codes and booking alerts |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | production | Vehicle photo storage (falls back to `backend/uploads`) |
 
 ### Frontend
 
-1. Open a terminal and go to the frontend folder:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the frontend:
-   ```bash
-   npm run dev
-   ```
-4. Open the displayed Vite URL in a browser.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## Documentation for Team Members
+Create `frontend/.env.local`:
 
-Start with `QUICK_REFERENCE.md` for a one-page overview of the current launch status and action plan.
+| Variable | Purpose |
+| --- | --- |
+| `VITE_API_URL` | Backend URL, e.g. `http://localhost:5000` |
+| `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID` | Google sign-in |
+| `VITE_GOOGLE_MAPS_API_KEY` | Maps on the listing and search pages |
 
-The repo contains several focused guides:
+## Deploy
 
-- `LAUNCH_READINESS_REPORT.md` — full assessment and launch readiness details
-- `LAUNCH_ACTION_PLAN.md` — day-by-day launch plan and priorities
-- `ARCHITECTURE_DATABASE_OVERVIEW.md` — data model, architecture, and database design
-- `COMPANY_DASHBOARD_GUIDE.md` — dashboard layout and frontend implementation guidance
-- `CRITICAL_RENTAL_IMPLEMENTATION.md` — backend rental implementation guide and API details
-- `README_DOCUMENTATION.md` — documentation index overview
+- **Frontend:** Vercel builds `frontend/` on every push to `main` (`npm run build`). `frontend/vercel.json` handles page routing and the branded Google sign-in domain.
+- **Backend:** Render runs `npm start` in `backend/`. Make sure the Render service is connected to this repository and auto-deploys `main`; after deploying, `GET /api/health` should return `{"ok":true,"db":"connected"}`.
 
-## How to Collaborate
+## Maintenance scripts (backend)
 
-- Work in feature branches and keep `main` stable.
-- Reference the relevant doc file before making changes.
-- Use the root docs to align on launch priorities and technical scope.
+Run from `backend/` with the production `.env` only when you mean to change live data:
 
-## Notes
+- `node make-admin.js <email>`: give an existing account admin access
+- `node scripts/syncSiteConfig.js`, `node scripts/syncCategories.js`, `node scripts/updateContactInfo.js`: push default site settings into the database
 
-- This repo is already configured with a backend server and a React frontend.
-- The frontend uses Firebase and Google Maps.
-- The backend uses Express, MongoDB, and Firebase Admin.
+## Accounts and privacy
 
-If you need help with environment variables or deployment, open the relevant documentation files first or ask the project owner for the current `.env` values.
+- Every account (renter, host or company) must have a mobile number, address and NIC/passport number before using the site; Google sign-ups are asked for them, plus their role, right after signing in.
+- Renters never see a lister's phone, email, address or personal name. Bookings go to the Yamu team, who confirm on WhatsApp.

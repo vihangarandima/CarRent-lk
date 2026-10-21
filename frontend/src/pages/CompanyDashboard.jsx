@@ -21,7 +21,6 @@ import {
   CheckCircle,
   ChevronRight,
   Clock,
-  CreditCard,
   Edit3,
   ExternalLink,
   Eye,
@@ -35,12 +34,8 @@ import {
   MapPin,
   Phone,
   Plus,
-  Settings,
-  Save,
   TrendingUp,
   Trash2,
-  UserCheck,
-  Users,
   Wallet,
   Wrench,
   X,
@@ -615,16 +610,11 @@ export default function CompanyDashboard() {
   const bidPendingRevenue = bids
     .filter((b) => b.status === "pending")
     .reduce((sum, b) => sum + (Number(b.offerPrice) || 0), 0);
-  const refundedRevenue = bids
-    .filter((b) => b.status === "rejected")
-    .reduce((sum, b) => sum + (Number(b.offerPrice) || 0), 0);
 
   // Combined totals
   const clearedRevenue = rentalRevenue + bidClearedRevenue;
-  const pendingRevenue = bidPendingRevenue + activeRentalRevenue;
 
   const activeRentalsCount = rentalStats?.activeRentals || 0;
-  const activeBookings = activeRentalsCount + bids.filter((b) => b.status === "accepted" || b.status === "pending").length;
   const todayBookings = rentals.filter((r) => new Date(r.createdAt).toDateString() === new Date().toDateString()).length +
     bids.filter((b) => new Date(b.createdAt).toDateString() === new Date().toDateString()).length;
   const dailyFleetRate = vehicles.reduce((sum, v) => sum + (Number(v.pricePerDay) || 0), 0);

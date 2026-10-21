@@ -287,7 +287,7 @@ router.post("/", auth, async (req, res) => {
     res.status(201).json(populated);
   } catch (err) {
     console.error("Error creating review:", err);
-    res.status(500).json({ msg: err.message || "Server error creating review" });
+    res.status(500).json({ msg: "Could not post your review. Please try again." });
   }
 });
 

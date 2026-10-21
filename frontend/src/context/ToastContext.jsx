@@ -10,7 +10,6 @@ import {
   Car,
   Trash2,
   HelpCircle,
-  Loader2,
 } from "lucide-react";
 
 const ToastContext = createContext(null);

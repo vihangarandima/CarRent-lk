@@ -4,11 +4,11 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config";
 import { useToast } from "../context/ToastContext";
-import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
+import { formatVehicleImageUrl } from "../utils/imageHelper";
 import { GoogleMap, useJsApiLoader, MarkerF, CircleF } from "@react-google-maps/api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Calendar, Map as MapIcon, Coins, Building2, ArrowLeft, ArrowRight, LocateFixed, Search, Navigation, Loader2, X } from "lucide-react";
+import { CheckCircle2, ChevronRight, ChevronDown, MapPin, Sparkles, Info, Camera, Map as MapIcon, Coins, ArrowLeft, LocateFixed, Search, Loader2, X } from "lucide-react";
 
 // Vehicle Type Images
 import bikeeImg from "../assets/images/bikee.jpg";
@@ -154,23 +154,6 @@ const vehicleDatabase = {
     "Other": []
   },
 };
-
-// Clean, high-contrast SVG icons without filter elements (prevents canvas rendering failures)
-const USER_LOC_SVG = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
-  <circle cx="18" cy="18" r="16" fill="#3b82f6" fill-opacity="0.35" stroke="#2563eb" stroke-width="2"/>
-  <circle cx="18" cy="18" r="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
-  <circle cx="18" cy="18" r="4.5" fill="#2563eb"/>
-</svg>
-`);
-
-const PIN_SVG = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="60" viewBox="0 0 48 60">
-  <path d="M24 2C12.5 2 3 11.5 3 23c0 16 21 35 21 35s21-19 21-35C45 11.5 35.5 2 24 2z" fill="#ea580c" stroke="#ffffff" stroke-width="3"/>
-  <circle cx="24" cy="22" r="8.5" fill="#ffffff"/>
-  <circle cx="24" cy="22" r="4.5" fill="#ea580c"/>
-</svg>
-`);
 
 const townToDistrictMap = {
   // Colombo District
@@ -481,7 +464,6 @@ const INITIAL_FORM_DATA = {
 
 const ListVehicle = () => {
   const [step, setStep] = useState(1);
-  const [listerType, setListerType] = useState('personal');
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
 
   const [previewUrls, setPreviewUrls] = useState(["", "", "", "", ""]);

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useParams, Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   MapPin,
   Star,
-  Check,
   CheckCircle2,
   MessageSquare,
   Navigation,
@@ -15,7 +14,6 @@ import {
   CalendarX,
   AlertTriangle,
   KeyRound,
-  Building2,
   Shield,
   Info,
   ChevronLeft,
@@ -61,11 +59,10 @@ const YAMU_HOTLINE_TEL = "+94702434288";
 const VehicleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { config } = useSiteConfig();
-  const { formatPrice, formatRawPrice, currency } = useCurrency();
+  const { formatPrice } = useCurrency();
   
   // Booking State - initialized from URL parameters if redirected back from sign in
   const [dateRange, setDateRange] = useState(() => {

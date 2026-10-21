@@ -2,16 +2,11 @@ import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import PageHero from "../components/PageHero";
 import {
-  ShieldCheck,
   Lock,
-  Eye,
   FileText,
-  UserCheck,
   Share2,
-  Trash2,
   Phone,
   Mail,
-  CheckCircle2,
 } from "lucide-react";
 
 export default function PrivacyPolicy() {

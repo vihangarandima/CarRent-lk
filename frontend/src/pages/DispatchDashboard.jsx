@@ -10,18 +10,13 @@ import {
   XCircle,
   AlertTriangle,
   Car,
-  MapPin,
   Users,
-  Settings2,
   ShieldCheck,
   Plus,
   RefreshCw,
-  ExternalLink,
-  ChevronRight,
   Sparkles,
   Info,
   Navigation,
-  ArrowRight,
   Check,
   Copy,
 } from "lucide-react";
@@ -373,7 +368,6 @@ export default function DispatchDashboard() {
   }
 
   const currentVehicle = booking.assignedVehicle || booking.vehicle;
-  const originalVehicle = booking.originalVehicle || booking.vehicle;
   const isVehicleSwapped = booking.assignedVehicle && booking.originalVehicle && booking.assignedVehicle._id !== booking.originalVehicle._id;
 
   const hostPhone = booking.company?.phone || booking.host?.phone || "";

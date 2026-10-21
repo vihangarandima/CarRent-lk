@@ -13,8 +13,6 @@ const { autoExpireRentals } = require("../utils/rentalExpiry");
 
 const VEHICLE_TYPES = ["bicycle", "threewheeler", "mini-car", "car", "premium-car", "mini-van", "van", "others"];
 
-// Both active listings and vehicles currently booked for dates remain visible in the catalog
-const PUBLIC_STATUS_FILTER = { status: { $in: ["active", "rented"] } };
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 

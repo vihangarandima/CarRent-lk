@@ -11,7 +11,6 @@ import {
   Clock,
   Car,
   Truck,
-  Zap,
   Star,
   Quote,
   ArrowRight,
@@ -20,15 +19,12 @@ import {
   CalendarCheck,
   KeyRound,
   ThumbsUp,
-  Users,
-  Fuel,
 } from "lucide-react";
 import { useSiteConfig } from "../context/SiteConfigContext";
 
 import thivinaImg from "../assets/images/thivina.png";
 import punsaraImg from "../assets/images/punsara.png";
 import nirmalImg from "../assets/images/nirmal.png";
-import wagonrBlueImg from "../assets/images/wagonr_blue.png";
 import yamuHeroPreviewImg from "../assets/images/yamu_hero_preview.png";
 import yamuPhonePreviewImg from "../assets/images/yamu_phone_preview.png";
 

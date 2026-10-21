@@ -6,7 +6,7 @@ const Vehicle = require("../models/Vehicle");
 const Rental = require("../models/Rental");
 const User = require("../models/User");
 const Company = require("../models/Company");
-const { auth, optionalAuth } = require("../middleware/auth");
+const { auth } = require("../middleware/auth");
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -292,7 +292,7 @@ router.post("/", auth, async (req, res) => {
     });
   } catch (err) {
     console.error("Error creating booking:", err);
-    res.status(500).json({ msg: "Server error while creating booking: " + err.message });
+    res.status(500).json({ msg: "Could not send your booking request. Please try again or call us." });
   }
 });
 

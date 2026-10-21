@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config";
@@ -23,12 +22,9 @@ import {
   Trash2,
   MapPin,
   CheckCircle2,
-  ShieldCheck,
-  User,
   Camera,
   Upload,
   Loader2,
-  Image as ImageIcon,
 } from "lucide-react";
 
 const Profile = () => {

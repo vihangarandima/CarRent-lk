@@ -41,7 +41,7 @@ const isRecent = (createdAt) =>
   createdAt && Date.now() - new Date(createdAt).getTime() < 14 * 24 * 60 * 60 * 1000;
 
 const VehicleCard = ({ vehicle, index = 0 }) => {
-  const { formatPrice, formatRawPrice, activeCurrency } = useCurrency();
+  const { formatPrice } = useCurrency();
   const coverImage = formatVehicleImageUrl(vehicle?.images, vehicle?.vehicleType);
 
   const year = vehicle.year;

@@ -1,19 +1,16 @@
 import PageHero from "../components/PageHero";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   Star,
   ThumbsUp,
   MessageSquare,
-  ShieldCheck,
   CheckCircle2,
   Filter,
   Search,
   Plus,
   Sparkles,
-  Car,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Calendar,
@@ -22,11 +19,8 @@ import {
   Send,
   ArrowRight,
   User,
-  HeartHandshake,
   Check,
-  Award,
   Upload,
-  Image,
   CornerDownRight,
   Loader2,
   Share2,

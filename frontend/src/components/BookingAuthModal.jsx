@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Car,
   Mail,
-  MessageSquare,
 } from "lucide-react";
 import GoogleButton from "./GoogleButton";
 

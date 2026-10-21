@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -14,12 +14,10 @@ import {
   RotateCcw,
   Sparkles,
   ExternalLink,
-  Shield,
   ShieldCheck,
   CheckCircle,
   XCircle,
   AlertTriangle,
-  Upload,
   Plus,
   Trash2,
   Edit3,
@@ -28,31 +26,18 @@ import {
   Tablet,
   Monitor,
   Search,
-  Check,
   RefreshCw,
   Phone,
   Mail,
   MapPin,
   MessageCircle,
-  Lock,
-  ArrowRight,
-  ChevronDown,
-  ChevronUp,
   Download,
-  FileCode,
-  Tag,
-  HelpCircle,
   Layers,
-  Sliders,
   DollarSign,
-  TrendingUp,
   Bell,
-  Clock,
   CheckCircle2,
   KeyRound,
-  FileText,
   X,
-  Filter,
   LogOut,
   MoreHorizontal,
   Sun,
@@ -96,11 +81,10 @@ const COLORS = ["#f97316", "#3b82f6", "#10b981", "#8b5cf6", "#ec4899", "#eab308"
 const MORE_TABS = ["cms", "companies", "rentals", "users", "reviews", "rollback"];
 
 const AdminDashboard = () => {
-  const navigate = useNavigate();
   const { toast, confirm } = useToast();
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user") || "null");
-  const { config, updateConfig, restoreSnapshot, resetToDefaults, refreshConfig } =
+  const { config, updateConfig, restoreSnapshot, resetToDefaults } =
     useSiteConfig();
 
   // Active module tab
@@ -133,7 +117,6 @@ const AdminDashboard = () => {
 
   // Analytics & Data states
   const [stats, setStats] = useState(null);
-  const [loadingStats, setLoadingStats] = useState(true);
   const [usersList, setUsersList] = useState([]);
   const [companiesList, setCompaniesList] = useState([]);
   const [vehiclesList, setVehiclesList] = useState([]);
@@ -165,7 +148,6 @@ const AdminDashboard = () => {
   const [companyVehiclesStatusFilter, setCompanyVehiclesStatusFilter] = useState("all");
 
   // Feedback banner
-  const [actionFeedback, setActionFeedback] = useState("");
 
   // Super Admin Edit Modals State
   const [editingVehicle, setEditingVehicle] = useState(null);
@@ -202,7 +184,6 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     if (!token) return;
     try {
-      setLoadingStats(true);
       const res = await axios.get(`${API_URL}/api/admin/stats`, {
         headers: { "x-auth-token": token },
       });
@@ -215,8 +196,6 @@ const AdminDashboard = () => {
       } catch (_) {}
     } catch (err) {
       console.warn("Could not fetch admin stats (demo mode or offline):", err);
-    } finally {
-      setLoadingStats(false);
     }
   };
 
@@ -962,12 +941,6 @@ const AdminDashboard = () => {
         </div>
 
         <div className="admin-header-right">
-          {actionFeedback && (
-            <div className="admin-toast-badge">
-              <Check size={14} /> {actionFeedback}
-            </div>
-          )}
-
           {pendingCount > 0 && (
             <button
               type="button"
