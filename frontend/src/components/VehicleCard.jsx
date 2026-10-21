@@ -40,8 +40,40 @@ export const kmAllowanceLabel = (kmPerDay) => {
 const isRecent = (createdAt) =>
   createdAt && Date.now() - new Date(createdAt).getTime() < 14 * 24 * 60 * 60 * 1000;
 
+const startOfDay = (value) => {
+  const d = new Date(value);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+// Is the vehicle booked today, and if so, the first free day after the current booking
+// (back-to-back bookings are skipped). Booked days are inclusive of the return date.
+export const getAvailability = (vehicle) => {
+  const today = startOfDay(new Date());
+  const ranges = (vehicle.bookedIntervals || [])
+    .filter((i) => i.pickupDate && i.returnDate)
+    .map((i) => ({ start: startOfDay(i.pickupDate), end: startOfDay(i.returnDate) }))
+    .sort((a, b) => a.start - b.start);
+
+  let freeFrom = today;
+  let bookedNow = false;
+  for (const r of ranges) {
+    if (r.start <= freeFrom && r.end >= freeFrom) {
+      bookedNow = true;
+      freeFrom = new Date(r.end);
+      freeFrom.setDate(freeFrom.getDate() + 1);
+    }
+  }
+  // Marked rented by the host without dates: booked, return date unknown
+  if (!bookedNow && vehicle.status === "rented") return { bookedNow: true, availableFrom: null };
+  return { bookedNow, availableFrom: bookedNow ? freeFrom : null };
+};
+
+const formatShortDate = (d) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+
 const VehicleCard = ({ vehicle, index = 0 }) => {
   const { formatPrice } = useCurrency();
+  const availability = getAvailability(vehicle);
   const coverImage = formatVehicleImageUrl(vehicle?.images, vehicle?.vehicleType);
 
   const year = vehicle.year;
@@ -76,13 +108,10 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
         />
         <div className="v-card-badges">
           {year && <span className="v-year-badge">{year}</span>}
-          {(vehicle.hasBookings || vehicle.status === "rented") && (
-            <span className="v-booked-dates-badge">
-              <span className="badge-text-desktop">📅 Booked for Some Dates</span>
-              <span className="badge-text-mobile">📅 Booked</span>
-            </span>
-          )}
-          {isRecent(vehicle.createdAt) && !vehicle.hasBookings && vehicle.status !== "rented" && <span className="v-new-badge">New</span>}
+          <span className={`v-avail-badge ${availability.bookedNow ? "is-booked" : "is-free"}`}>
+            {availability.bookedNow ? "Booked" : "Available"}
+          </span>
+          {isRecent(vehicle.createdAt) && !availability.bookedNow && <span className="v-new-badge">New</span>}
           {vehicle.distanceFromCenter !== null &&
             vehicle.distanceFromCenter !== undefined && (
               <span className="v-dist-badge">
@@ -139,20 +168,16 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           )}
         </div>
 
-        {(vehicle.hasBookings || vehicle.status === "rented") && (
-          <div className="v-booked-notice-line">
-            <span className="dot-booked-indicator" />
-            <span>
-              {vehicle.bookedIntervals?.[0] ? (
-                <>
-                  Reserved {new Date(vehicle.bookedIntervals[0].pickupDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {new Date(vehicle.bookedIntervals[0].returnDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · Other dates open
-                </>
-              ) : (
-                <>Reserved on certain dates · Check calendar</>
-              )}
-            </span>
-          </div>
-        )}
+        <div className={`v-avail-line ${availability.bookedNow && !availability.availableFrom ? "is-unknown" : ""}`}>
+          <span className="v-avail-dot" />
+          <span>
+            {!availability.bookedNow
+              ? "Available now"
+              : availability.availableFrom
+              ? `Available from ${formatShortDate(availability.availableFrom)}`
+              : "Booked · check dates for availability"}
+          </span>
+        </div>
 
         <div className="v-card-footer">
           <div className="v-location">
@@ -170,12 +195,12 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           </div>
         </div>
 
-        <Link to={`/vehicle/${vehicle._id}`} className={`v-cta ${vehicle.hasBookings || vehicle.status === "rented" ? "v-cta-check-dates" : ""}`}>
+        <Link to={`/vehicle/${vehicle._id}`} className={`v-cta ${availability.bookedNow ? "v-cta-check-dates" : ""}`}>
           <span className="v-cta-text-desktop">
-            {vehicle.hasBookings || vehicle.status === "rented" ? "Check Available Dates" : "View Details"}
+            {availability.bookedNow ? "Check Available Dates" : "View Details"}
           </span>
           <span className="v-cta-text-mobile">
-            {vehicle.hasBookings || vehicle.status === "rented" ? "Check Dates" : "Details"}
+            {availability.bookedNow ? "Check Dates" : "Details"}
           </span>
           <ArrowRight size={14} className="v-cta-arrow" />
         </Link>
@@ -186,31 +211,46 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           background: #16a34a; color: #fff; font-size: 0.7rem; font-weight: 800;
           padding: 3px 9px; border-radius: 999px; letter-spacing: 0.03em;
         }
-        .v-booked-dates-badge {
-          background: #ea580c; color: #fff; font-size: 0.7rem; font-weight: 750;
+        .v-avail-badge {
+          color: #fff; font-size: 0.7rem; font-weight: 750;
           padding: 3px 9px; border-radius: 999px; letter-spacing: 0.02em;
-          box-shadow: 0 2px 6px rgba(234, 88, 12, 0.35);
         }
-        .v-booked-notice-line {
+        .v-avail-badge.is-booked {
+          background: #dc2626;
+          box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
+        }
+        .v-avail-badge.is-free {
+          background: #16a34a;
+          box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35);
+        }
+        .v-avail-line {
           display: flex;
           align-items: center;
           gap: 6px;
-          background: #fff7ed;
-          border: 1px solid #ffedd5;
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
           border-radius: 6px;
           padding: 5px 8px;
           font-size: 0.74rem;
-          font-weight: 650;
-          color: #c2410c;
+          font-weight: 700;
+          color: #15803d;
           margin: 0 0 0.75rem;
         }
-        .dot-booked-indicator {
+        .v-avail-dot {
           width: 7px;
           height: 7px;
           border-radius: 999px;
-          background: #ea580c;
+          background: #16a34a;
           display: inline-block;
           flex-shrink: 0;
+        }
+        .v-avail-line.is-unknown {
+          background: #f8fafc;
+          border-color: #e2e8f0;
+          color: #475569;
+        }
+        .v-avail-line.is-unknown .v-avail-dot {
+          background: #94a3b8;
         }
         .v-cta.v-cta-check-dates {
           background: #0f172a;
@@ -476,14 +516,10 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
           letter-spacing: 0.01em;
         }
 
-        .badge-text-desktop { display: inline; }
-        .badge-text-mobile { display: none; }
         .v-cta-text-desktop { display: inline; }
         .v-cta-text-mobile { display: none; }
 
         @media (max-width: 640px) {
-          .badge-text-desktop { display: none; }
-          .badge-text-mobile { display: inline; }
           .v-cta-text-desktop { display: none; }
           .v-cta-text-mobile { display: inline; }
 
@@ -506,7 +542,7 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
             font-size: 0.62rem;
             border-radius: 5px;
           }
-          .v-booked-dates-badge {
+          .v-avail-badge {
             padding: 0.15rem 0.45rem;
             font-size: 0.62rem;
           }
@@ -583,7 +619,7 @@ const VehicleCard = ({ vehicle, index = 0 }) => {
             width: 10px;
             height: 10px;
           }
-          .v-booked-notice-line {
+          .v-avail-line {
             font-size: 0.6rem;
             padding: 3px 5px;
             margin-bottom: 0.35rem;
