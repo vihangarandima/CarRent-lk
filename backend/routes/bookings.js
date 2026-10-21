@@ -36,7 +36,7 @@ const verifyDispatchAccess = async (req, res, next) => {
     const { id } = req.params;
     if (!isValidId(id)) return res.status(404).json({ msg: "Invalid booking ID" });
 
-    const booking = await Booking.findById(id);
+    const booking = await Booking.findById(id).select("+dispatchToken +dispatchTokenExpires");
     if (!booking) return res.status(404).json({ msg: "Booking record not found" });
 
     // 1. Allow access if a valid, unexpired dispatch token is provided (query param, header, or body)
@@ -283,11 +283,11 @@ router.post("/", auth, async (req, res) => {
       }
     })();
 
+    // The dispatch link is for Yamu admins (emailed above), never for the customer
+    const { dispatchToken: _token, dispatchTokenExpires: _expires, ...customerBooking } = savedBooking.toObject();
     res.status(201).json({
       success: true,
-      booking: savedBooking,
-      dispatchToken,
-      dispatchUrl,
+      booking: customerBooking,
       whatsappMessage,
     });
   } catch (err) {

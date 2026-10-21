@@ -104,13 +104,17 @@ const BookingSchema = new mongoose.Schema(
       },
     ],
     // High-entropy cryptographically secure token for Admin Dispatch Dashboard access without login hassle
+    // Never returned by queries unless asked for (+dispatchToken): it unlocks the admin
+    // dispatch desk, so it must not reach customers through booking responses.
     dispatchToken: {
       type: String,
       required: true,
       index: true,
+      select: false,
     },
     dispatchTokenExpires: {
       type: Date,
+      select: false,
     },
     // Admin checklist & progress persistence
     hostContacted: {
