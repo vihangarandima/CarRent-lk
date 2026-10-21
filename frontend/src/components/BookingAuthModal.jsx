@@ -4,7 +4,8 @@ import axios from "axios";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { API_URL } from "../config";
-import { saveSession, updateStoredUser, getStoredUser } from "../utils/session";
+import { saveSession, getStoredUser } from "../utils/session";
+import { needsProfileCompletion, profileError } from "../utils/profile";
 import {
   X,
   Phone,
@@ -32,8 +33,11 @@ export default function BookingAuthModal({
   // Email login state
   const [emailForm, setEmailForm] = useState({ email: "", password: "" });
 
-  // Phone input state
-  const [phone, setPhone] = useState("");
+  // Required details (phone, address, NIC) for accounts that are missing them
+  const [details, setDetails] = useState(() => {
+    const u = getStoredUser() || {};
+    return { phone: u.phone || "", address: u.address || "", nic: u.nic || "" };
+  });
 
   // Sync mode if initialMode changes
   React.useEffect(() => {
@@ -44,6 +48,21 @@ export default function BookingAuthModal({
   if (!isOpen) return null;
 
   const currentUser = getStoredUser();
+
+  // Book straight away, or first collect any details the account is missing
+  const finishSignIn = (savedUser) => {
+    if (needsProfileCompletion(savedUser)) {
+      setDetails({
+        phone: savedUser.phone || "",
+        address: savedUser.address || "",
+        nic: savedUser.nic || "",
+      });
+      setMode("phone");
+      return;
+    }
+    onSuccess(savedUser);
+    onClose();
+  };
 
   // 1. Google 1-Tap Sign-In
   const handleGoogleSignIn = async () => {
@@ -59,17 +78,7 @@ export default function BookingAuthModal({
         name: user.displayName,
       });
 
-      const savedUser = saveSession(res.data);
-
-      // Check if user already has an active phone number
-      const existingPhone = String(savedUser?.phone || "").replace(/\D/g, "");
-      if (existingPhone.length >= 9) {
-        onSuccess(savedUser);
-        onClose();
-      } else {
-        // Transition seamlessly to phone number collection
-        setMode("phone");
-      }
+      finishSignIn(saveSession(res.data));
     } catch (err) {
       console.error("Google sign in error:", err);
       setError(err.response?.data?.msg || "Google sign-in could not be completed. Please try again.");
@@ -85,15 +94,7 @@ export default function BookingAuthModal({
     setLoading(true);
     try {
       const res = await axios.post(`${API_URL}/api/auth/login`, emailForm);
-      const savedUser = saveSession(res.data);
-
-      const existingPhone = String(savedUser?.phone || "").replace(/\D/g, "");
-      if (existingPhone.length >= 9) {
-        onSuccess(savedUser);
-        onClose();
-      } else {
-        setMode("phone");
-      }
+      finishSignIn(saveSession(res.data));
     } catch (err) {
       console.error("Email sign in error:", err);
       setError(err.response?.data?.msg || "Invalid email or password. Please try again.");
@@ -102,32 +103,30 @@ export default function BookingAuthModal({
     }
   };
 
-  // 3. Phone Number Submission
+  // 3. Required details submission
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length < 9 || digits.length > 12) {
-      setError("Please enter a valid Sri Lankan mobile number (e.g. 0712345678 or +94712345678).");
+    const problem = profileError(details);
+    if (problem) {
+      setError(problem);
       return;
     }
 
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${API_URL}/api/auth/update-profile`,
-        { phone: phone.trim() },
-        token ? { headers: { "x-auth-token": token } } : {}
-      );
-
-      const updatedUser = updateStoredUser({ phone: phone.trim() });
+      // People booking a car from here are renters; accounts with a role keep theirs
+      const res = await axios.post(`${API_URL}/api/auth/complete-profile`, {
+        ...details,
+        ...(getStoredUser()?.needsRole ? { role: "renter" } : {}),
+      });
+      const updatedUser = saveSession(res.data);
       onSuccess(updatedUser);
       onClose();
     } catch (err) {
-      console.error("Phone update error:", err);
-      setError(err.response?.data?.msg || "Could not save phone number. Please try again.");
+      console.error("Profile details error:", err);
+      setError(err.response?.data?.msg || "Could not save your details. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -303,7 +302,7 @@ export default function BookingAuthModal({
               {currentUser?.name ? `Welcome, ${currentUser.name.split(" ")[0]}!` : "Almost Done!"}
             </h3>
             <p className="modal-subtitle">
-              Please enter your WhatsApp/Mobile number so Yamu Concierge and the car host can verify dates and arrange key handover.
+              Add your contact details so Yamu Concierge and the car host can verify dates and arrange key handover.
             </p>
 
             {error && (
@@ -323,17 +322,43 @@ export default function BookingAuthModal({
                     required
                     autoFocus
                     placeholder="77 123 4567"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    value={details.phone}
+                    onChange={(e) => setDetails({ ...details, phone: e.target.value })}
                     disabled={loading}
                   />
                 </div>
                 <span className="field-hint">e.g. 077 123 4567 or 771234567</span>
               </div>
 
+              <div className="form-field">
+                <label>Address</label>
+                <input
+                  type="text"
+                  required
+                  autoComplete="street-address"
+                  placeholder="No. 12, Galle Road, Colombo 03"
+                  value={details.address}
+                  onChange={(e) => setDetails({ ...details, address: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="form-field">
+                <label>NIC number (or passport for visitors)</label>
+                <input
+                  type="text"
+                  required
+                  autoComplete="off"
+                  placeholder="199012345678 or 901234567V"
+                  value={details.nic}
+                  onChange={(e) => setDetails({ ...details, nic: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+
               <button type="submit" className="btn-wa-submit" disabled={loading}>
                 <CheckCircle2 size={18} />
-                <span>{loading ? "Saving Phone..." : "Continue to WhatsApp Booking"}</span>
+                <span>{loading ? "Saving..." : "Continue to WhatsApp Booking"}</span>
               </button>
             </form>
           </div>

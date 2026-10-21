@@ -9,6 +9,7 @@ import { Eye, EyeOff } from "lucide-react";
 import AuthLayout from "../components/AuthLayout";
 import GoogleButton from "../components/GoogleButton";
 import { getStoredUser, homePathFor, saveSession } from "../utils/session";
+import { needsProfileCompletion } from "../utils/profile";
 
 // Only allow in-app redirects (no "//evil.com" or absolute URLs)
 const safeRedirect = (value) =>
@@ -40,7 +41,12 @@ const Login = () => {
 
   const finishSignIn = (data) => {
     const user = saveSession(data);
-    navigate(redirectTo || homePathFor(user), { replace: true });
+    const next = redirectTo || homePathFor(user);
+    if (needsProfileCompletion(user)) {
+      navigate(`/complete-profile?redirect=${encodeURIComponent(next)}`, { replace: true });
+      return;
+    }
+    navigate(next, { replace: true });
   };
 
   const handleChange = (e) => {

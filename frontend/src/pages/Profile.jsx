@@ -47,6 +47,8 @@ const Profile = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState(user.name || "");
   const [editPhone, setEditPhone] = useState(user.phone || "");
+  const [editAddress, setEditAddress] = useState(user.address || "");
+  const [editNic, setEditNic] = useState(user.nic || "");
   const [profileImage, setProfileImage] = useState(user.profileImage || "");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef(null);
@@ -270,14 +272,16 @@ const Profile = () => {
           userId: userId,
           name: editName.trim(),
           phone: editPhone.trim(),
+          address: editAddress.trim(),
+          nic: editNic.trim(),
         },
       );
 
       // Update localStorage & state
       const updatedUser = {
         ...user,
+        ...(res.data?.user || {}),
         name: res.data?.user?.name || editName.trim(),
-        phone: editPhone.trim(),
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
@@ -309,11 +313,13 @@ const Profile = () => {
         userId: userId,
         name: editName.trim(),
         phone: editPhone.trim(),
+        address: editAddress.trim(),
+        nic: editNic.trim(),
       });
       const updatedUser = {
         ...user,
+        ...(res.data?.user || {}),
         name: res.data?.user?.name || editName.trim(),
-        phone: editPhone.trim(),
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
@@ -875,6 +881,26 @@ const Profile = () => {
                   />
                 </div>
 
+                <div className="field">
+                  <label>Address</label>
+                  <input
+                    type="text"
+                    placeholder="No. 12, Galle Road, Colombo 03"
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                  />
+                </div>
+
+                <div className="field">
+                  <label>NIC / Passport Number</label>
+                  <input
+                    type="text"
+                    placeholder="199012345678 or 901234567V"
+                    value={editNic}
+                    onChange={(e) => setEditNic(e.target.value)}
+                  />
+                </div>
+
                 <button type="submit" className="save-btn" disabled={loading}>
                   {loading ? "Saving..." : "Save Changes"}
                 </button>
@@ -959,6 +985,26 @@ const Profile = () => {
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
                   placeholder="+94 77 123 4567"
+                  className="input-field"
+                />
+              </div>
+              <div className="form-group">
+                <label>Address</label>
+                <input
+                  type="text"
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  placeholder="No. 12, Galle Road, Colombo 03"
+                  className="input-field"
+                />
+              </div>
+              <div className="form-group">
+                <label>NIC / Passport Number</label>
+                <input
+                  type="text"
+                  value={editNic}
+                  onChange={(e) => setEditNic(e.target.value)}
+                  placeholder="199012345678 or 901234567V"
                   className="input-field"
                 />
               </div>

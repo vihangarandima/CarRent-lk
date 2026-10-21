@@ -1,34 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import axios from "axios";
-import { Car, KeyRound, Building2, Eye, EyeOff, ArrowLeft, ChevronRight, MailCheck } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, ChevronRight, MailCheck } from "lucide-react";
 import AuthLayout from "../components/AuthLayout";
 import GoogleButton from "../components/GoogleButton";
 
-const ACCOUNT_TYPES = [
-  {
-    role: "renter",
-    icon: Car,
-    title: "I want to rent a vehicle",
-    desc: "Find bikes, tuk-tuks, cars and vans and contact owners directly.",
-  },
-  {
-    role: "owner",
-    icon: KeyRound,
-    title: "I want to list my own vehicle",
-    desc: "For individuals renting out one or two personal vehicles.",
-  },
-  {
-    role: "company",
-    icon: Building2,
-    title: "I run a rent-a-car company",
-    desc: "Manage your whole fleet and rentals from one dashboard.",
-  },
-];
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { API_URL } from "../config";
 import { getStoredUser, homePathFor, saveSession } from "../utils/session";
+import { ACCOUNT_TYPES, needsProfileCompletion, profileError } from "../utils/profile";
 
 // Only allow in-app redirects (no "//evil.com" or absolute URLs)
 const safeRedirect = (value) =>
@@ -70,6 +51,7 @@ const Register = () => {
     companyName: "",
     phone: "",
     address: "",
+    nic: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -188,20 +170,19 @@ const Register = () => {
   // Listers go straight to their dashboard, renters to the marketplace
   const finishSignUp = (data) => {
     const user = saveSession(data);
-    window.location.href = safeRedirect(queryParams.get("redirect")) || homePathFor(user);
+    const next = safeRedirect(queryParams.get("redirect")) || homePathFor(user);
+    // Google sign-ups still owe us phone, address and NIC
+    window.location.href = needsProfileCompletion(user)
+      ? `/complete-profile?redirect=${encodeURIComponent(next)}`
+      : next;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.phone.trim()) {
-      setError("Mobile phone number is required to create an account.");
-      return;
-    }
-
-    const phoneDigits = formData.phone.replace(/\D/g, "");
-    if (phoneDigits.length < 9 || phoneDigits.length > 12) {
-      setError("Please enter a valid mobile number, e.g. 077 123 4567.");
+    const detailsProblem = profileError(formData);
+    if (detailsProblem) {
+      setError(detailsProblem);
       return;
     }
 
@@ -389,11 +370,6 @@ const Register = () => {
               <input id="reg-company" className="y-input" type="text" name="companyName" autoComplete="organization"
                 value={formData.companyName} onChange={handleChange} placeholder="e.g. Colombo Car Rentals" required />
             </div>
-            <div className="y-field">
-              <label className="y-label" htmlFor="reg-address">City</label>
-              <input id="reg-address" className="y-input" type="text" name="address" autoComplete="address-level2"
-                value={formData.address} onChange={handleChange} placeholder="e.g. Colombo 03" />
-            </div>
           </>
         )}
 
@@ -410,6 +386,23 @@ const Register = () => {
           </label>
           <input id="reg-phone" className="y-input" type="tel" name="phone" autoComplete="tel"
             value={formData.phone} onChange={handleChange} placeholder="077 123 4567" required />
+        </div>
+
+        <div className="y-field">
+          <label className="y-label" htmlFor="reg-address">
+            {formData.role === "company" ? "Business address" : "Address"}
+          </label>
+          <input id="reg-address" className="y-input" type="text" name="address" autoComplete="street-address"
+            value={formData.address} onChange={handleChange} placeholder="No. 12, Galle Road, Colombo 03" required />
+        </div>
+
+        <div className="y-field">
+          <label className="y-label" htmlFor="reg-nic">
+            NIC number{" "}
+            <span style={{ fontWeight: 500, color: "var(--text-muted)" }}>(or passport number for visitors)</span>
+          </label>
+          <input id="reg-nic" className="y-input" type="text" name="nic" autoComplete="off"
+            value={formData.nic} onChange={handleChange} placeholder="199012345678 or 901234567V" required />
         </div>
 
         <div className="y-field">

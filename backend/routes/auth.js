@@ -9,6 +9,13 @@ const OTP = require("../models/OTP");
 const { sendEmail } = require("../utils/mailer");
 const { auth, escapeRegex } = require("../middleware/auth");
 const verifyFirebaseToken = require("../utils/verifyFirebaseToken");
+const {
+  isValidPhone,
+  isValidIdNumber,
+  isValidAddress,
+  normalizeIdNumber,
+  missingProfileFields,
+} = require("../utils/profile");
 
 // Roles a user may pick for themselves. "admin" is only granted by an existing admin.
 const SELF_ASSIGNABLE_ROLES = ["renter", "owner", "company"];
@@ -24,14 +31,30 @@ const findUserByEmail = (email) =>
 const signToken = (user) =>
   jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-const publicUser = (user) => ({
-  id: user._id,
-  name: user.name,
-  email: user.email,
-  role: user.role,
-  phone: user.phone || "",
-  profileImage: user.profileImage || "",
-});
+const publicUser = (user) => {
+  // Admins are created by hand and are not asked for personal details
+  const missing = user.role === "admin" ? [] : missingProfileFields(user);
+  const needsRole = user.roleChosen === false;
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    phone: user.phone || "",
+    address: user.address || "",
+    nic: user.nic || "",
+    profileImage: user.profileImage || "",
+    needsRole,
+    missingFields: missing,
+    profileComplete: missing.length === 0 && !needsRole,
+  };
+};
+
+const PROFILE_FIELD_ERRORS = {
+  phone: "Please enter a valid mobile number, e.g. 077 123 4567.",
+  address: "Please enter your address.",
+  nic: "Please enter a valid NIC (e.g. 199012345678 or 901234567V) or passport number.",
+};
 
 const companySummary = (company) =>
   company
@@ -41,7 +64,7 @@ const companySummary = (company) =>
 // Register
 router.post("/register", async (req, res) => {
   try {
-    const { name, password, role, companyName, phone, address, otp } = req.body;
+    const { name, password, role, companyName, phone, address, nic, otp } = req.body;
     const email = normalizeEmail(req.body.email);
     const resolvedRole = SELF_ASSIGNABLE_ROLES.includes(role) ? role : "renter";
 
@@ -56,6 +79,8 @@ router.post("/register", async (req, res) => {
         .status(400)
         .json({ msg: "Company name is required for company accounts" });
     }
+    const badField = missingProfileFields({ phone, address, nic })[0];
+    if (badField) return res.status(400).json({ msg: PROFILE_FIELD_ERRORS[badField] });
 
     // Verify OTP code (limited attempts to stop brute forcing)
     const otpError = await checkOtp(email, otp);
@@ -70,6 +95,8 @@ router.post("/register", async (req, res) => {
       email,
       password: await bcrypt.hash(password, salt),
       phone: (phone || "").trim(),
+      address: address.trim(),
+      nic: normalizeIdNumber(nic),
       role: resolvedRole,
     });
     await user.save();
@@ -321,7 +348,7 @@ router.post("/login", async (req, res) => {
 // never from client-supplied email fields.
 router.post("/firebase-login", async (req, res) => {
   try {
-    const { idToken, name, role, companyName, phone, address } = req.body;
+    const { idToken, name, role, companyName, phone, address, nic } = req.body;
 
     let claims;
     try {
@@ -341,20 +368,29 @@ router.post("/firebase-login", async (req, res) => {
     let company = null;
 
     if (!user) {
+      // Sign-ups that came from the sign-in page have no role yet: they choose it on the
+      // "complete your profile" screen together with their phone, address and NIC.
       user = new User({
         name: (name || claims.name || email.split("@")[0]).trim(),
         email,
         firebaseId,
-        phone: (phone || "").trim(),
+        phone: isValidPhone(phone) ? phone.trim() : "",
+        address: isValidAddress(address) ? address.trim() : "",
+        nic: isValidIdNumber(nic) ? normalizeIdNumber(nic) : "",
         role: requestedRole || "renter",
+        roleChosen: Boolean(requestedRole),
       });
       await user.save();
     } else {
       if (!user.firebaseId) {
         user.firebaseId = firebaseId;
       }
-      // A renter who signs up again as a lister gets upgraded (never touches admins)
-      if (
+      // A Google account that never picked a role takes the one chosen on the sign-up page
+      if (user.roleChosen === false && requestedRole) {
+        user.role = requestedRole;
+        user.roleChosen = true;
+      } else if (
+        // A renter who signs up again as a lister gets upgraded (never touches admins)
         requestedRole &&
         requestedRole !== "renter" &&
         (user.role === "renter" || (user.role === "owner" && requestedRole === "company"))
@@ -364,7 +400,7 @@ router.post("/firebase-login", async (req, res) => {
       await user.save();
     }
 
-    if (user.role === "company") {
+    if (user.role === "company" && user.roleChosen !== false) {
       company = await Company.findOne({ user: user._id }).select("_id companyName logo");
       if (!company) {
         company = new Company({
@@ -411,14 +447,7 @@ router.get("/me", auth, async (req, res) => {
     }
 
     res.json({
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone || "",
-        profileImage: user.profileImage || "",
-      },
+      user: publicUser(user),
       company: companyData,
     });
   } catch (err) {
@@ -431,12 +460,24 @@ router.get("/me", auth, async (req, res) => {
 // Users can only ever update their own profile (identity comes from the JWT)
 router.post("/update-profile", auth, async (req, res) => {
   try {
-    const { name, phone, address, profileImage } = req.body;
+    const { name, phone, address, nic, profileImage } = req.body;
     const userId = req.user.id;
 
     const updateFields = {};
     if (typeof name === "string" && name.trim()) updateFields.name = name.trim();
-    if (typeof phone === "string") updateFields.phone = phone.trim();
+    // Blank values mean "leave as is", so a half-filled form can't wipe required details
+    if (typeof phone === "string" && phone.trim()) {
+      if (!isValidPhone(phone)) return res.status(400).json({ msg: PROFILE_FIELD_ERRORS.phone });
+      updateFields.phone = phone.trim();
+    }
+    if (typeof address === "string" && address.trim()) {
+      if (!isValidAddress(address)) return res.status(400).json({ msg: PROFILE_FIELD_ERRORS.address });
+      updateFields.address = address.trim();
+    }
+    if (typeof nic === "string" && nic.trim()) {
+      if (!isValidIdNumber(nic)) return res.status(400).json({ msg: PROFILE_FIELD_ERRORS.nic });
+      updateFields.nic = normalizeIdNumber(nic);
+    }
     if (typeof profileImage === "string") updateFields.profileImage = profileImage;
 
     // Find user and update
@@ -462,18 +503,66 @@ router.post("/update-profile", auth, async (req, res) => {
 
     res.json({
       msg: "Profile updated successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone || "",
-        profileImage: user.profileImage || "",
-      },
+      user: publicUser(user),
     });
   } catch (err) {
     console.error("Update profile error:", err);
     res.status(500).json({ msg: "Failed to update profile" });
+  }
+});
+
+// Complete Profile
+// Collects the details every account needs (phone, address, NIC/passport). Accounts that
+// came from Google sign-in without a role also choose it here, once.
+router.post("/complete-profile", auth, async (req, res) => {
+  try {
+    const { role, phone, address, nic, companyName } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    const badField = missingProfileFields({ phone, address, nic })[0];
+    if (badField) return res.status(400).json({ msg: PROFILE_FIELD_ERRORS[badField] });
+
+    if (user.roleChosen === false) {
+      if (!SELF_ASSIGNABLE_ROLES.includes(role)) {
+        return res.status(400).json({ msg: "Please choose how you'll use Yamu." });
+      }
+      if (role === "company" && !(companyName || "").trim()) {
+        return res.status(400).json({ msg: "Please enter your company name." });
+      }
+      user.role = role;
+      user.roleChosen = true;
+    }
+
+    user.phone = phone.trim();
+    user.address = address.trim();
+    user.nic = normalizeIdNumber(nic);
+    await user.save();
+
+    let company = null;
+    if (user.role === "company") {
+      company = await Company.findOne({ user: user._id }).select("_id companyName logo");
+      if (!company) {
+        company = new Company({
+          user: user._id,
+          companyName: (companyName || "").trim() || `${user.name} Rentals`,
+          contactEmail: user.email,
+          phone: user.phone,
+          address: user.address,
+        });
+        await company.save();
+      }
+    }
+
+    // The role lives in the token, so hand back a fresh one
+    res.json({
+      token: signToken(user),
+      user: publicUser(user),
+      company: companySummary(company),
+    });
+  } catch (err) {
+    console.error("Complete profile error:", err);
+    res.status(500).json({ msg: "Could not save your details. Please try again." });
   }
 });
 

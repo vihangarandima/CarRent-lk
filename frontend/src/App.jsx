@@ -1,10 +1,12 @@
-import React, { Suspense, lazy, useLayoutEffect } from "react";
+import React, { Suspense, lazy, useEffect, useLayoutEffect, useState } from "react";
+import axios from "axios";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import Navbar from "./components/Navbar";
@@ -18,9 +20,13 @@ import { ToastProvider } from "./context/ToastContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import {
   DASHBOARD_PATH,
+  getStoredUser,
   isBrowsingAsCustomer,
   isLister,
+  updateStoredUser,
 } from "./utils/session";
+import { needsProfileCompletion } from "./utils/profile";
+import { API_URL } from "./config";
 
 // Every page except the home page loads on demand, so first visit downloads far less code
 const Splash = lazy(() => import("./pages/Splash"));
@@ -42,6 +48,7 @@ const QuickAddFleet = lazy(() => import("./pages/QuickAddFleet"));
 const EarningsCalculator = lazy(() => import("./pages/EarningsCalculator"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
 
 const PageLoader = () => (
   <div style={{ minHeight: "60vh", display: "grid", placeItems: "center" }}>
@@ -69,6 +76,49 @@ function ListerRedirect({ children }) {
   return children;
 }
 
+// Pages a signed-in user can still open before finishing their profile
+const PROFILE_GATE_EXEMPT = [
+  "/complete-profile",
+  "/login",
+  "/register",
+  "/splash",
+  "/terms",
+  "/terms-of-service",
+  "/privacy",
+  "/privacy-policy",
+];
+
+// Signed-in users who are missing a role, phone, address or NIC finish their profile first.
+// The stored user is refreshed from the server once per visit, so accounts created
+// before these details were required are caught too.
+function ProfileGate() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [user, setUser] = useState(getStoredUser);
+
+  useEffect(() => {
+    const sync = () => setUser(getStoredUser());
+    window.addEventListener("user-updated", sync);
+    if (localStorage.getItem("token")) {
+      axios
+        .get(`${API_URL}/api/auth/me`)
+        .then((res) => res.data?.user && updateStoredUser(res.data.user))
+        .catch(() => {});
+    }
+    return () => window.removeEventListener("user-updated", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!localStorage.getItem("token") || PROFILE_GATE_EXEMPT.includes(location.pathname)) return;
+    if (needsProfileCompletion(user)) {
+      const here = location.pathname + location.search;
+      navigate(`/complete-profile?redirect=${encodeURIComponent(here)}`, { replace: true });
+    }
+  }, [user, location.pathname, location.search, navigate]);
+
+  return null;
+}
+
 // Old dashboard URL -> new one, keeping any ?query
 function LegacyDashboardRedirect() {
   const location = useLocation();
@@ -81,6 +131,7 @@ function AppContent() {
   const hideNavAndFooter = [
     "/login",
     "/register",
+    "/complete-profile",
     "/splash",
     "/choose-listing-type",
     "/select-role",
@@ -91,6 +142,7 @@ function AppContent() {
   const hideFloatingWidgets = [
     "/login",
     "/register",
+    "/complete-profile",
     "/splash",
     "/admin",
     "/company-dashboard",
@@ -227,6 +279,7 @@ function AppContent() {
         }
       `}</style>
 
+      <ProfileGate />
       <main>
         <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -237,6 +290,7 @@ function AppContent() {
           <Route path="/list-my-car" element={<ListVehicle />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/complete-profile" element={<CompleteProfile />} />
           <Route path="/profile" element={isLister() ? <Navigate to={DASHBOARD_PATH} replace /> : <Profile />} />
           <Route path="/why-us" element={<WhyUs />} />
           <Route path="/splash" element={<Splash />} />

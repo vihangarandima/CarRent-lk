@@ -8,11 +8,16 @@ const UserSchema = new mongoose.Schema({
   phone: { type: String, default: "" },
   profileImage: { type: String, default: "" },
   location: { type: String, default: "" },
+  address: { type: String, default: "" },
+  // NIC for Sri Lankans, passport number for visitors
+  nic: { type: String, default: "" },
   role: {
     type: String,
     enum: ["owner", "renter", "company", "admin"],
     default: "renter",
   },
+  // False only for Google accounts created from the sign-in page, which never picked a role
+  roleChosen: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
 });
 

@@ -35,6 +35,7 @@ import { getStoredUser } from "../utils/session";
 import ReviewSection from "../components/ReviewSection";
 import VehicleCard, { kmAllowanceLabel } from "../components/VehicleCard";
 import BookingAuthModal from "../components/BookingAuthModal";
+import { needsProfileCompletion } from "../utils/profile";
 
 const detailMapContainerStyle = {
   width: "100%",
@@ -232,9 +233,9 @@ const VehicleDetail = () => {
       return;
     }
 
-    // 2. Check for missing phone number (e.g. users signed in via Google)
+    // 2. Collect any missing details first (phone, address, NIC — e.g. Google sign-ups)
     const phoneDigits = String(viewer.phone || "").replace(/\D/g, "");
-    if (phoneDigits.length < 9) {
+    if (phoneDigits.length < 9 || needsProfileCompletion(viewer)) {
       setAuthModalMode("phone");
       setAuthModalOpen(true);
       return;

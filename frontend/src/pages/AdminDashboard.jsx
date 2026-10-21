@@ -4354,7 +4354,7 @@ const AdminDashboard = () => {
                       <tr>
                         <th>Name</th>
                         <th>Email</th>
-                        <th>Phone</th>
+                        <th>Phone & ID</th>
                         <th>Current Role</th>
                         <th>Change Role</th>
                         <th>Joined Date</th>
@@ -4367,7 +4367,11 @@ const AdminDashboard = () => {
                           <tr key={u._id}>
                             <td className="font-semibold">{u.name}</td>
                             <td className="text-muted">{u.email}</td>
-                            <td className="text-muted">{u.phone || "—"}</td>
+                            <td className="text-muted">
+                              <div>{u.phone || "—"}</div>
+                              <div className="text-xs">NIC/Passport: {u.nic || "missing"}</div>
+                              <div className="text-xs">{u.address || "No address"}</div>
+                            </td>
                             <td>
                               <span className={`role-tag role-${u.role}`}>{u.role}</span>
                             </td>
