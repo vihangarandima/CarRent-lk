@@ -458,9 +458,10 @@ export default function CompanyDashboard() {
       );
       // Add rental to list
       setRentals((prev) => [res.data, ...prev]);
-      // Update vehicle status locally to 'rented'
+      // Update vehicle status locally based on backend response (e.g. remains 'active' if future rental)
+      const returnedVeh = res.data?.vehicle;
       setVehicles((prev) =>
-        prev.map((v) => ((v._id || v.id) === vehicleId ? { ...v, status: "rented" } : v))
+        prev.map((v) => ((v._id || v.id) === vehicleId ? { ...v, status: returnedVeh?.status || v.status } : v))
       );
       // Refresh rental stats
       try {
@@ -470,7 +471,11 @@ export default function CompanyDashboard() {
         setRentalStats(statsRes.data);
       } catch (_) {}
       setRentalModal(null);
-      toast.success(`${rentalModal.brand} ${rentalModal.model} marked as rented!`);
+      toast.success(
+        returnedVeh?.status === "rented"
+          ? `${rentalModal.brand} ${rentalModal.model} marked as rented!`
+          : `Rental reserved for ${rentalModal.brand} ${rentalModal.model}!`
+      );
     } catch (err) {
       toast.error("Failed to record rental: " + (err.response?.data?.msg || err.message));
     } finally {

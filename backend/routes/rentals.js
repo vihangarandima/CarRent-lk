@@ -191,8 +191,8 @@ router.post("/", auth, async (req, res) => {
     if (!isOwner && req.user.role !== "admin") {
       return res.status(403).json({ msg: "Not authorized - vehicle doesn't belong to you" });
     }
-    if (vehicle.status === "rented") {
-      return res.status(400).json({ msg: "This vehicle is already rented. Mark that rental as returned first." });
+    if (vehicle.status === "flagged") {
+      return res.status(400).json({ msg: "Cannot create rental: vehicle has been flagged by an administrator." });
     }
 
     // Calculate total days and amount
@@ -204,6 +204,40 @@ router.post("/", auth, async (req, res) => {
     if (returnD < pickup) {
       return res.status(400).json({ msg: "Return date must be on or after the pickup date." });
     }
+
+    const pickupStart = new Date(pickup).setHours(0, 0, 0, 0);
+    const returnEnd = new Date(returnD).setHours(23, 59, 59, 999);
+
+    // Collision check 1: Active rentals or blocks overlapping the selected date range
+    const overlappingRental = await Rental.findOne({
+      vehicle: vehicleId,
+      status: "active",
+      pickupDate: { $lte: new Date(returnEnd) },
+      returnDate: { $gte: new Date(pickupStart) },
+    });
+    if (overlappingRental) {
+      const fromStr = overlappingRental.pickupDate ? new Date(overlappingRental.pickupDate).toISOString().split("T")[0] : "";
+      const toStr = overlappingRental.returnDate ? new Date(overlappingRental.returnDate).toISOString().split("T")[0] : "";
+      return res.status(400).json({
+        msg: `Vehicle already has an active rental/block from ${fromStr} to ${toStr}. Please choose different dates.`,
+      });
+    }
+
+    // Collision check 2: Active bookings overlapping the selected date range
+    const overlappingBooking = await Booking.findOne({
+      $or: [{ vehicle: vehicleId }, { assignedVehicle: vehicleId }],
+      status: { $in: ["confirmed", "pending", "reviewing"] },
+      startDate: { $lte: new Date(returnEnd) },
+      endDate: { $gte: new Date(pickupStart) },
+    });
+    if (overlappingBooking) {
+      const fromStr = overlappingBooking.startDate ? new Date(overlappingBooking.startDate).toISOString().split("T")[0] : "";
+      const toStr = overlappingBooking.endDate ? new Date(overlappingBooking.endDate).toISOString().split("T")[0] : "";
+      return res.status(400).json({
+        msg: `Vehicle already has a booking from ${fromStr} to ${toStr}. Please choose different dates.`,
+      });
+    }
+
     const diffMs = Math.abs(new Date(returnD).setHours(0, 0, 0, 0) - new Date(pickup).setHours(0, 0, 0, 0));
     const totalDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
     const isBlockingMode = Boolean(isBlocked || rentalType === "maintenance" || rentalType === "personal" || rentalType === "other");
@@ -245,16 +279,22 @@ router.post("/", auth, async (req, res) => {
 
     const rental = await newRental.save();
 
-    // Mark the vehicle as "rented" (hides it from public listings) unless an admin flagged it
-    if (vehicle.status !== "flagged") {
+    // Date-aware vehicle status handling:
+    // Only mark status as "rented" if the rental is currently ongoing today.
+    // If it's for a future date range, the vehicle stays "active" so it remains discoverable in public listings.
+    const now = new Date();
+    const nowTime = now.getTime();
+    const isCurrentlyOngoing = nowTime >= pickupStart && nowTime <= returnEnd;
+
+    if (isCurrentlyOngoing && vehicle.status !== "flagged" && vehicle.status !== "rejected") {
       vehicle.status = "rented";
       await vehicle.save();
     }
 
-    // Populate vehicle data before returning
+    // Populate vehicle data before returning (including status)
     const populatedRental = await Rental.findById(rental._id).populate(
       "vehicle",
-      "brand model year pricePerDay images vehicleType location"
+      "brand model year pricePerDay images vehicleType location status"
     );
 
     res.json(populatedRental);
@@ -291,11 +331,21 @@ router.put("/:id", auth, async (req, res) => {
       }
       rental.status = status;
 
-      // The vehicle is free again — but don't undo a pause or an admin flag
+      // The vehicle is free again if no other rental is currently ongoing today — don't undo a pause or admin flag
       const vehicle = await Vehicle.findById(rental.vehicle);
       if (vehicle && vehicle.status === "rented") {
-        vehicle.status = "active";
-        await vehicle.save();
+        const now = new Date();
+        const otherOngoingRental = await Rental.findOne({
+          _id: { $ne: rental._id },
+          vehicle: rental.vehicle,
+          status: "active",
+          pickupDate: { $lte: now },
+          returnDate: { $gte: now },
+        });
+        if (!otherOngoingRental) {
+          vehicle.status = "active";
+          await vehicle.save();
+        }
       }
     }
     if (extraKmCharge !== undefined) {
@@ -308,7 +358,7 @@ router.put("/:id", auth, async (req, res) => {
     const updated = await rental.save();
     const populated = await Rental.findById(updated._id).populate(
       "vehicle",
-      "brand model year pricePerDay images vehicleType location"
+      "brand model year pricePerDay images vehicleType location status"
     );
     res.json(populated);
   } catch (err) {
@@ -336,12 +386,22 @@ router.delete("/:id", auth, async (req, res) => {
       return res.status(403).json({ msg: "Not authorized" });
     }
 
-    // If was active, set vehicle back to active
+    // If was active, check if any other rental is currently ongoing today
     if (rental.status === "active") {
       const vehicle = await Vehicle.findById(rental.vehicle);
       if (vehicle && vehicle.status === "rented") {
-        vehicle.status = "active";
-        await vehicle.save();
+        const now = new Date();
+        const otherOngoingRental = await Rental.findOne({
+          _id: { $ne: rental._id },
+          vehicle: rental.vehicle,
+          status: "active",
+          pickupDate: { $lte: now },
+          returnDate: { $gte: now },
+        });
+        if (!otherOngoingRental) {
+          vehicle.status = "active";
+          await vehicle.save();
+        }
       }
     }
 
