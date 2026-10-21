@@ -25,6 +25,7 @@ import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import { useCurrency } from "../context/CurrencyContext";
 import { useToast } from "../context/ToastContext";
 import { getStoredUser, clearSession } from "../utils/session";
+import { formatGearbox } from "../utils/vehicleText";
 
 const toWhatsAppNumber = (phone) => {
   if (!phone) return "";
@@ -550,7 +551,7 @@ export default function DispatchDashboard() {
                     {isVehicleSwapped && <span className="badge-swapped">Alternative Assigned</span>}
                   </div>
                   <p className="text-xs text-muted">
-                    {currentVehicle?.vehicleType?.toUpperCase()} · {currentVehicle?.transmission} · {currentVehicle?.location || "Colombo"}
+                    {currentVehicle?.vehicleType?.toUpperCase()} · {formatGearbox(currentVehicle?.transmission)} · {currentVehicle?.location || "Colombo"}
                   </p>
                   <p className="text-sm font-semibold text-primary mt-1">
                     Rate: {formatPrice(currentVehicle?.pricePerDay)} / day

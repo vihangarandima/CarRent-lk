@@ -8,7 +8,7 @@ export const ACCOUNT_TYPES = [
     role: "renter",
     icon: Car,
     title: "I want to rent a vehicle",
-    desc: "Find bikes, tuk-tuks, cars and vans and contact owners directly.",
+    desc: "Find bikes, tuk-tuks, cars and vans and book them in minutes.",
   },
   {
     role: "owner",

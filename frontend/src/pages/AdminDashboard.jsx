@@ -63,6 +63,7 @@ import {
 } from "../context/SiteConfigContext";
 import { useToast } from "../context/ToastContext";
 import FestivalAccessoriesManager from "../components/festivals/FestivalAccessoriesManager";
+import { formatFuel, formatGearbox } from "../utils/vehicleText";
 
 const VEHICLE_TYPES = [
   { id: "bicycle", label: "Bicycle / Bike" },
@@ -3269,9 +3270,9 @@ const AdminDashboard = () => {
                                 <div className="approval-vehicle-meta">
                                   <span className="type-badge">{v.vehicleType}</span>
                                   <span>•</span>
-                                  <span>{v.transmission}</span>
+                                  <span>{formatGearbox(v.transmission)}</span>
                                   <span>•</span>
-                                  <span>{v.fuelType}</span>
+                                  <span>{formatFuel(v.fuelType)}</span>
                                   <span>•</span>
                                   <span>{v.seats} Seats</span>
                                   <span>•</span>
@@ -3540,7 +3541,7 @@ const AdminDashboard = () => {
                                     {v.brand} {v.model} ({v.year})
                                   </div>
                                   <div className="text-muted text-xs">
-                                    {v.transmission} • {v.fuelType} • {v.seats} seats
+                                    {formatGearbox(v.transmission)} • {formatFuel(v.fuelType)} • {v.seats} seats
                                   </div>
                                 </div>
                               </div>
@@ -5222,9 +5223,9 @@ const AdminDashboard = () => {
                             </div>
 
                             <div className="cv-specs-row text-xs text-muted">
-                              <span>{v.transmission}</span>
+                              <span>{formatGearbox(v.transmission)}</span>
                               <span>•</span>
-                              <span>{v.fuelType}</span>
+                              <span>{formatFuel(v.fuelType)}</span>
                               <span>•</span>
                               <span>{v.seats} seats</span>
                             </div>

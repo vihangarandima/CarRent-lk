@@ -113,7 +113,7 @@ const Companies = () => {
         badge="Rent-a-car companies"
         title="Rent from Sri Lanka's"
         highlight="rental companies"
-        subtitle="Browse each company's fleet, compare vehicles and contact them directly on WhatsApp. No middleman fees."
+        subtitle="Browse each company's fleet, compare vehicles and book through Yamu in minutes."
       >
         <div className="y-fleet-search">
           <Search size={20} className="y-fleet-search-icon" />

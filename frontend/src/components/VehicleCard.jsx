@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import { useCurrency } from "../context/CurrencyContext";
+import { formatFuel, formatGearbox } from "../utils/vehicleText";
 
 const TYPE_LABELS = {
   bicycle: "Bike",
@@ -156,12 +157,12 @@ const VehicleCard = ({ vehicle, index = 0, searchDates = null }) => {
             )}
             {vehicle.fuelType && (
               <span>
-                <Fuel size={14} /> {vehicle.fuelType}
+                <Fuel size={14} /> {formatFuel(vehicle.fuelType)}
               </span>
             )}
             {vehicle.transmission && (
               <span>
-                <Settings2 size={14} /> {vehicle.transmission}
+                <Settings2 size={14} /> {formatGearbox(vehicle.transmission)}
               </span>
             )}
         </div>

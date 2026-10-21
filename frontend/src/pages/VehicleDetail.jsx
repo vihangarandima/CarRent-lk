@@ -30,6 +30,7 @@ import { getStoredUser } from "../utils/session";
 import VehicleCard, { kmAllowanceLabel } from "../components/VehicleCard";
 import BookingAuthModal from "../components/BookingAuthModal";
 import { needsProfileCompletion } from "../utils/profile";
+import { formatFuel, formatGearbox } from "../utils/vehicleText";
 
 // Normalise a Sri Lankan phone number to the international digits wa.me expects
 const toWhatsAppNumber = (phone) => {
@@ -522,9 +523,9 @@ const VehicleDetail = () => {
               {[
                 { icon: KeyRound, label: "RENT MODE", value: rentModeLabel },
                 { icon: Calendar, label: "YEAR", value: vehicle.year || "—" },
-                { icon: Settings2, label: "GEARBOX", value: vehicle.transmission || "Ask owner" },
-                { icon: Fuel, label: "FUEL", value: vehicle.fuelType || "Ask owner" },
-                { icon: Users, label: "SEATS", value: vehicle.seats ? `${vehicle.seats} seats` : "Ask owner" },
+                { icon: Settings2, label: "GEARBOX", value: formatGearbox(vehicle.transmission) || "Ask us" },
+                { icon: Fuel, label: "FUEL", value: formatFuel(vehicle.fuelType) || "Ask us" },
+                { icon: Users, label: "SEATS", value: vehicle.seats ? `${vehicle.seats} seats` : "Ask us" },
                 { icon: Gauge, label: "MILEAGE", value: kmAllowanceLabel(vehicle.kmPerDay) },
                 {
                   icon: Gauge,
@@ -545,7 +546,7 @@ const VehicleDetail = () => {
 
             <div className="about-section">
               <h3>About This Vehicle</h3>
-              <p>{vehicle.description || "The owner hasn't added a description yet. Message them on WhatsApp for more details."}</p>
+              <p>{vehicle.description || "No description yet. Ask us on WhatsApp and we'll get the details for you."}</p>
             </div>
 
           </div>

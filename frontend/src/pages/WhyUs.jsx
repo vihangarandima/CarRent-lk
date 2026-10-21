@@ -48,7 +48,7 @@ const WhyUs = () => {
         highlight={whyUs?.title ? undefined : "Yamu Car Rentals?"}
         subtitle={
           whyUs?.subtitle ||
-          "A simple way to find a vehicle in Sri Lanka and deal directly with the people who own it."
+          "A simple way to find a vehicle in Sri Lanka and book it in minutes, with the Yamu team confirming every booking."
         }
       />
 

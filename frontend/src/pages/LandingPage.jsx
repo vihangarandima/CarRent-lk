@@ -413,8 +413,8 @@ const LandingPage = () => {
                 {[
                   {
                     icon: ShieldCheck,
-                    title: "Deal directly with owners",
-                    desc: "Message the owner on WhatsApp and agree everything before you pay.",
+                    title: "We handle the booking",
+                    desc: "Pick your dates and the Yamu team confirms the car and pickup with you on WhatsApp.",
                   },
                   {
                     icon: HeartHandshake,

@@ -45,6 +45,26 @@
   box-sizing: border-box;
 }
 
+/* Number fields: no browser spinner arrows anywhere on the site */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Phones: 16px text in fields stops iOS zooming the page while typing */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
 html {
   font-size: 16px;
   scroll-behavior: smooth;

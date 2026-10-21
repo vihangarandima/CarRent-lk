@@ -6,7 +6,7 @@ import fleetImage from "../assets/images/yamu_fleet_cutout.png";
 
 const DEFAULT_POINTS = [
   "Bikes, tuk-tuks, cars and vans across Sri Lanka",
-  "Contact owners directly on WhatsApp",
+  "Book in minutes, confirmed by the Yamu team",
   "No middleman fees",
 ];
 
