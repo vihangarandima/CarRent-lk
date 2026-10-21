@@ -576,6 +576,8 @@ const LandingPage = () => {
         .landing-page {
           position: relative;
           background: linear-gradient(180deg, #fffcf7 0%, #fff7ec 60%, #fff4e0 100%);
+          /* Sections slide in from the sides; never let that widen the page (iOS ignores body overflow) */
+          overflow-x: clip;
         }
 
         .section {

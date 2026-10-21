@@ -496,7 +496,7 @@ const Hero = () => {
           top: 0;
           left: 0;
           right: 0;
-          font-family: 'Changa One', 'Anton', 'Oswald', cursive, sans-serif;
+          font-family: 'Changa One', Impact, 'Arial Black', sans-serif;
           font-size: clamp(9.5rem, 17vw, 15.5rem);
           font-weight: 400;
           letter-spacing: -0.02em;
