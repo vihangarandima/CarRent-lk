@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -464,7 +464,17 @@ const INITIAL_FORM_DATA = {
 
 const ListVehicle = () => {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  // The address saved at sign-up fills the pickup location; hosts can still change it
+  const savedAddress = useRef(
+    (() => {
+      try {
+        return (JSON.parse(localStorage.getItem("user") || "null")?.address || "").trim();
+      } catch {
+        return "";
+      }
+    })()
+  ).current;
+  const [formData, setFormData] = useState(() => ({ ...INITIAL_FORM_DATA, location: savedAddress }));
 
   const [previewUrls, setPreviewUrls] = useState(["", "", "", "", ""]);
   const [uploadingSlots, setUploadingSlots] = useState({});
@@ -558,7 +568,7 @@ const ListVehicle = () => {
   };
 
   const handleResetForm = () => {
-    setFormData(INITIAL_FORM_DATA);
+    setFormData({ ...INITIAL_FORM_DATA, location: savedAddress });
     setPreviewUrls(["", "", "", "", ""]);
     setUploadingSlots({});
     setCustomBrand("");
@@ -979,6 +989,19 @@ const ListVehicle = () => {
       setIsSearching(false);
     }
   };
+
+  // Put the map pin on the pre-filled address once Maps is ready (unless the host already moved it)
+  const prefillPinned = useRef(false);
+  useEffect(() => {
+    if (prefillPinned.current || !isLoaded || !savedAddress) return;
+    prefillPinned.current = true;
+    const untouched =
+      formData.location === savedAddress &&
+      formData.lat === INITIAL_FORM_DATA.lat &&
+      formData.lng === INITIAL_FORM_DATA.lng;
+    if (untouched) handleSearchAddress(savedAddress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded]);
 
   const handleLocateMe = () => {
     // If we already detected the user's location, reuse it immediately

@@ -24,6 +24,7 @@ const BRANDS = [
 ];
 
 const MAX_ROWS = 50;
+const MAX_PHOTOS = 5;
 let rowSeq = 0;
 const newRow = (defaults = {}) => ({
   key: ++rowSeq,
@@ -36,8 +37,8 @@ const newRow = (defaults = {}) => ({
   fuelType: "",
   transmission: "",
   location: "",
-  image: "",
-  uploading: false,
+  images: [],
+  uploading: 0,
   error: "",
   ...defaults,
 });
@@ -51,14 +52,18 @@ const rowError = (r) => {
   if (!r.location.trim()) return "Location is required";
   return "";
 };
-const isBlank = (r) => !r.brand && !r.model && !r.year && !r.pricePerDay && !r.image;
+const isBlank = (r) => !r.brand && !r.model && !r.year && !r.pricePerDay && r.images.length === 0;
 
 export default function QuickAddFleet() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const user = getStoredUser();
-  const [defaultLocation, setDefaultLocation] = useState("");
-  const [rows, setRows] = useState(() => [newRow(), newRow(), newRow()]);
+  // Hosts gave their address at sign-up: every row starts with it (still editable per row)
+  const [defaultLocation, setDefaultLocation] = useState(() => user?.address || "");
+  const [rows, setRows] = useState(() => {
+    const location = user?.address || "";
+    return [newRow({ location }), newRow({ location }), newRow({ location })];
+  });
   const [saving, setSaving] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const fileInputs = useRef({});
@@ -68,16 +73,16 @@ export default function QuickAddFleet() {
       navigate(`/login?redirect=${encodeURIComponent("/fleet/quick-add")}`, { replace: true });
       return;
     }
-    // Pre-fill location from the company address so most rows need no typing
+    // A company's business address beats the personal one; rows the host already edited are kept
     if (user.role === "company") {
       axios
         .get(`${API_URL}/api/companies/me`)
         .then((res) => {
-          const addr = res.data?.address || "";
-          if (addr) {
-            setDefaultLocation(addr);
-            setRows((prev) => prev.map((r) => (r.location ? r : { ...r, location: addr })));
-          }
+          const addr = (res.data?.address || "").trim();
+          if (!addr) return;
+          const personal = user.address || "";
+          setDefaultLocation(addr);
+          setRows((prev) => prev.map((r) => (!r.location || r.location === personal ? { ...r, location: addr } : r)));
         })
         .catch(() => {});
     }
@@ -103,7 +108,7 @@ export default function QuickAddFleet() {
     }
     setRows((prev) => {
       const idx = prev.findIndex((r) => r.key === row.key);
-      const copy = newRow({ ...row, key: undefined, image: "", uploading: false, error: "" });
+      const copy = newRow({ ...row, key: undefined, images: [], uploading: 0, error: "" });
       copy.key = ++rowSeq;
       return [...prev.slice(0, idx + 1), copy, ...prev.slice(idx + 1)];
     });
@@ -112,16 +117,30 @@ export default function QuickAddFleet() {
   const removeRow = (key) =>
     setRows((prev) => (prev.length === 1 ? [newRow({ location: defaultLocation })] : prev.filter((r) => r.key !== key)));
 
-  const handlePhoto = async (row, file) => {
-    if (!file) return;
-    update(row.key, { uploading: true });
-    try {
-      const url = await uploadVehicleImage(file);
-      update(row.key, { image: url, uploading: false });
-    } catch (err) {
-      update(row.key, { uploading: false, error: err.message });
+  // Up to MAX_PHOTOS per vehicle; several can be picked at once and upload side by side
+  const changeRow = (key, fn) => setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...fn(r) } : r)));
+
+  const handlePhotos = (row, fileList) => {
+    const files = Array.from(fileList || []);
+    if (files.length === 0) return;
+    const free = MAX_PHOTOS - row.images.length - row.uploading;
+    if (free <= 0) {
+      toast.warning(`You can add up to ${MAX_PHOTOS} photos per vehicle.`);
+      return;
     }
+    if (files.length > free) toast.warning(`Only the first ${free} photo${free === 1 ? "" : "s"} will be added (max ${MAX_PHOTOS}).`);
+    files.slice(0, free).forEach(async (file) => {
+      changeRow(row.key, (r) => ({ uploading: r.uploading + 1, error: "" }));
+      try {
+        const url = await uploadVehicleImage(file);
+        changeRow(row.key, (r) => ({ images: [...r.images, url].slice(0, MAX_PHOTOS), uploading: r.uploading - 1 }));
+      } catch (err) {
+        changeRow(row.key, (r) => ({ uploading: r.uploading - 1, error: err.message }));
+      }
+    });
   };
+
+  const removePhoto = (key, index) => changeRow(key, (r) => ({ images: r.images.filter((_, i) => i !== index) }));
 
   const handleSave = async () => {
     const filled = rows.filter((r) => !isBlank(r));
@@ -153,7 +172,7 @@ export default function QuickAddFleet() {
           transmission: r.transmission,
           rentMode: r.rentMode,
           location: r.location,
-          images: r.image ? [r.image] : [],
+          images: r.images,
         })),
       });
       applyResults(filled, res.data);
@@ -229,18 +248,22 @@ export default function QuickAddFleet() {
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   hidden
                   ref={(el) => { fileInputs.current[r.key] = el; }}
-                  onChange={(e) => { handlePhoto(r, e.target.files?.[0]); e.target.value = ""; }}
+                  onChange={(e) => { handlePhotos(r, e.target.files); e.target.value = ""; }}
                 />
                 <button
                   type="button"
                   className="qa-photo"
                   onClick={() => fileInputs.current[r.key]?.click()}
-                  title={r.image ? "Change photo" : "Add photo"}
-                  style={r.image ? { backgroundImage: `url(${r.image})` } : undefined}
+                  title={`Add photos (${r.images.length}/${MAX_PHOTOS})`}
+                  aria-label={`Add photos for vehicle ${i + 1}, ${r.images.length} of ${MAX_PHOTOS} added`}
+                  disabled={r.images.length + r.uploading >= MAX_PHOTOS}
+                  style={r.images[0] ? { backgroundImage: `url(${r.images[0]})` } : undefined}
                 >
-                  {r.uploading ? <Loader2 size={18} className="qa-spin" /> : !r.image && <Camera size={18} />}
+                  {r.uploading ? <Loader2 size={18} className="qa-spin" /> : !r.images[0] && <Camera size={18} />}
+                  {r.images.length > 0 && <span className="qa-photo-count">{r.images.length}/{MAX_PHOTOS}</span>}
                 </button>
               </div>
               <label className="qa-cell">
@@ -308,6 +331,26 @@ export default function QuickAddFleet() {
                   <Trash2 size={15} /> <span className="qa-mobile-only">Remove</span>
                 </button>
               </div>
+              {(r.images.length > 0 || r.uploading > 0) && (
+                <div className="qa-photos">
+                  {r.images.map((img, idx) => (
+                    <div key={img + idx} className="qa-thumb" style={{ backgroundImage: `url(${img})` }}>
+                      <button type="button" className="qa-thumb-x" aria-label={`Remove photo ${idx + 1}`} onClick={() => removePhoto(r.key, idx)}>
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {Array.from({ length: r.uploading }, (_, idx) => (
+                    <div key={`up-${idx}`} className="qa-thumb-add"><Loader2 size={16} className="qa-spin" /></div>
+                  ))}
+                  {r.images.length + r.uploading < MAX_PHOTOS && (
+                    <button type="button" className="qa-thumb-add" aria-label="Add more photos" onClick={() => fileInputs.current[r.key]?.click()}>
+                      <Plus size={16} />
+                    </button>
+                  )}
+                  <span className="qa-photos-hint">{r.images.length}/{MAX_PHOTOS} photos · first one is the cover</span>
+                </div>
+              )}
               {r.error && (
                 <p className="qa-row-msg"><X size={14} /> {r.error}</p>
               )}
@@ -368,7 +411,26 @@ export default function QuickAddFleet() {
           width: 44px; height: 44px; border-radius: 10px; border: 1.5px dashed #cbd5e1; background: #f8fafc center / cover no-repeat;
           color: var(--text-hint); display: grid; place-items: center; cursor: pointer;
         }
-        .qa-photo:hover { border-color: var(--primary); color: var(--primary); }
+        .qa-photo { position: relative; }
+        .qa-photo:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+        .qa-photo:disabled { cursor: default; border-style: solid; }
+        .qa-photo-count {
+          position: absolute; right: -6px; bottom: -6px; padding: 1px 5px; border-radius: 999px;
+          background: #0f172a; color: #fff; font-size: 0.66rem; font-weight: 800; line-height: 1.4;
+        }
+        .qa-photos { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .qa-thumb { position: relative; width: 64px; height: 48px; border-radius: 8px; background: #f1f5f9 center / cover no-repeat; border: 1px solid var(--border); }
+        .qa-thumb-x {
+          position: absolute; top: -7px; right: -7px; width: 22px; height: 22px; border-radius: 50%;
+          display: grid; place-items: center; background: #fff; border: 1px solid var(--border); color: #475569; cursor: pointer;
+        }
+        .qa-thumb-x:hover { border-color: #ef4444; color: #ef4444; }
+        .qa-thumb-add {
+          width: 64px; height: 48px; border-radius: 8px; border: 1.5px dashed #cbd5e1; background: #f8fafc;
+          display: grid; place-items: center; color: var(--text-hint); cursor: pointer;
+        }
+        .qa-thumb-add:hover { border-color: var(--primary); color: var(--primary); }
+        .qa-photos-hint { font-size: 0.78rem; color: var(--text-muted); }
         .qa-spin { animation: qa-spin 0.8s linear infinite; }
         @keyframes qa-spin { to { transform: rotate(360deg); } }
         .qa-actions { flex-direction: row; gap: 6px; justify-content: flex-end; }
@@ -398,6 +460,8 @@ export default function QuickAddFleet() {
           .qa-photo-cell { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; }
           .qa-photo-cell .qa-mobile-label { font-size: 0.9rem; color: var(--text); font-weight: 800; margin: 0; }
           .qa-photo { width: 56px; height: 56px; }
+          .qa-photo-cell { order: -2; }
+          .qa-photos { order: -1; }
           .qa-actions { grid-column: 1 / -1; justify-content: stretch; }
           .qa-icon-btn { flex: 1; width: auto; height: 38px; }
           .qa-mobile-only { display: inline; }
