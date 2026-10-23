@@ -140,6 +140,7 @@ const AdminDashboard = () => {
   const [bookingsList, setBookingsList] = useState([]);
   const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
   const [bookingSearch, setBookingSearch] = useState("");
+  const [selectedBookings, setSelectedBookings] = useState([]);
 
   // Company Vehicles Inspection Modal State
   const [viewingCompany, setViewingCompany] = useState(null);
@@ -799,6 +800,51 @@ const AdminDashboard = () => {
       fetchTabData("rentals");
     } catch (err) {
       toast.error("Error deleting rental: " + err.message);
+    }
+  };
+
+  // Booking deletion handlers
+  const handleDeleteBooking = async (bookingId, bookingNumber) => {
+    const ok = await confirm({
+      title: `Delete Booking ${bookingNumber || ""}?`,
+      message: "Are you sure you want to permanently delete this booking request?",
+      confirmText: "Delete Booking",
+      isDestructive: true,
+    });
+    if (!ok) return;
+    try {
+      const res = await axios.delete(`${API_URL}/api/bookings/admin/${bookingId}`, {
+        headers: { "x-auth-token": token },
+      });
+      toast.success(res.data.msg || "Booking deleted");
+      setSelectedBookings((prev) => prev.filter((id) => id !== bookingId));
+      fetchStats();
+      fetchTabData("bookings");
+    } catch (err) {
+      toast.error("Error deleting booking: " + (err.response?.data?.msg || err.message));
+    }
+  };
+
+  const handleBatchDeleteBookings = async () => {
+    if (selectedBookings.length === 0) return;
+    const ok = await confirm({
+      title: `Delete ${selectedBookings.length} Selected Booking(s)?`,
+      message: `Are you sure you want to permanently delete the ${selectedBookings.length} selected booking inquiries? This cannot be undone.`,
+      confirmText: `Delete ${selectedBookings.length} Bookings`,
+      isDestructive: true,
+    });
+    if (!ok) return;
+    try {
+      const res = await axios.delete(`${API_URL}/api/bookings/admin/batch`, {
+        headers: { "x-auth-token": token },
+        data: { ids: selectedBookings },
+      });
+      toast.success(res.data.msg || "Selected bookings deleted successfully");
+      setSelectedBookings([]);
+      fetchStats();
+      fetchTabData("bookings");
+    } catch (err) {
+      toast.error("Error deleting bookings: " + (err.response?.data?.msg || err.message));
     }
   };
 
@@ -3959,11 +4005,86 @@ const AdminDashboard = () => {
                     cancelled: { label: "Cancelled", bg: "rgba(148, 163, 184, 0.14)", color: "var(--a-text-muted)" },
                   };
 
+                  const allFilteredIds = filtered.map((b) => b._id);
+                  const isAllSelected = filtered.length > 0 && allFilteredIds.every((id) => selectedBookings.includes(id));
+
+                  const toggleSelectAll = () => {
+                    if (isAllSelected) {
+                      setSelectedBookings((prev) => prev.filter((id) => !allFilteredIds.includes(id)));
+                    } else {
+                      setSelectedBookings((prev) => Array.from(new Set([...prev, ...allFilteredIds])));
+                    }
+                  };
+
+                  const toggleSelectBooking = (id) => {
+                    setSelectedBookings((prev) =>
+                      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+                    );
+                  };
+
                   return (
                     <div className="table-card">
+                      {selectedBookings.length > 0 && (
+                        <div
+                          style={{
+                            padding: "10px 16px",
+                            background: "rgba(239, 68, 68, 0.08)",
+                            borderBottom: "1px solid rgba(239, 68, 68, 0.2)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            flexWrap: "wrap",
+                            gap: 10,
+                          }}
+                        >
+                          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#ef4444" }}>
+                            {selectedBookings.length} booking{selectedBookings.length > 1 ? "s" : ""} selected
+                          </span>
+                          <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedBookings([])}
+                              className="btn-secondary-sm"
+                              style={{ padding: "4px 10px", fontSize: "0.78rem" }}
+                            >
+                              Deselect All
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleBatchDeleteBookings}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                padding: "6px 14px",
+                                borderRadius: 7,
+                                background: "#ef4444",
+                                color: "#ffffff",
+                                fontSize: "0.82rem",
+                                fontWeight: 750,
+                                border: "none",
+                                cursor: "pointer",
+                                boxShadow: "0 1px 3px rgba(239, 68, 68, 0.35)",
+                              }}
+                            >
+                              <Trash2 size={14} />
+                              <span>Delete Selected ({selectedBookings.length})</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       <table className="admin-table">
                         <thead>
                           <tr>
+                            <th style={{ width: 40, textAlign: "center" }}>
+                              <input
+                                type="checkbox"
+                                checked={isAllSelected}
+                                onChange={toggleSelectAll}
+                                title={isAllSelected ? "Deselect all" : "Select all on this view"}
+                                style={{ cursor: "pointer", width: 16, height: 16, accentColor: "#f97316" }}
+                              />
+                            </th>
                             <th>Ref & Time</th>
                             <th>Vehicle</th>
                             <th>Customer</th>
@@ -3980,9 +4101,18 @@ const AdminDashboard = () => {
                             const badge = statusBadges[b.status] || { label: b.status, bg: "rgba(148, 163, 184, 0.14)", color: "var(--a-text-muted)" };
                             const hostName = b.company?.companyName || b.host?.name || "Host";
                             const hostStatus = b.hostAvailabilityStatus;
+                            const isSelected = selectedBookings.includes(b._id);
 
                             return (
-                              <tr key={b._id}>
+                              <tr key={b._id} style={{ background: isSelected ? "rgba(249, 115, 22, 0.05)" : undefined }}>
+                                <td style={{ textAlign: "center" }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => toggleSelectBooking(b._id)}
+                                    style={{ cursor: "pointer", width: 16, height: 16, accentColor: "#f97316" }}
+                                  />
+                                </td>
                                 <td>
                                   <div>
                                     <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: "0.85rem", color: "var(--a-text)" }}>
@@ -4114,7 +4244,7 @@ const AdminDashboard = () => {
                                 </td>
 
                                 <td style={{ textAlign: "right" }}>
-                                  <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                                  <div style={{ display: "inline-flex", gap: 6, alignItems: "center", justifyContent: "flex-end" }}>
                                     <Link
                                       to={`/dispatch/${b._id}`}
                                       target="_blank"
@@ -4137,6 +4267,28 @@ const AdminDashboard = () => {
                                       <span>Open Dispatch</span>
                                       <ExternalLink size={12} />
                                     </Link>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteBooking(b._id, b.bookingNumber)}
+                                      className="btn-action-del"
+                                      title="Delete booking inquiry"
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        width: 32,
+                                        height: 32,
+                                        padding: 0,
+                                        borderRadius: 7,
+                                        background: "rgba(239, 68, 68, 0.1)",
+                                        border: "1px solid rgba(239, 68, 68, 0.2)",
+                                        color: "#ef4444",
+                                        cursor: "pointer",
+                                        transition: "all 0.15s ease",
+                                      }}
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
                                   </div>
                                 </td>
                               </tr>

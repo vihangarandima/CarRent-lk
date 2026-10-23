@@ -733,6 +733,51 @@ router.get("/admin/all", auth, async (req, res) => {
   }
 });
 
+// @route   DELETE /api/bookings/admin/batch
+// @desc    Admin deletes multiple bookings at once
+router.delete("/admin/batch", auth, async (req, res) => {
+  try {
+    let role = req.user?.role;
+    if (!role && req.user?.id) {
+      const dbUser = await User.findById(req.user.id).select("role");
+      role = dbUser?.role;
+    }
+    if (role !== "admin") return res.status(403).json({ msg: "Admin access required" });
+
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ msg: "Please provide an array of booking IDs to delete" });
+    }
+
+    const result = await Booking.deleteMany({ _id: { $in: ids } });
+    res.json({ msg: `Successfully deleted ${result.deletedCount} booking(s)` });
+  } catch (err) {
+    console.error("Error batch deleting bookings:", err);
+    res.status(500).json({ msg: "Server error batch deleting bookings" });
+  }
+});
+
+// @route   DELETE /api/bookings/admin/:id
+// @desc    Admin deletes a single booking
+router.delete("/admin/:id", auth, async (req, res) => {
+  try {
+    let role = req.user?.role;
+    if (!role && req.user?.id) {
+      const dbUser = await User.findById(req.user.id).select("role");
+      role = dbUser?.role;
+    }
+    if (role !== "admin") return res.status(403).json({ msg: "Admin access required" });
+
+    const booking = await Booking.findByIdAndDelete(req.params.id);
+    if (!booking) return res.status(404).json({ msg: "Booking not found" });
+
+    res.json({ msg: "Booking inquiry deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting booking:", err);
+    res.status(500).json({ msg: "Server error deleting booking" });
+  }
+});
+
 
 // @route   GET /api/bookings/host
 // @desc    Host fetches incoming booking inquiries for their vehicles in Host Dashboard
