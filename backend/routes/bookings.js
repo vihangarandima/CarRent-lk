@@ -649,6 +649,51 @@ router.get("/my", auth, async (req, res) => {
     console.error("Error fetching customer bookings:", err);
     res.status(500).json({ msg: "Server error fetching your bookings" });
   }
+// @route   DELETE /api/bookings/batch OR DELETE /api/bookings
+// @desc    Admin deletes multiple bookings at once
+router.delete("/batch", auth, async (req, res) => {
+  try {
+    let role = req.user?.role;
+    if (!role && req.user?.id) {
+      const dbUser = await User.findById(req.user.id).select("role");
+      role = dbUser?.role;
+    }
+    if (role !== "admin") return res.status(403).json({ msg: "Admin access required" });
+
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ msg: "Please provide an array of booking IDs to delete" });
+    }
+
+    const result = await Booking.deleteMany({ _id: { $in: ids } });
+    res.json({ msg: `Successfully deleted ${result.deletedCount} booking(s)` });
+  } catch (err) {
+    console.error("Error batch deleting bookings:", err);
+    res.status(500).json({ msg: "Server error batch deleting bookings" });
+  }
+});
+
+// @route   DELETE /api/bookings/:id
+// @desc    Admin deletes a single booking
+router.delete("/:id", auth, async (req, res) => {
+  try {
+    let role = req.user?.role;
+    if (!role && req.user?.id) {
+      const dbUser = await User.findById(req.user.id).select("role");
+      role = dbUser?.role;
+    }
+    if (role !== "admin") return res.status(403).json({ msg: "Admin access required" });
+
+    if (!isValidId(req.params.id)) return res.status(400).json({ msg: "Invalid booking ID" });
+
+    const booking = await Booking.findByIdAndDelete(req.params.id);
+    if (!booking) return res.status(404).json({ msg: "Booking not found" });
+
+    res.json({ msg: "Booking inquiry deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting booking:", err);
+    res.status(500).json({ msg: "Server error deleting booking" });
+  }
 });
 
 // @route   PATCH /api/bookings/:id/cancel

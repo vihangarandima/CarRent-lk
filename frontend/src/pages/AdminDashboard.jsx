@@ -814,19 +814,23 @@ const AdminDashboard = () => {
     if (!ok) return;
     try {
       let res;
-      try {
-        res = await axios.delete(`${API_URL}/api/admin/bookings/${bookingId}`, {
-          headers: { "x-auth-token": token },
-        });
-      } catch (err1) {
-        if (err1.response?.status === 404) {
-          res = await axios.delete(`${API_URL}/api/bookings/admin/${bookingId}`, {
-            headers: { "x-auth-token": token },
-          });
-        } else {
-          throw err1;
+      const endpoints = [
+        `${API_URL}/api/bookings/${bookingId}`,
+        `${API_URL}/api/admin/bookings/${bookingId}`,
+        `${API_URL}/api/bookings/admin/${bookingId}`,
+      ];
+      let lastErr = null;
+      for (const url of endpoints) {
+        try {
+          res = await axios.delete(url, { headers: { "x-auth-token": token } });
+          if (res) break;
+        } catch (e) {
+          lastErr = e;
+          if (e.response && e.response.status !== 404) throw e;
         }
       }
+      if (!res && lastErr) throw lastErr;
+
       toast.success(res?.data?.msg || "Booking deleted");
       setSelectedBookings((prev) => prev.filter((id) => id !== bookingId));
       fetchStats();
@@ -847,21 +851,26 @@ const AdminDashboard = () => {
     if (!ok) return;
     try {
       let res;
-      try {
-        res = await axios.delete(`${API_URL}/api/admin/bookings/batch`, {
-          headers: { "x-auth-token": token },
-          data: { ids: selectedBookings },
-        });
-      } catch (err1) {
-        if (err1.response?.status === 404) {
-          res = await axios.delete(`${API_URL}/api/bookings/admin/batch`, {
+      const endpoints = [
+        `${API_URL}/api/bookings/batch`,
+        `${API_URL}/api/admin/bookings/batch`,
+        `${API_URL}/api/bookings/admin/batch`,
+      ];
+      let lastErr = null;
+      for (const url of endpoints) {
+        try {
+          res = await axios.delete(url, {
             headers: { "x-auth-token": token },
             data: { ids: selectedBookings },
           });
-        } else {
-          throw err1;
+          if (res) break;
+        } catch (e) {
+          lastErr = e;
+          if (e.response && e.response.status !== 404) throw e;
         }
       }
+      if (!res && lastErr) throw lastErr;
+
       toast.success(res?.data?.msg || "Selected bookings deleted successfully");
       setSelectedBookings([]);
       fetchStats();
