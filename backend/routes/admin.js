@@ -726,6 +726,39 @@ router.delete("/rentals/:id", auth, adminOnly, async (req, res) => {
 });
 
 // ==========================================
+// BOOKINGS MANAGEMENT (SUPER ADMIN)
+// ==========================================
+
+// @route   DELETE /api/admin/bookings/batch
+// @desc    Super Admin batch delete bookings
+router.delete("/bookings/batch", auth, adminOnly, async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ msg: "Please provide an array of booking IDs to delete" });
+    }
+    const result = await Booking.deleteMany({ _id: { $in: ids } });
+    res.json({ msg: `Successfully deleted ${result.deletedCount} booking(s)` });
+  } catch (err) {
+    console.error("Error batch deleting bookings:", err);
+    res.status(500).json({ msg: "Server error batch deleting bookings" });
+  }
+});
+
+// @route   DELETE /api/admin/bookings/:id
+// @desc    Super Admin delete single booking
+router.delete("/bookings/:id", auth, adminOnly, async (req, res) => {
+  try {
+    const booking = await Booking.findByIdAndDelete(req.params.id);
+    if (!booking) return res.status(404).json({ msg: "Booking record not found" });
+    res.json({ msg: "Booking inquiry deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting booking:", err);
+    res.status(500).json({ msg: "Server error deleting booking" });
+  }
+});
+
+// ==========================================
 // REVIEWS MANAGEMENT (SUPER ADMIN)
 // ==========================================
 

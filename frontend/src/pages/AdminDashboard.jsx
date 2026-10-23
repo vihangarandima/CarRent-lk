@@ -813,10 +813,21 @@ const AdminDashboard = () => {
     });
     if (!ok) return;
     try {
-      const res = await axios.delete(`${API_URL}/api/bookings/admin/${bookingId}`, {
-        headers: { "x-auth-token": token },
-      });
-      toast.success(res.data.msg || "Booking deleted");
+      let res;
+      try {
+        res = await axios.delete(`${API_URL}/api/admin/bookings/${bookingId}`, {
+          headers: { "x-auth-token": token },
+        });
+      } catch (err1) {
+        if (err1.response?.status === 404) {
+          res = await axios.delete(`${API_URL}/api/bookings/admin/${bookingId}`, {
+            headers: { "x-auth-token": token },
+          });
+        } else {
+          throw err1;
+        }
+      }
+      toast.success(res?.data?.msg || "Booking deleted");
       setSelectedBookings((prev) => prev.filter((id) => id !== bookingId));
       fetchStats();
       fetchTabData("bookings");
@@ -835,11 +846,23 @@ const AdminDashboard = () => {
     });
     if (!ok) return;
     try {
-      const res = await axios.delete(`${API_URL}/api/bookings/admin/batch`, {
-        headers: { "x-auth-token": token },
-        data: { ids: selectedBookings },
-      });
-      toast.success(res.data.msg || "Selected bookings deleted successfully");
+      let res;
+      try {
+        res = await axios.delete(`${API_URL}/api/admin/bookings/batch`, {
+          headers: { "x-auth-token": token },
+          data: { ids: selectedBookings },
+        });
+      } catch (err1) {
+        if (err1.response?.status === 404) {
+          res = await axios.delete(`${API_URL}/api/bookings/admin/batch`, {
+            headers: { "x-auth-token": token },
+            data: { ids: selectedBookings },
+          });
+        } else {
+          throw err1;
+        }
+      }
+      toast.success(res?.data?.msg || "Selected bookings deleted successfully");
       setSelectedBookings([]);
       fetchStats();
       fetchTabData("bookings");
