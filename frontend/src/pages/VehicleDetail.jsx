@@ -31,6 +31,7 @@ import VehicleCard, { kmAllowanceLabel } from "../components/VehicleCard";
 import BookingAuthModal from "../components/BookingAuthModal";
 import { needsProfileCompletion } from "../utils/profile";
 import { formatFuel, formatGearbox } from "../utils/vehicleText";
+import { formatPublicLocation } from "../utils/locationHelper";
 
 // Normalise a Sri Lankan phone number to the international digits wa.me expects
 const toWhatsAppNumber = (phone) => {
@@ -417,11 +418,6 @@ const VehicleDetail = () => {
         {/* Breadcrumb */}
         <div className="breadcrumb">
           <Link to="/vehicles">← Back to Listings</Link>
-          {vehicle.company && vehicle.company._id && vehicle.company.companyName && !vehicle.company.isPersonal && (
-            <span style={{ marginLeft: 8, color: "#94a3b8" }}>
-              / <Link to={`/companies/${vehicle.company._id}`} style={{ color: "#ea580c" }}>{vehicle.company.companyName}</Link>
-            </span>
-          )}
         </div>
 
         <div className="detail-grid">
@@ -493,6 +489,9 @@ const VehicleDetail = () => {
                 <span className="vehicle-year-chip">{vehicle.year}</span>
                 <span className="vehicle-year-chip" style={{ marginLeft: 6, background: "rgba(249,115,22,0.12)", color: "#ea580c" }}>
                   {rentModeLabel}
+                </span>
+                <span className="vehicle-year-chip" style={{ marginLeft: 6, background: "rgba(15,23,42,0.06)", color: "#475569" }}>
+                  📍 {formatPublicLocation(vehicle.location)}
                 </span>
                 <h1>
                   {vehicle.brand} {vehicle.model}
@@ -580,11 +579,11 @@ const VehicleDetail = () => {
               </div>
               
               <div className="owner-row">
-                <div className="owner-avatar">{vehicle.company?.companyName?.[0] || "Y"}</div>
+                <div className="owner-avatar">Y</div>
                 <div>
-                  <strong>{vehicle.company?.companyName || "Verified Yamu host"}</strong>
+                  <strong>Verified Yamu Fleet Partner</strong>
                   <p>
-                    {vehicle.company ? "Rent-a-car company" : "Individual owner"}
+                    Verified Fleet Partner
                     {hostSince && ` · on Yamu since ${hostSince}`}
                   </p>
                 </div>

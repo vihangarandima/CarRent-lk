@@ -5,6 +5,7 @@ import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import DateRangeField from "../components/DateRangeField";
 import VehicleCard from "../components/VehicleCard";
 import PageHero from "../components/PageHero";
+import { formatPublicLocation } from "../utils/locationHelper";
 import {
   GoogleMap,
   useJsApiLoader,
@@ -1272,7 +1273,7 @@ const VehicleListing = () => {
                                   </div>
                                 )}
                               <p className="map-info-location">
-                                <MapPin size={12} /> {curV.location}
+                                <MapPin size={12} /> {formatPublicLocation(curV.location)}
                               </p>
                               <div className="map-info-footer">
                                 <span className="map-info-price">
@@ -1397,7 +1398,7 @@ const VehicleListing = () => {
                               )}
                           </div>
                           <span className="map-sidebar-loc">
-                            <MapPin size={11} /> {v.location}
+                            <MapPin size={11} /> {formatPublicLocation(v.location)}
                           </span>
                           <span className="map-sidebar-price">
                             LKR {v.pricePerDay?.toLocaleString()}/day

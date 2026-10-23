@@ -14,6 +14,7 @@ import {
 import { formatVehicleImageUrl, handleImageError } from "../utils/imageHelper";
 import { useCurrency } from "../context/CurrencyContext";
 import { formatFuel, formatGearbox } from "../utils/vehicleText";
+import { formatPublicLocation } from "../utils/locationHelper";
 
 const TYPE_LABELS = {
   bicycle: "Bike",
@@ -134,15 +135,6 @@ const VehicleCard = ({ vehicle, index = 0, searchDates = null }) => {
           <h3>
             {vehicle.brand} {vehicle.model}
           </h3>
-          {companyId && companyName && !isPersonalHost && (
-            <Link
-              to={`/companies/${companyId}`}
-              className="v-company-link"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Building2 size={12} /> {companyName}
-            </Link>
-          )}
         </div>
 
         {/* Only show specs the lister actually entered */}
@@ -189,7 +181,7 @@ const VehicleCard = ({ vehicle, index = 0, searchDates = null }) => {
         <div className="v-card-footer">
           <div className="v-location">
             <MapPin size={13} />
-            <span>{vehicle.location || "Sri Lanka"}</span>
+            <span>{formatPublicLocation(vehicle.location)}</span>
           </div>
           <div className="v-pricing">
             <div className="v-price-main">

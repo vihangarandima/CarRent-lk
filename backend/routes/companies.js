@@ -153,15 +153,17 @@ router.get('/:id', async (req, res) => {
         if (!company) return res.status(404).json({ msg: 'Company not found' });
 
         const vehicles = await Vehicle.find({ company: company._id, ...PUBLIC_STATUS_FILTER })
-            .populate("company", "companyName logo isVerified");
+            .select("_id location");
         const vehicleIds = vehicles.map(v => v._id);
+        const cities = [...new Set(vehicles.map(v => v.location).filter(Boolean))];
         const reviews = await Review.find({ vehicle: { $in: vehicleIds } });
         const reviewCount = reviews.length;
         const rating = reviewCount > 0
             ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount)
             : 0;
 
-        res.json({ ...company.toObject(), vehicles, rating, reviewCount });
+        // Do not expose company-owned vehicles list to public website users
+        res.json({ ...company.toObject(), vehicles: [], vehicleCount: vehicles.length, cities, rating, reviewCount });
     } catch (err) {
         console.error(err);
         res.status(500).json({ msg: 'Server Error' });

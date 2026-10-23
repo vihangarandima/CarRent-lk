@@ -62,7 +62,7 @@ router.get("/", async (req, res) => {
     // Public listing: never send listers' contact or personal details
     const vehicles = await Vehicle.find(query)
       .populate("owner", "role")
-      .populate("company", "companyName logo isVerified")
+      .populate("company", "isVerified")
       .sort({ isFeatured: -1, createdAt: -1 })
       .lean();
 
@@ -347,7 +347,7 @@ router.get("/:id", async (req, res) => {
     // Renters book through Yamu, so the public page gets no lister contact or personal details
     const vehicle = await Vehicle.findById(req.params.id)
       .populate("owner", "createdAt")
-      .populate("company", "companyName logo isVerified createdAt");
+      .populate("company", "isVerified createdAt");
     if (!vehicle) return res.status(404).json({ msg: "Vehicle not found" });
     res.json(vehicle);
   } catch (err) {

@@ -327,7 +327,7 @@ const Companies = () => {
                   {/* Card Footer CTA */}
                   <div className="company-card-footer">
                     <div className="footer-btn">
-                      <span>View Live Fleet ({company.vehicleCount || 0} cars)</span>
+                      <span>View Partner Details</span>
                       <ArrowRight size={16} className="arrow-icon" />
                     </div>
                   </div>

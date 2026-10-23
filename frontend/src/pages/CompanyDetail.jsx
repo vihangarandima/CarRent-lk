@@ -101,23 +101,23 @@ const CompanyDetail = () => {
       </section>
 
       <section className="container cdp-fleet">
-        <div className="cdp-fleet-head">
-          <h2><Car size={22} /> Fleet</h2>
-          <span>{vehicles.length} {vehicles.length === 1 ? "vehicle" : "vehicles"}</span>
+        <div className="y-card cdp-empty" style={{ margin: "2rem auto", maxWidth: 650, textAlign: "center", padding: "3rem 2rem" }}>
+          <Building2 size={44} color="#f97316" style={{ margin: "0 auto 1rem" }} />
+          <h2 style={{ fontSize: "1.4rem", fontWeight: 800, marginBottom: "0.75rem", color: "#0f172a" }}>Official Fleet Partner</h2>
+          <p style={{ color: "#64748b", lineHeight: 1.6, marginBottom: "1.5rem" }}>
+            {company.companyName} is an officially verified Yamu fleet partner. All bookings, vehicle assignments, and concierge dispatches are managed centrally through Yamu Car Rentals to ensure standard pricing and verified quality.
+          </p>
+          <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+            <Link to="/vehicles" className="y-btn y-btn-primary" style={{ padding: "12px 24px", fontWeight: 700 }}>
+              Browse Available Cars
+            </Link>
+            {phone && (
+              <a className="y-btn y-btn-soft" href={`https://wa.me/${phone}?text=${waText}`} target="_blank" rel="noopener noreferrer" style={{ padding: "12px 20px" }}>
+                <MessageCircle size={17} /> Enquire on WhatsApp
+              </a>
+            )}
+          </div>
         </div>
-        {vehicles.length === 0 ? (
-          <div className="y-card cdp-empty">
-            <Car size={36} color="#f97316" />
-            <p>This company hasn't listed any vehicles yet.</p>
-            <Link to="/vehicles" className="y-btn y-btn-soft">Browse all vehicles</Link>
-          </div>
-        ) : (
-          <div className="cdp-grid">
-            {vehicles.map((v, i) => (
-              <VehicleCard key={v._id} vehicle={v} index={i} />
-            ))}
-          </div>
-        )}
       </section>
 
       <style>{styles}</style>

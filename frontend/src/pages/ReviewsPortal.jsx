@@ -955,8 +955,8 @@ const ReviewsPortal = () => {
                         {rev.vehicle.brand} {rev.vehicle.model} ({rev.vehicle.year})
                       </span>
                       <span className="pill-subtitle">
-                        {rev.vehicle.company?.companyName
-                          ? `${rev.vehicle.company.companyName} Fleet`
+                        {rev.vehicle.rentMode === "with-driver"
+                          ? "Chauffeur Driven Rental"
                           : "Self-Drive Rental"}
                       </span>
                     </div>
