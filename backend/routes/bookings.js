@@ -649,6 +649,8 @@ router.get("/my", auth, async (req, res) => {
     console.error("Error fetching customer bookings:", err);
     res.status(500).json({ msg: "Server error fetching your bookings" });
   }
+});
+
 // @route   DELETE /api/bookings/batch OR DELETE /api/bookings
 // @desc    Admin deletes multiple bookings at once
 router.delete("/batch", auth, async (req, res) => {
