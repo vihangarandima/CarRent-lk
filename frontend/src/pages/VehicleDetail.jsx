@@ -787,7 +787,8 @@ const VehicleDetail = () => {
                     {showTerms && (
                       <ul className="bk-terms-list">
                         <li>🪪 Valid driving licence (international permit for visitors) and NIC or passport at pickup.</li>
-                        <li>🛡️ A refundable security deposit is paid at pickup and returned after a safe return.</li>
+                        <li>🛡️ All rental payments and refundable security deposits are settled directly with the vehicle owner (no transactions go through Yamu).</li>
+                        <li>⚠️ Yamu is strictly a connecting intermediary and takes no responsibility for vehicle damages, accidents, or rental disputes.</li>
                         <li>⛽ Return the vehicle with the same fuel level.</li>
                         <li>
                           🛣️ {kmAllowanceLabel(vehicle?.kmPerDay)}
