@@ -64,6 +64,8 @@ import {
 import { useToast } from "../context/ToastContext";
 import FestivalAccessoriesManager from "../components/festivals/FestivalAccessoriesManager";
 import { formatFuel, formatGearbox } from "../utils/vehicleText";
+import { uploadVehicleImage } from "../utils/uploadImage";
+import { UploadCloud, Loader2 } from "lucide-react";
 
 const VEHICLE_TYPES = [
   { id: "bicycle", label: "Bicycle / Bike" },
@@ -155,6 +157,8 @@ const AdminDashboard = () => {
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [vehicleForm, setVehicleForm] = useState({});
   const [savingVehicle, setSavingVehicle] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(0); // number of in-flight image uploads
+  const [imageDragOver, setImageDragOver] = useState(false);
 
   const [rejectingVehicle, setRejectingVehicle] = useState(null);
   const [rejectionReasonInput, setRejectionReasonInput] = useState("");
@@ -475,7 +479,42 @@ const AdminDashboard = () => {
     });
   };
 
+  // Upload dropped / selected image files and append the resulting URLs to the vehicle form
+  const handleAdminImageFiles = async (fileList) => {
+    const files = Array.from(fileList || []).filter((f) => f.type?.startsWith("image/"));
+    if (files.length === 0) {
+      toast.error("Please choose image files (JPG, PNG, WebP or GIF).");
+      return;
+    }
+    setUploadingImages((n) => n + files.length);
+    for (const file of files) {
+      try {
+        const url = await uploadVehicleImage(file);
+        // Functional update so several finishing uploads never overwrite each other
+        setVehicleForm((prev) => ({
+          ...prev,
+          images: [...(Array.isArray(prev.images) ? prev.images : []), url],
+        }));
+      } catch (err) {
+        toast.error(`${file.name}: ${err.message}`);
+      } finally {
+        setUploadingImages((n) => Math.max(0, n - 1));
+      }
+    }
+  };
+
+  const handleAdminImageDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setImageDragOver(false);
+    handleAdminImageFiles(e.dataTransfer?.files);
+  };
+
   const handleSaveVehicleAdmin = async (forceApprove = false) => {
+    if (uploadingImages > 0) {
+      toast.info("Please wait for image uploads to finish.");
+      return;
+    }
     if (!editingVehicle) return;
     setSavingVehicle(true);
     try {
@@ -4896,11 +4935,42 @@ const AdminDashboard = () => {
 
                   {/* Images Editor */}
                   <div className="form-group full-width">
-                    <label>Vehicle Images (URLs)</label>
+                    <label>Vehicle Images</label>
+                    <label
+                      className={`img-dropzone ${imageDragOver ? "img-dropzone-active" : ""}`}
+                      onDragEnter={(e) => { e.preventDefault(); setImageDragOver(true); }}
+                      onDragOver={(e) => { e.preventDefault(); setImageDragOver(true); }}
+                      onDragLeave={(e) => { e.preventDefault(); setImageDragOver(false); }}
+                      onDrop={handleAdminImageDrop}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        hidden
+                        className="img-dropzone-input"
+                        onChange={(e) => {
+                          handleAdminImageFiles(e.target.files);
+                          e.target.value = ""; // allow re-selecting the same file
+                        }}
+                      />
+                      {uploadingImages > 0 ? (
+                        <>
+                          <Loader2 size={22} className="img-dropzone-spin" />
+                          <strong>Uploading {uploadingImages} image{uploadingImages > 1 ? "s" : ""}...</strong>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud size={22} />
+                          <strong>Drag &amp; drop images here, or click to select files</strong>
+                          <span>JPG, PNG, WebP or GIF, up to 10MB each. The first image is the cover photo.</span>
+                        </>
+                      )}
+                    </label>
                     <div className="images-editor-grid">
                       {Array.isArray(vehicleForm.images) && vehicleForm.images.map((img, idx) => (
                         <div key={idx} className="img-editor-card">
-                          <img src={img} alt="Vehicle" className="img-editor-thumb" />
+                          <img src={formatVehicleImageUrl(img, vehicleForm.vehicleType)} alt="Vehicle" className="img-editor-thumb" />
                           <button
                             type="button"
                             className="btn-remove-img"
@@ -7556,6 +7626,48 @@ const AdminDashboard = () => {
           background: rgba(249, 115, 22, 0.2);
           border-color: rgba(249, 115, 22, 0.4);
           color: var(--a-text-strong);
+        }
+
+        .form-group input.img-dropzone-input { display: none; }
+
+        .form-group label.img-dropzone {
+          text-transform: none;
+          letter-spacing: normal;
+          font-size: 0.85rem;
+          font-weight: 400;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          padding: 16px 12px;
+          margin-top: 6px;
+          text-align: center;
+          border: 2px dashed var(--a-border, rgba(148, 163, 184, 0.5));
+          border-radius: 10px;
+          background: var(--a-bg-2);
+          color: var(--a-text-strong);
+          cursor: pointer;
+          transition: border-color 0.2s, background 0.2s;
+        }
+
+        .img-dropzone:hover,
+        .img-dropzone-active {
+          border-color: #f97316;
+          background: rgba(249, 115, 22, 0.08);
+        }
+
+        .img-dropzone span {
+          font-size: 0.75rem;
+          opacity: 0.7;
+        }
+
+        .img-dropzone-spin {
+          animation: img-dropzone-spin 0.8s linear infinite;
+        }
+
+        @keyframes img-dropzone-spin {
+          to { transform: rotate(360deg); }
         }
 
         .images-editor-grid {
