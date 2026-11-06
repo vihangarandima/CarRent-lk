@@ -34,12 +34,32 @@ const cleanImages = (images) =>
     ? images.filter((img) => typeof img === "string" && img.trim() !== "").slice(0, 5)
     : [];
 
+// Lightweight in-memory cache for public GET /api/vehicles (30s TTL)
+let globalVehiclesCache = null;
+let globalVehiclesCacheTime = 0;
+const CACHE_TTL_MS = 30 * 1000;
+
+const invalidateVehiclesCache = () => {
+  globalVehiclesCache = null;
+  globalVehiclesCacheTime = 0;
+};
+
 // @route   GET api/vehicles
 // @desc    Get all vehicles with filters (shows both available and date-booked vehicles)
 router.get("/", async (req, res) => {
   try {
-    await autoExpireRentals(); // Refresh overdue rentals into active inventory
+    // Non-blocking auto-expiry check: don't hold up the visitor's HTTP connection
+    autoExpireRentals().catch((err) => console.error("Auto-expire non-blocking error:", err));
+
     const { brand, model, location, minPrice, maxPrice, companyId, vehicleType, mode } = req.query;
+    const hasFilters = Object.keys(req.query).length > 0;
+    const nowMs = Date.now();
+
+    // Serve from in-memory cache for unfiltered public requests within 30 seconds (< 5ms response)
+    if (!hasFilters && globalVehiclesCache && nowMs - globalVehiclesCacheTime < CACHE_TTL_MS) {
+      return res.json(globalVehiclesCache);
+    }
+
     // Approved vehicles remain listed even when booked for specific dates
     let query = { status: { $in: ["active", "rented"] } };
     // "self-drive" also matches vehicles offered both ways (and older listings without a mode)
@@ -119,6 +139,11 @@ router.get("/", async (req, res) => {
         hasBookings: hasActiveBookings,
       };
     });
+
+    if (!hasFilters) {
+      globalVehiclesCache = enrichedVehicles;
+      globalVehiclesCacheTime = Date.now();
+    }
 
     res.json(enrichedVehicles);
   } catch (err) {
@@ -239,6 +264,7 @@ router.post("/", auth, async (req, res) => {
       approvedAt: isListerAdmin ? new Date() : undefined,
     });
     const vehicle = await newVehicle.save();
+    invalidateVehiclesCache();
     res.json({
       ...vehicle.toObject(),
       listerRole: lister.role,
@@ -331,6 +357,7 @@ router.post("/bulk", auth, async (req, res) => {
     }
 
     const saved = results.filter((r) => r.ok).length;
+    if (saved > 0) invalidateVehiclesCache();
     res.status(saved > 0 ? 200 : 400).json({ saved, failed: results.length - saved, results, listerRole: lister.role });
   } catch (err) {
     console.error("Bulk listing error:", err);
@@ -422,6 +449,7 @@ const handleVehicleUpdate = async (req, res) => {
     }
 
     await vehicle.save();
+    invalidateVehiclesCache();
     res.json(vehicle);
   } catch (err) {
     console.error("Error updating vehicle:", err);
@@ -465,6 +493,7 @@ router.delete("/:id", auth, async (req, res) => {
       Bid.deleteMany({ vehicle: vehicleId }),
     ]);
 
+    invalidateVehiclesCache();
     res.json({ msg: "Vehicle and all associated records removed" });
   } catch (err) {
     console.error("Error deleting vehicle:", err);

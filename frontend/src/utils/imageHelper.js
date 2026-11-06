@@ -14,8 +14,29 @@ export const CATEGORY_FALLBACK_IMAGES = {
 export const DEFAULT_CAR_IMAGE = CATEGORY_FALLBACK_IMAGES.car;
 
 /**
+ * Injects dynamic Cloudinary transformations on the fly:
+ * - f_auto: Serves modern WebP or AVIF based on browser support
+ * - q_auto: Intelligent compression reducing file sizes by ~85-95%
+ * - w_700: Downscales high-res 4000px camera photos to crisp card dimensions
+ * - c_fill, g_auto: Perfectly centers the vehicle
+ */
+export const optimizeCloudinaryUrl = (url, width = 700) => {
+  if (!url || typeof url !== "string") return url;
+  if (url.includes("res.cloudinary.com") && url.includes("/image/upload/")) {
+    // Avoid double transformation if already present
+    if (!url.includes("/image/upload/f_auto") && !url.includes("/image/upload/w_")) {
+      return url.replace(
+        "/image/upload/",
+        `/image/upload/f_auto,q_auto,w_${width},c_fill,g_auto/`
+      );
+    }
+  }
+  return url;
+};
+
+/**
  * Resolves vehicle image URLs cleanly:
- * - If already a Cloudinary or remote HTTPS link, returns as-is.
+ * - If already a Cloudinary or remote HTTPS link, returns as-is with auto-compression.
  * - If pointing to the old dead blue car or broken render disk, replaces with category fallback.
  * - If pointing to localhost:5000 in production, swaps it with active API_URL.
  * - If a relative path (/uploads/...), prepends API_URL.
@@ -29,14 +50,14 @@ export const formatVehicleImageUrl = (imgInput, vehicleType = "car") => {
   }
 
   if (!imgUrl || typeof imgUrl !== "string" || imgUrl.trim() === "") {
-    return fallback;
+    return optimizeCloudinaryUrl(fallback, 700);
   }
 
   const trimmed = imgUrl.trim();
 
   // Banish the old blue Fiat 500 & dead render disk links permanently
   if (trimmed.includes("photo-1549317661") || trimmed.includes("carrents-backend.onrender.com")) {
-    return fallback;
+    return optimizeCloudinaryUrl(fallback, 700);
   }
 
   // If it's a blob/object URL or inline data URI, return as-is
@@ -56,7 +77,8 @@ export const formatVehicleImageUrl = (imgInput, vehicleType = "car") => {
     return `${API_URL.replace(/\/$/, "")}${trimmed}`;
   }
 
-  return trimmed;
+  // Automatically optimize Cloudinary URLs to lightweight WebP/AVIF
+  return optimizeCloudinaryUrl(trimmed, 700);
 };
 
 /**

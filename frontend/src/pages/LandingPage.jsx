@@ -148,11 +148,59 @@ const resolveTestimonialAvatar = (t) => {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(t?.name || "Customer")}&background=f97316&color=fff&bold=true`;
 };
 
+const VehicleCardSkeleton = () => (
+  <div className="v-card-skeleton">
+    <div className="skeleton-img shimmer" />
+    <div className="skeleton-body">
+      <div className="skeleton-line shimmer title-line" />
+      <div className="skeleton-chips">
+        <div className="skeleton-chip shimmer" />
+        <div className="skeleton-chip shimmer" />
+        <div className="skeleton-chip shimmer" />
+      </div>
+      <div className="skeleton-footer">
+        <div className="skeleton-line shimmer price-line" />
+        <div className="skeleton-btn shimmer" />
+      </div>
+    </div>
+  </div>
+);
+
 const LandingPage = () => {
   const { config } = useSiteConfig();
-  const [featuredCars, setFeaturedCars] = useState([]);
-  const [totalListed, setTotalListed] = useState(null);
-  const [loading, setLoading] = useState(true);
+
+  // Instant Stale-While-Revalidate: load cached cars immediately (0ms wait)
+  const [featuredCars, setFeaturedCars] = useState(() => {
+    try {
+      const cached = localStorage.getItem("cached_featured_cars");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn("Could not read cached cars:", e);
+    }
+    return [];
+  });
+
+  const [totalListed, setTotalListed] = useState(() => {
+    try {
+      const cached = localStorage.getItem("cached_total_listed");
+      return cached ? Number(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Only show skeletons if no cached cars exist yet
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = localStorage.getItem("cached_featured_cars");
+      return !cached || JSON.parse(cached).length === 0;
+    } catch {
+      return true;
+    }
+  });
   const [liveReviews, setLiveReviews] = useState([]);
 
   const activeCategories = config?.home?.categories || categories;
@@ -205,8 +253,17 @@ const LandingPage = () => {
           return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
         });
         // Display top 8 vehicles on Home Page
-        setFeaturedCars(sorted.slice(0, 8));
+        const top8 = sorted.slice(0, 8);
+        setFeaturedCars(top8);
         setTotalListed(allCars.length);
+
+        // Cache for 0-second instant load on future visits
+        try {
+          localStorage.setItem("cached_featured_cars", JSON.stringify(top8));
+          localStorage.setItem("cached_total_listed", String(allCars.length));
+        } catch (e) {
+          console.warn("Could not write cached cars:", e);
+        }
       } catch (error) {
         console.error("Error fetching cars:", error);
       } finally {
@@ -252,11 +309,10 @@ const LandingPage = () => {
           </div>
 
           <div className="vehicle-grid">
-            {loading ? (
-              <div className="loading-state">
-                <div className="spinner" />
-                <p>Loading vehicles...</p>
-              </div>
+            {loading && featuredCars.length === 0 ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <VehicleCardSkeleton key={`skeleton-${i}`} />
+              ))
             ) : featuredCars.length > 0 ? (
               featuredCars.map((car, i) => (
                 <VehicleCard key={car._id} vehicle={car} index={i} />
@@ -642,6 +698,95 @@ const LandingPage = () => {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
           gap: 1.75rem;
+        }
+
+        /* Modern Shimmer Skeleton Cards */
+        .v-card-skeleton {
+          background: #ffffff;
+          border-radius: var(--radius-xl, 16px);
+          overflow: hidden;
+          border: 1px solid rgba(226, 232, 240, 0.8);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+          display: flex;
+          flex-direction: column;
+          height: 380px;
+        }
+
+        .skeleton-img {
+          width: 100%;
+          height: 200px;
+          background: #e2e8f0;
+        }
+
+        .skeleton-body {
+          padding: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          gap: 0.85rem;
+        }
+
+        .skeleton-line {
+          height: 16px;
+          background: #e2e8f0;
+          border-radius: 6px;
+        }
+
+        .skeleton-line.title-line {
+          width: 70%;
+          height: 20px;
+        }
+
+        .skeleton-chips {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .skeleton-chip {
+          height: 22px;
+          width: 65px;
+          background: #e2e8f0;
+          border-radius: 6px;
+        }
+
+        .skeleton-footer {
+          margin-top: auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 0.5rem;
+        }
+
+        .skeleton-line.price-line {
+          width: 45%;
+          height: 22px;
+        }
+
+        .skeleton-btn {
+          width: 85px;
+          height: 36px;
+          border-radius: 8px;
+          background: #e2e8f0;
+        }
+
+        .shimmer {
+          background: linear-gradient(
+            90deg,
+            #f1f5f9 0%,
+            #e2e8f0 50%,
+            #f1f5f9 100%
+          );
+          background-size: 200% 100%;
+          animation: shimmerSweep 1.5s infinite;
+        }
+
+        @keyframes shimmerSweep {
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -200% 0;
+          }
         }
 
         .loading-state,
